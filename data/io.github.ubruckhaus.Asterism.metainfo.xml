@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.ubruckhaus.Asterism</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <name>Asterism</name>
+  <summary>Your AI agents, models and tools on one map</summary>
+  <developer id="io.github.ubruckhaus">
+    <name>Uwe Bruckhaus</name>
+  </developer>
+  <description>
+    <p>Asterism shows the AI setup on your computer as cards and a map: coding agents with their
+    plan, limits and usage, local LLMs and their models, MCP servers and skills. Connect them by
+    drawing a line, with a preview and Undo.</p>
+    <ul>
+      <li>See what each agent still needs, with the command that fixes it</li>
+      <li>Install local LLMs and download models; they start and stop with their agents</li>
+      <li>Find MCP servers and skills on your computer or on the web</li>
+      <li>A health check: what works, what to fix, and what the setup is good for</li>
+    </ul>
+    <p>On Omarchy, the same app is the AI Agents Map plugin.</p>
+  </description>
+  <launchable type="desktop-id">io.github.ubruckhaus.Asterism.desktop</launchable>
+  <url type="homepage">https://github.com/uBruckhaus/asterism</url>
+  <url type="bugtracker">https://github.com/uBruckhaus/asterism/issues</url>
+  <content_rating type="oars-1.1"/>
+  <releases>
+    <release version="0.1.0" date="2026-10-17"/>
+  </releases>
+</component>

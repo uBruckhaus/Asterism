@@ -1,0 +1,25 @@
+# Maintainer: Uwe Bruckhaus
+pkgname=asterism
+pkgver=0.1.0
+pkgrel=1
+pkgdesc="Your AI agents, models and tools on one map (GTK4/libadwaita)"
+arch=('any')
+url="https://github.com/uBruckhaus/asterism"
+license=('MIT')
+depends=('python' 'python-gobject' 'gtk4' 'libadwaita' 'curl' 'ttf-nerd-fonts-symbols')
+optdepends=('vte4: agents in a terminal inside the window'
+            'xdg-terminal-exec: start agents in your own terminal'
+            'mise: updates for agents installed with mise')
+source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/v$pkgver.tar.gz")
+sha256sums=('SKIP')   # set by updpkgsums for each release
+
+package() {
+    cd "$pkgname-$pkgver"
+    install -d "$pkgdir/usr/lib/asterism"
+    install -m644 ./*.py "$pkgdir/usr/lib/asterism/"
+    install -Dm755 bin/asterism "$pkgdir/usr/bin/asterism"
+    install -Dm644 data/io.github.ubruckhaus.Asterism.desktop -t "$pkgdir/usr/share/applications/"
+    install -Dm644 data/io.github.ubruckhaus.Asterism.metainfo.xml -t "$pkgdir/usr/share/metainfo/"
+    install -Dm644 data/icons/io.github.ubruckhaus.Asterism.svg -t "$pkgdir/usr/share/icons/hicolor/scalable/apps/"
+    install -Dm644 LICENSE -t "$pkgdir/usr/share/licenses/$pkgname/"
+}

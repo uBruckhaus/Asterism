@@ -1,0 +1,992 @@
+"""The Map: graph.Graph drawn as four columns of boxes joined by curves.
+
+Hovering a box lights it and everything it is joined to; the rest fades.
+A click selects a box (agent, provider, anything), Shift+click adds or
+removes more; only one agent at a time (another agent replaces it). With
+an agent selected, a click on a model of a local LLM the agent is
+connected to calls on_pick_model(agent id, runtime id, model) to make it
+the agent's model. In a category with a selection (agents, say) only the
+selected boxes stay; the other columns keep every box, but only the
+connections of the selection are drawn and the rest fades. Holding Shift
+brings the hidden boxes back (faded) so more can be added.
+
+Dragging from an agent to a local LLM, an MCP server or a skill set (or back) draws a
+line; letting go over a fitting box calls on_link(agent id, target id) to
+set it up. Clicking an agent's line to a local LLM or MCP server selects
+it (a handle at the far end); dragging it to another LLM calls
+on_relink(agent, old, new), onto empty space on_relink(agent, old, None).
+Right-click on a box calls on_context(node id, box rectangle).
+Zoom (set_zoom, Ctrl+scroll): the drawing is scaled; boxes, lines and
+clicks stay in map units (x / zoom), rectangles handed out are in pixels.
+Each agent's active path (agent → provider in use → its model) is drawn
+bold in the accent colour: every agent's without a selection, else only
+the selected or hovered agent's.
+Colours come from the Omarchy theme (set_palette).
+"""
+
+import math
+
+import cairo
+
+import graph as graph_model
+
+import gi
+
+gi.require_version("PangoCairo", "1.0")
+from gi.repository import Gdk, GLib, Gtk, Pango, PangoCairo  # noqa: E402
+
+NODE_H = 38
+NODE_GAP = 8
+GROUP_GAP = 22           # column 0: between the MCP servers and the skill sets
+GROUP_LABEL_H = 16       # the small heading above each group
+HEADER_H = 30
+PAD = 12
+ZOOM_STEPS = (0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.25, 1.5, 1.75, 2.0, 2.5)
+COLUMN_GAP_MIN = 56
+COLUMN_GAP_MAX = 300
+NODE_W_MAX = 260
+NODE_W_MIN = 120
+# The categories whose boxes each column holds (a column with none of them on is gone).
+COLUMN_LAYERS = {0: {"mcp", "skills"}, 1: {"agents"}, 2: {"online", "local"}, 3: {"models"}}
+# Categories: selecting in one hides that category's other boxes.
+CATEGORY = {"agent": "agent", "cloud": "provider", "runtime": "provider", "model": "model", "more": "model",
+            "mcp": "tool", "skills": "tool"}
+EDGE_COLORS = {"uses": "accent", "available": "accent", "serves": "muted", "mcp": "yellow", "skills": "green"}
+
+
+def rgba(hex_code: str, alpha: float = 1.0):
+    color = Gdk.RGBA()
+    if not color.parse(hex_code or "#888888"):
+        color.parse("#888888")
+    return color.red, color.green, color.blue, alpha
+
+
+class MapView(Gtk.DrawingArea):
+    def __init__(self):
+        super().__init__()
+        self.graph = None
+        self.headers = ["", "", "", ""]
+        self.colors = {}
+        self.radius = 6
+        self.boxes = {}          # node id -> (x, y, w, h)
+        self.hover = None
+        self.defaults = set()    # model ids some agent uses by default
+        self.group_titles = {}   # node kind -> heading of its group in column 0 (mcp, skills)
+        self.group_labels = []   # (x, y, text, column) drawn above the groups
+        self.active = {}         # agent id -> edge indexes of its active path (provider in use, its model)
+        self.selected = []       # node ids picked by clicking, in click order
+        self.on_selection = None # callback(list of selected nodes)
+        self.on_link = None      # callback(agent node id, runtime node id) after a drawn line
+        self.link = None         # while drawing: {"from": id, "x": .., "y": .., "target": id or None}
+        self.on_relink = None    # callback(agent id, old runtime id, new runtime id)
+        self.on_context = None   # callback(node id, (x, y, w, h)) for a right-click
+        self.on_pick_model = None  # callback(agent id, runtime id, model name): a model clicked
+        self.selected_edge = None  # (agent id, runtime id) of the clicked line
+        self.on_failed_edge = None # callback((agent id, target id), (x, y, w, h)): a line with hints clicked
+        self.marker_points = []    # ((source, target), x, y) of the "!" on failed lines, for clicks
+        self.shift = False       # Shift held: hidden boxes come back to be added
+        self.layers = set(graph_model.LAYERS)   # categories switched on
+        self.hidden_ids = set()  # node ids unticked in the column headings' lists
+        self.mode_off = set()    # categories the header's setup choice (All · Online · Local LLMs) leaves out
+        self.mode_hidden = set() # boxes it leaves out (agents that cannot use local LLMs)
+        self.on_header = None    # callback(column, (x, y, w, h)) for a click on a column heading
+        self.on_add = None       # callback(kind, node, (x, y, w, h)): a dashed "+" box clicked (mcp, skills, model)
+        self.header_rects = {}   # column -> heading rectangle, for clicks
+        self.column_x = {}       # column -> x of its boxes, for the headings
+        self.zoom = 1.0          # drawing scale (ZOOM_STEPS)
+        self.on_zoom = None      # callback(zoom) after Ctrl+scroll
+        self.usage = None        # gpu_usage.Usage: GPU memory per local LLM, loaded models, activity
+        self.set_draw_func(self.on_draw)
+        self.scroll_adjustment = None
+        self.connect("map", lambda *_: self.follow_scrolling())
+        self.set_hexpand(True)
+        self.set_vexpand(True)
+        motion = Gtk.EventControllerMotion()
+        motion.connect("motion", self.on_motion)
+        motion.connect("leave", lambda *_: self.set_hover(None))
+        self.add_controller(motion)
+        click = Gtk.GestureClick()
+        click.connect("released", self.on_click)
+        self.add_controller(click)
+        context = Gtk.GestureClick(button=Gdk.BUTTON_SECONDARY)
+        context.connect("pressed", self.on_right_click)
+        self.add_controller(context)
+        drawer = Gtk.GestureDrag()
+        drawer.connect("drag-begin", self.on_link_begin)
+        drawer.connect("drag-update", self.on_link_update)
+        drawer.connect("drag-end", self.on_link_end)
+        self.add_controller(drawer)
+        scroll = Gtk.EventControllerScroll(flags=Gtk.EventControllerScrollFlags.VERTICAL)
+        scroll.connect("scroll", self.on_scroll)
+        self.add_controller(scroll)
+
+    def set_palette(self, colors: dict, radius: int):
+        self.colors = dict(colors)
+        self.radius = max(0, min(radius, 12))
+        self.queue_draw()
+
+    def set_usage(self, usage):
+        self.usage = usage
+        self.queue_draw()
+
+    def runtime_use(self, node):
+        """gpu_usage.RuntimeUse of a local LLM box, or of the LLM serving a model box."""
+        if self.usage is None or node.kind not in ("runtime", "model") or not node.id.count(":") >= 1:
+            return None
+        parts = node.id.split(":", 3)
+        key = parts[1] if node.kind == "runtime" else (parts[2] if len(parts) > 3 and parts[1] == "runtime" else "")
+        return self.usage.runtimes.get(key)
+
+    def set_graph(self, graph, headers):
+        self.graph = graph
+        self.headers = list(headers)
+        self.defaults = {e.target for e in graph.edges if e.kind == "default"}
+        self.active = self.active_paths(graph)
+        if self.selected_edge and not any((e.source, e.target) == self.selected_edge for e in graph.edges):
+            self.selected_edge = None
+        self.hover = None
+        ids = {n.id for n in graph.nodes}
+        if any(i not in ids for i in self.selected):
+            self.selected = [i for i in self.selected if i in ids]
+            self.selection_changed()
+        self.set_content_height(int(self.needed_height() * self.zoom))
+        self.queue_draw()
+
+    def groups(self, column: int) -> list:
+        """The shown boxes of a column in groups: column 0 has MCP servers and
+        skill sets, column 3 one group per model folder ("+ Model" box last)."""
+        nodes = self.shown(column)
+        if column == 0:
+            mcp = ("mcp", "add-mcp")
+            return [g for g in ([n for n in nodes if n.kind in mcp], [n for n in nodes if n.kind not in mcp]) if g]
+        if column == 3:
+            folders = {}
+            for node in nodes:
+                folders.setdefault(node.group, []).append(node)
+            return [sorted(g, key=lambda n: n.kind == "add-model") for g in folders.values()]
+        return [nodes] if nodes else []
+
+    def titled(self, column: int) -> bool:
+        """Groups get a heading and a gap: always in column 0, for models only with more than one folder."""
+        return column == 0 or (column == 3 and len(self.groups(3)) > 1)
+
+    def group_title(self, nodes) -> str:
+        first = nodes[0]
+        if first.kind == "add-folders":
+            return ""                  # the folded-away folders' box: no heading of its own
+        if first.column == 3:
+            return first.group or self.group_titles.get("online", "").upper()
+        kind = {"add-mcp": "mcp", "add-skills": "skills"}.get(first.kind, first.kind)
+        return self.group_titles.get(kind, "")
+
+    def column_height(self, column: int) -> int:
+        groups = self.groups(column)
+        rows = sum(len(g) for g in groups)
+        height = rows * NODE_H + max(0, rows - 1) * NODE_GAP
+        if self.titled(column) and groups:
+            height += len(groups) * GROUP_LABEL_H + (len(groups) - 1) * GROUP_GAP
+        return height
+
+    def needed_height(self) -> int:
+        if self.graph is None:
+            return 0
+        return HEADER_H + PAD * 2 + max((self.column_height(c) for c in range(4)), default=0)
+
+    # --- layout -----------------------------------------------------------------------
+
+    def layout(self, width: int, height: int):
+        self.boxes = {}
+        if self.graph is None:
+            return 0, 0
+        # Only columns with something to show take room; they share the width.
+        active = [c for c in range(4) if self.shown(c)]
+        # A column keeps its heading (and its list) when every box in it is unticked.
+        layers = graph_model.effective_layers(self.layers)
+        for column, needs in COLUMN_LAYERS.items():
+            if column not in active and needs & layers and \
+                    any(n.id in self.hidden_ids for n in self.graph.column(column)):
+                active = sorted(active + [column])
+        count = max(1, len(active))
+        node_w = max(NODE_W_MIN, min(NODE_W_MAX, (width - 2 * PAD - (count - 1) * COLUMN_GAP_MIN) // count))
+        gap = max(COLUMN_GAP_MIN, (width - 2 * PAD - count * node_w) // max(1, count - 1))
+        gap = min(gap, COLUMN_GAP_MAX)   # few columns: keep them together, centred
+        if count == 1:
+            gap = 0
+        used = count * node_w + (count - 1) * gap
+        left = PAD + max(0, (width - 2 * PAD - used) // 2)
+        self.column_x = {}
+        self.group_labels = []
+        for slot, column in enumerate(active):
+            y = self.column_top(self.column_height(column), height)
+            x = left + slot * (node_w + gap)
+            self.column_x[column] = x
+            titled = self.titled(column)
+            for number, nodes in enumerate(self.groups(column)):
+                if titled:
+                    if number:
+                        y += GROUP_GAP - NODE_GAP
+                    self.group_labels.append((x, y, self.group_title(nodes), column))
+                    y += GROUP_LABEL_H
+                for node in nodes:
+                    self.boxes[node.id] = (x, y, node_w, NODE_H)
+                    y += NODE_H + NODE_GAP
+        return node_w, gap
+
+    def hidden(self) -> set:
+        """Boxes of switched-off categories, and the unselected boxes of every
+        category that has a selection (those come back while Shift is held)."""
+        if self.graph is None:
+            return set()
+        off = graph_model.hidden_by_layers(self.graph, self.layers - self.mode_off,
+                                           self.hidden_ids | self.mode_hidden)
+        if not self.selected or self.shift:
+            return off
+        return off | self.selection_hidden()
+
+    def selection_hidden(self) -> set:
+        by_id = {n.id: n for n in self.graph.nodes}
+        picked = {CATEGORY.get(by_id[i].kind) for i in self.selected if i in by_id}
+        return {n.id for n in self.graph.nodes
+                if CATEGORY.get(n.kind) in picked and n.id not in self.selected}
+
+    def set_hidden_ids(self, ids):
+        self.hidden_ids = set(ids)
+        off = self.hidden()
+        if any(i in off for i in self.selected):
+            self.selected = [i for i in self.selected if i not in off]
+            self.selection_changed()
+        self.relayout()
+
+    def set_mode(self, off_layers, hidden_ids):
+        """The header's setup choice: categories and boxes left out, on top of the
+        user's own Show choices (which stay as they are)."""
+        self.mode_off, self.mode_hidden = set(off_layers), set(hidden_ids)
+        self.set_layers(self.layers)
+
+    def set_layers(self, layers):
+        self.layers = set(layers)
+        if self.graph is not None:
+            off = graph_model.hidden_by_layers(self.graph, self.layers - self.mode_off,
+                                               self.hidden_ids | self.mode_hidden)
+            if any(i in off for i in self.selected):
+                self.selected = [i for i in self.selected if i not in off]
+                self.selection_changed()
+        self.relayout()
+
+    def shown(self, column: int) -> list:
+        hidden = self.hidden()
+        return [n for n in self.graph.column(column) if n.id not in hidden]
+
+    def set_shift(self, held: bool):
+        if held != self.shift:
+            self.shift = held
+            if self.selected:
+                self.relayout()
+
+    def follow_scrolling(self):
+        """Short columns stay in the middle of what is visible: draw again on scrolling."""
+        scroller = self.get_ancestor(Gtk.ScrolledWindow)
+        adjustment = scroller.get_vadjustment() if scroller is not None else None
+        if adjustment is None or adjustment is self.scroll_adjustment:
+            return
+        self.scroll_adjustment = adjustment
+        adjustment.connect("value-changed", lambda *_: self.queue_draw())
+        adjustment.connect("notify::page-size", lambda *_: self.queue_draw())
+
+    def visible_rows(self, height: float) -> tuple[float, float]:
+        """(top, height) of the part of the map in view, in map units (zoom undone)."""
+        adjustment = self.scroll_adjustment
+        if adjustment is None or adjustment.get_page_size() <= 0:
+            return 0.0, height
+        return adjustment.get_value() / self.zoom, adjustment.get_page_size() / self.zoom
+
+    def column_top(self, column_height: float, height: float) -> float:
+        """A column that fits the view sits in its middle (below the headings while they
+        show); a taller one starts under its heading and scrolls with the map."""
+        top, visible = self.visible_rows(height)
+        area_top = max(HEADER_H, top + PAD)
+        area_h = top + visible - PAD - area_top
+        if column_height > area_h:
+            return HEADER_H
+        y = area_top + (area_h - column_height) / 2
+        return max(HEADER_H, min(y, height - PAD - column_height))
+
+    def viewport_width(self) -> int:
+        parent = self.get_parent()
+        return parent.get_width() if parent is not None and parent.get_width() > 0 else self.get_width()
+
+    def relayout(self):
+        self.set_content_height(int(self.needed_height() * self.zoom))
+        # Zoomed in: wider than the view, so it scrolls sideways too.
+        self.set_content_width(int(self.viewport_width() * self.zoom) if self.zoom > 1 else 0)
+        self.queue_draw()
+
+    def set_zoom(self, zoom: float):
+        zoom = min(ZOOM_STEPS, key=lambda z: abs(z - zoom))
+        if zoom != self.zoom:
+            self.zoom = zoom
+            self.relayout()
+
+    def zoom_step(self, direction: int) -> float:
+        """The next zoom step in or out (direction +1 / -1)."""
+        index = ZOOM_STEPS.index(min(ZOOM_STEPS, key=lambda z: abs(z - self.zoom)))
+        return ZOOM_STEPS[max(0, min(len(ZOOM_STEPS) - 1, index + direction))]
+
+    def on_scroll(self, controller, _dx, dy):
+        """Ctrl+scroll zooms; plain scrolling scrolls."""
+        if not controller.get_current_event_state() & Gdk.ModifierType.CONTROL_MASK or dy == 0:
+            return False
+        self.set_zoom(self.zoom_step(-1 if dy > 0 else 1))
+        if self.on_zoom is not None:
+            self.on_zoom(self.zoom)
+        return True
+
+    def to_pixels(self, rect):
+        return tuple(v * self.zoom for v in rect)
+
+    # --- hover ---------------------------------------------------------------------------
+
+    # --- lines ----------------------------------------------------------------------------------
+
+    def edge_points(self, edge):
+        """(x1, y1, x2, y2) of a line between two boxes, from the box sides that face each other."""
+        sx, sy, sw, sh = self.boxes[edge.source]
+        tx, ty, tw, th = self.boxes[edge.target]
+        if sx < tx:
+            return sx + sw, sy + sh / 2, tx, ty + th / 2
+        return sx, sy + sh / 2, tx + tw, ty + th / 2
+
+    def movable_edge(self, edge) -> bool:
+        """An agent's line to a local LLM (can be moved to another) or to an MCP server (can be removed)."""
+        if self.kind_of(edge.source) != "agent":
+            return False
+        if edge.kind == "failed":
+            return self.kind_of(edge.target) in ("runtime", "mcp", "skills")
+        return (edge.kind in ("uses", "available") and self.kind_of(edge.target) == "runtime") \
+            or (edge.kind in ("mcp", "skills") and self.kind_of(edge.target) in ("mcp", "skills"))
+
+    def curve_point(self, edge, t: float) -> tuple[float, float]:
+        """A point on the line's curve (t from 0 at the source to 1 at the target)."""
+        x1, y1, x2, y2 = self.edge_points(edge)
+        bend = (x2 - x1) * 0.5
+        px = (1 - t) ** 3 * x1 + 3 * (1 - t) ** 2 * t * (x1 + bend) + 3 * (1 - t) * t ** 2 * (x2 - bend) + t ** 3 * x2
+        py = (1 - t) ** 3 * y1 + 3 * (1 - t) ** 2 * t * y1 + 3 * (1 - t) * t ** 2 * y2 + t ** 3 * y2
+        return px, py
+
+    def draw_markers(self, cr, edges):
+        """A "!" on every failed line (click the line for its hints), apart from each other."""
+        placed = []
+        self.marker_points = []
+        for edge in sorted(edges, key=lambda e: e.failed != "error"):     # errors first: they keep the middle
+            for t in (0.5, 0.38, 0.62, 0.28, 0.72, 0.2, 0.8):
+                mx, my = self.curve_point(edge, t)
+                if all(math.hypot(mx - px, my - py) >= 18 for px, py in placed):
+                    break
+            placed.append((mx, my))
+            self.marker_points.append(((edge.source, edge.target), mx, my))
+            color = "red" if edge.failed == "error" else "yellow"
+            cr.arc(mx, my, 7.5, 0, 2 * math.pi)
+            cr.set_source_rgba(*self.color("bg"))
+            cr.fill_preserve()
+            cr.set_source_rgba(*self.color(color))
+            cr.set_line_width(1.8)
+            cr.stroke()
+            cr.set_line_cap(cairo.LINE_CAP_ROUND)
+            cr.move_to(mx, my - 3.8)
+            cr.line_to(mx, my + 0.9)
+            cr.stroke()
+            cr.set_line_cap(cairo.LINE_CAP_BUTT)
+            cr.arc(mx, my + 3.4, 1.0, 0, 2 * math.pi)
+            cr.fill()
+
+    def edge_distance(self, edge, x, y) -> float:
+        """How far (x, y) is from the line, sampled along its curve."""
+        x1, y1, x2, y2 = self.edge_points(edge)
+        bend = (x2 - x1) * 0.5
+        best = math.inf
+        for step in range(25):
+            t = step / 24
+            # Cubic Bézier with control points (x1 + bend, y1) and (x2 - bend, y2).
+            px = (1 - t) ** 3 * x1 + 3 * (1 - t) ** 2 * t * (x1 + bend) + 3 * (1 - t) * t ** 2 * (x2 - bend) + t ** 3 * x2
+            py = (1 - t) ** 3 * y1 + 3 * (1 - t) ** 2 * t * y1 + 3 * (1 - t) * t ** 2 * y2 + t ** 3 * y2
+            best = min(best, math.hypot(px - x, py - y))
+        return best
+
+    def edge_at(self, x, y, reach: float = 6):
+        best, best_dist = None, reach
+        for edge in self.graph.edges if self.graph else []:
+            if not self.movable_edge(edge) or edge.source not in self.boxes or edge.target not in self.boxes:
+                continue
+            dist = self.edge_distance(edge, x, y)
+            if dist < best_dist:
+                best, best_dist = (edge.source, edge.target), dist
+        return best
+
+    def near_selected_edge(self, x, y, reach: float = 10) -> bool:
+        """On the selected line (its handle included), even where other lines end at the same box."""
+        edge = next((e for e in self.graph.edges if (e.source, e.target) == self.selected_edge), None) \
+            if self.graph and self.selected_edge else None
+        return edge is not None and edge.source in self.boxes and edge.target in self.boxes \
+            and self.edge_distance(edge, x, y) <= reach
+
+    def on_right_click(self, _gesture, _count, x, y):
+        x, y = x / self.zoom, y / self.zoom
+        node_id = self.node_at(x, y)
+        if node_id is not None and self.on_context is not None:
+            self.on_context(node_id, self.to_pixels(self.boxes[node_id]))
+
+    # --- drawing a connection ---------------------------------------------------------------
+
+    def kind_of(self, node_id):
+        node = next((n for n in self.graph.nodes if n.id == node_id), None) if self.graph else None
+        return node.kind if node else None
+
+    def link_target_ok(self, source: str, target: str) -> bool:
+        """Agent ↔ installed local runtime or MCP server, in either direction."""
+        if self.link and self.link.get("relink"):
+            # Moving a line: to another installed local LLM (an MCP line can only be removed).
+            if self.kind_of(target) != "runtime" or target == self.link["relink"] \
+                    or self.kind_of(self.link["relink"]) != "runtime":
+                return False
+            node = next(n for n in self.graph.nodes if n.id == target)
+            return node.status != "missing"
+        kinds = {self.kind_of(source), self.kind_of(target)}
+        if kinds in ({"agent", "mcp"}, {"agent", "skills"}):
+            return True
+        if kinds != {"agent", "runtime"}:
+            return False
+        runtime = source if self.kind_of(source) == "runtime" else target
+        node = next(n for n in self.graph.nodes if n.id == runtime)
+        return node.status != "missing"
+
+    def on_link_begin(self, gesture, x, y):
+        x, y = x / self.zoom, y / self.zoom
+        if self.near_selected_edge(x, y):
+            agent, runtime = self.selected_edge
+            self.link = {"from": agent, "relink": runtime, "start": (x, y), "x": x, "y": y, "target": None,
+                         "drawing": False}
+            return
+        node_id = self.node_at(x, y)
+        if node_id is None or self.kind_of(node_id) not in ("agent", "runtime", "mcp", "skills"):
+            gesture.set_state(Gtk.EventSequenceState.DENIED)
+            self.link = None
+            return
+        self.link = {"from": node_id, "start": (x, y), "x": x, "y": y, "target": None, "drawing": False}
+
+    def on_link_update(self, gesture, dx, dy):
+        if self.link is None:
+            return
+        dx, dy = dx / self.zoom, dy / self.zoom
+        if not self.link["drawing"]:
+            if abs(dx) + abs(dy) < 8:
+                return
+            self.link["drawing"] = True
+            gesture.set_state(Gtk.EventSequenceState.CLAIMED)   # a drag, not a click
+            self.set_cursor_from_name("crosshair")
+        x0, y0 = self.link["start"]
+        self.link["x"], self.link["y"] = x0 + dx, y0 + dy
+        target = self.node_at(self.link["x"], self.link["y"])
+        self.link["target"] = target if target and self.link_target_ok(self.link["from"], target) else None
+        self.queue_draw()
+
+    def on_link_end(self, _gesture, _dx, _dy):
+        link, self.link = self.link, None
+        self.set_cursor_from_name(None)
+        self.queue_draw()
+        if link and link.get("relink") and link["drawing"] and self.on_relink is not None:
+            # Let go on another local LLM: move the line. Anywhere else: remove it.
+            if link["target"]:
+                self.on_relink(link["from"], link["relink"], link["target"])
+            elif self.node_at(link["x"], link["y"]) is None:
+                self.on_relink(link["from"], link["relink"], None)
+            return
+        if link and link["drawing"] and link["target"] and self.on_link is not None:
+            a, b = link["from"], link["target"]
+            agent, runtime = (a, b) if self.kind_of(a) == "agent" else (b, a)
+            self.on_link(agent, runtime)
+
+    def draw_link(self, cr):
+        """The line being drawn, and the boxes it may end on."""
+        link = self.link
+        if not link or not link["drawing"] or link["from"] not in self.boxes:
+            return
+        for node in self.graph.nodes:
+            if node.id in self.boxes and self.link_target_ok(link["from"], node.id):
+                x, y, w, h = self.boxes[node.id]
+                self.rounded(cr, x - 2, y - 2, w + 4, h + 4, self.radius + 2)
+                cr.set_source_rgba(*self.color("accent", 0.9 if node.id == link["target"] else 0.35))
+                cr.set_line_width(2.5 if node.id == link["target"] else 1.2)
+                cr.set_dash([] if node.id == link["target"] else [4, 3])
+                cr.stroke()
+                cr.set_dash([])
+        sx, sy, sw, sh = self.boxes[link["from"]]
+        x1 = sx + sw if link["x"] > sx + sw / 2 else sx
+        y1 = sy + sh / 2
+        x2, y2 = link["x"], link["y"]
+        bend = (x2 - x1) * 0.5
+        cr.set_source_rgba(*self.color("accent", 0.95))
+        cr.set_line_width(2.2)
+        cr.set_dash([6, 4])
+        cr.move_to(x1, y1)
+        cr.curve_to(x1 + bend, y1, x2 - bend, y2, x2, y2)
+        cr.stroke()
+        cr.set_dash([])
+        cr.arc(x2, y2, 4, 0, 2 * math.pi)
+        cr.fill()
+
+    def on_motion(self, controller, x, y):
+        x, y = x / self.zoom, y / self.zoom
+        self.set_shift(bool(controller.get_current_event_state() & Gdk.ModifierType.SHIFT_MASK))
+        found = self.node_at(x, y)
+        on_heading = any(hx <= x <= hx + hw and hy <= y <= hy + hh for hx, hy, hw, hh in self.header_rects.values())
+        self.set_cursor_from_name("pointer" if found or on_heading else None)
+        self.set_hover(found)
+
+    def set_hover(self, node_id):
+        if node_id == self.hover:
+            return
+        self.hover = node_id
+        node = next((n for n in self.graph.nodes if n.id == node_id), None) if self.graph else None
+        self.set_tooltip_text(" · ".join(x for x in (node.label, node.detail) if x) if node else None)
+        self.queue_draw()
+
+    def lit(self):
+        """Nodes and edges joined to the hovered node."""
+        if self.hover is None or self.graph is None:
+            return None, None
+        return self.related(self.hover)
+
+    def related(self, start: str):
+        """The node, what it is joined to, and for an agent also its providers' models."""
+        nodes, edges = {start}, set()
+        frontier = [start]
+        for depth in range(2):
+            following = []
+            for node_id in frontier:
+                for index, edge in enumerate(self.graph.edges):
+                    if edge.kind == "default":
+                        continue
+                    if node_id in (edge.source, edge.target):
+                        other = edge.target if edge.source == node_id else edge.source
+                        # Second step only outwards from an agent: its provider's models.
+                        if depth == 1 and not (edge.kind == "serves" and edge.source == node_id):
+                            continue
+                        edges.add(index)
+                        if other not in nodes:
+                            nodes.add(other)
+                            following.append(other)
+            frontier = following if start.startswith("agent:") else []
+        return nodes, edges
+
+    # --- selection ------------------------------------------------------------------------
+
+    def highlighted(self):
+        """(node ids, edge indexes) to light: the hovered box's, else the
+        selected boxes' together; (None, None) when nothing is picked."""
+        if self.hover is not None:
+            return self.lit()
+        if not self.selected or self.graph is None:
+            return None, None
+        nodes, edges = set(), set()
+        for node_id in self.selected:
+            more_nodes, more_edges = self.related(node_id)
+            nodes |= more_nodes
+            edges |= more_edges
+        return nodes, edges
+
+    def node_at(self, x, y):
+        for node_id, (bx, by, bw, bh) in self.boxes.items():
+            if bx <= x <= bx + bw and by <= y <= by + bh:
+                return node_id
+        return None
+
+    def on_click(self, gesture, _count, x, y):
+        """Click: select this box only (again: none). Shift+click: add or remove it."""
+        x, y = x / self.zoom, y / self.zoom
+        for column, (hx, hy, hw, hh) in self.header_rects.items():
+            if hx <= x <= hx + hw and hy <= y <= hy + hh and self.on_header is not None:
+                self.on_header(column, self.to_pixels((hx, hy, hw, hh)))
+                return
+        node_id = self.node_at(x, y)
+        edge = self.edge_at(x, y) if node_id is None else None
+        # A "!" clicked: its own line, even where other lines cross it.
+        marker = min(((math.hypot(mx - x, my - y), key) for key, mx, my in self.marker_points), default=None)
+        if node_id is None and marker is not None and marker[0] <= 10:
+            edge = marker[1]
+        if edge is not None or self.selected_edge is not None:
+            self.selected_edge = None if edge == self.selected_edge else edge
+            self.queue_draw()
+            if edge is not None:
+                failed = next((e for e in self.graph.edges if (e.source, e.target) == edge and e.failed), None)
+                if failed is not None and self.on_failed_edge is not None:
+                    self.on_failed_edge(edge, self.to_pixels((x - 4, y - 4, 8, 8)))
+                return
+        if node_id is None:
+            return
+        if (self.kind_of(node_id) or "").startswith("add-"):
+            if self.on_add is not None:
+                node = next(n for n in self.graph.nodes if n.id == node_id)
+                self.on_add(node.kind[4:], node, self.to_pixels(self.boxes[node_id]))
+            return
+        pick = self.model_pick(node_id)
+        if pick is not None and self.on_pick_model is not None:
+            self.on_pick_model(*pick)
+            return
+        adding = bool(gesture.get_current_event_state() & Gdk.ModifierType.SHIFT_MASK)
+        if adding:
+            if node_id in self.selected:
+                self.selected.remove(node_id)
+            else:
+                if node_id.startswith("agent:"):
+                    # One agent at a time: another one replaces it.
+                    self.selected = [i for i in self.selected if not i.startswith("agent:")]
+                self.selected.append(node_id)
+        else:
+            self.selected = [] if self.selected == [node_id] else [node_id]
+        self.selection_changed()
+
+    def model_pick(self, node_id):
+        """(agent id, runtime id, model name) when node_id is a model of a local
+        LLM the one selected agent is connected to; else None."""
+        agents = [i for i in self.selected if i.startswith("agent:")]
+        if self.graph is None or len(agents) != 1 or self.kind_of(node_id) != "model":
+            return None
+        agent = agents[0]
+        node = next(n for n in self.graph.nodes if n.id == node_id)
+        for edge in self.graph.edges:
+            if edge.target == node_id and edge.kind == "serves" and edge.source.startswith("runtime:") \
+                    and any(e.source == agent and e.target == edge.source and e.kind in ("uses", "available")
+                            for e in self.graph.edges):
+                return agent, edge.source, node.label
+        return None
+
+    @staticmethod
+    def active_paths(graph) -> dict:
+        """agent id -> {edge index}: agent → provider it uses → the model it uses."""
+        index = {(e.source, e.target): i for i, e in enumerate(graph.edges)}
+        paths = {}
+        for edge in graph.edges:
+            if edge.kind != "default":
+                continue
+            agent, model = edge.source, edge.target
+            for (source, target), i in index.items():
+                if source == agent and graph.edges[i].kind == "uses" and (target, model) in index:
+                    paths.setdefault(agent, set()).update({i, index[(target, model)]})
+        return paths
+
+    def active_now(self, lit_edges):
+        """(edge indexes, model ids) of the active paths to draw bold: the hovered
+        agent's, else the selected agents', else every agent's; never outside the lit lines."""
+        if self.hover is not None and self.hover.startswith("agent:"):
+            agents = [self.hover]
+        else:
+            agents = [i for i in self.selected if i.startswith("agent:")] or list(self.active)
+        edges = set().union(*(self.active.get(a, set()) for a in agents)) if agents else set()
+        if lit_edges is not None:
+            edges &= lit_edges
+        models = {e.target for i, e in enumerate(self.graph.edges)
+                  if e.kind == "default" and e.source in agents
+                  and any(self.graph.edges[j].target == e.target for j in edges)}
+        return edges, models
+
+    def set_selected(self, ids):
+        """Selection from outside (the other map, the cards): no callback."""
+        ids = list(ids)
+        if ids != self.selected:
+            self.selected = ids
+            self.relayout()
+
+    def clear_selection(self) -> bool:
+        if not self.selected:
+            return False
+        self.selected = []
+        self.selection_changed()
+        return True
+
+    def selection_changed(self):
+        self.relayout()
+        if self.on_selection is not None and self.graph is not None:
+            by_id = {n.id: n for n in self.graph.nodes}
+            self.on_selection([by_id[i] for i in self.selected if i in by_id])
+
+    # --- drawing ------------------------------------------------------------------------------
+
+    def color(self, name: str, alpha: float = 1.0):
+        return rgba(self.colors.get(name, "#888888"), alpha)
+
+    def on_draw(self, _area, cr, width, height):
+        if self.graph is None:
+            return
+        zoom = self.zoom
+        if zoom > 1 and abs(int(self.viewport_width() * zoom) - self.get_content_width()) > 2:
+            GLib.idle_add(self.relayout)          # the view was resized: follow it
+        cr.scale(zoom, zoom)
+        width, height = width / zoom, height / zoom
+        node_w, _gap = self.layout(width, height)
+        lit_nodes, lit_edges = self.highlighted()
+        # Hover only fades the rest; a selection draws nothing but its own connections.
+        only_lit = self.hover is None and lit_edges is not None
+        layout = PangoCairo.create_layout(cr)
+
+        # Column headings.
+        self.header_rects = {}
+        for column, title in enumerate(self.headers):
+            if column not in self.column_x:
+                continue
+            x = self.column_x[column]
+            text = title.upper()
+            # A list to choose the boxes shown in this column.
+            boxes = graph_model.listable(self.graph, column)
+            shown = len([n for n in boxes if n.id not in self.hidden_ids])
+            text += f" ({shown}/{len(boxes)}) ▾" if shown < len(boxes) else " ▾"
+            layout.set_font_description(Pango.FontDescription.from_string("Sans Bold 8"))
+            layout.set_text(text, -1)
+            layout.set_width(node_w * Pango.SCALE)
+            layout.set_ellipsize(Pango.EllipsizeMode.END)
+            cr.set_source_rgba(*self.color("accent"))
+            cr.move_to(x, 6)
+            PangoCairo.show_layout(cr, layout)
+            text_w, text_h = layout.get_pixel_size()
+            self.header_rects[column] = (x - 4, 2, text_w + 8, text_h + 8)
+
+        # Small headings above the groups of column 0.
+        layout.set_font_description(Pango.FontDescription.from_string("Sans Bold 7"))
+        layout.set_width(node_w * Pango.SCALE)
+        layout.set_ellipsize(Pango.EllipsizeMode.END)
+        for gx, gy, text, column in self.group_labels:
+            layout.set_text(text if column == 3 else text.upper(), -1)   # folder paths keep their case
+            cr.set_source_rgba(*self.color("dim"))
+            cr.move_to(gx + 2, gy)
+            PangoCairo.show_layout(cr, layout)
+
+        # Edges first, under the boxes; the active paths last, on top.
+        active_edges, active_models = self.active_now(lit_edges)
+        order = [i for i in range(len(self.graph.edges)) if i not in active_edges] + sorted(active_edges)
+        markers = []                 # failed lines: a "!" on each, drawn over all lines
+        for index in order:
+            edge = self.graph.edges[index]
+            if edge.kind == "default" or edge.source not in self.boxes or edge.target not in self.boxes:
+                continue
+            x1, y1, x2, y2 = self.edge_points(edge)
+            bend = (x2 - x1) * 0.5
+            picked = (edge.source, edge.target) == self.selected_edge
+            alpha = 0.55
+            if only_lit and index not in lit_edges and not picked:
+                continue
+            if lit_edges is not None:
+                alpha = 0.95 if index in lit_edges else 0.08
+            if picked:
+                moving = self.link is not None and self.link.get("relink") and self.link["drawing"]
+                alpha = 0.3 if moving else 1.0
+            active = index in active_edges
+            if active and not picked:
+                alpha = 1.0
+            if edge.failed:
+                # Failed (red) or with warnings (yellow), dotted, until it is removed by hand.
+                cr.set_source_rgba(*self.color("red" if edge.failed == "error" else "yellow",
+                                               max(alpha, 0.85) if not (lit_edges is not None and alpha < 0.5) else alpha))
+                cr.set_line_width(3.2 if picked else 2.4)
+                cr.set_line_cap(cairo.LINE_CAP_ROUND)
+                cr.set_dash([0.1, 5])
+            else:
+                cr.set_source_rgba(*self.color("accent" if active else EDGE_COLORS.get(edge.kind, "muted"), alpha))
+                cr.set_line_width(3.2 if picked else 2.8 if active else
+                                  2.0 if lit_edges is not None and index in lit_edges else 1.4)
+                # Dashed: set up but not in use (an agent's second provider).
+                cr.set_dash([5, 4] if edge.kind == "available" else [])
+            cr.move_to(x1, y1)
+            cr.curve_to(x1 + bend, y1, x2 - bend, y2, x2, y2)
+            cr.stroke()
+            cr.set_dash([])
+            cr.set_line_cap(cairo.LINE_CAP_BUTT)
+            if edge.failed and not (only_lit and index not in lit_edges):
+                markers.append(edge)
+            if picked:
+                # The handle: drag it to another local LLM.
+                cr.arc(x2, y2, 7, 0, 2 * math.pi)
+                cr.set_source_rgba(*self.color("bg"))
+                cr.fill_preserve()
+                cr.set_source_rgba(*self.color("accent", alpha))
+                cr.set_line_width(2.5)
+                cr.stroke()
+
+        self.draw_markers(cr, markers)
+
+        for node in self.graph.nodes:
+            if node.id not in self.boxes:
+                continue
+            x, y, w, h = self.boxes[node.id]
+            faded = lit_nodes is not None and node.id not in lit_nodes
+            alpha = 0.25 if faded else (0.55 if node.dim or node.status == "missing" else 1.0)
+            if node.kind.startswith("add-"):
+                # Dashed, empty: a place to add something, not a thing.
+                self.rounded(cr, x, y, w, h, self.radius)
+                cr.set_dash([5, 4])
+                cr.set_source_rgba(*self.color("accent" if node.id == self.hover else "fg",
+                                               0.9 if node.id == self.hover else 0.35 * (0.4 if faded else 1)))
+                cr.set_line_width(1.2)
+                cr.stroke()
+                cr.set_dash([])
+                layout.set_font_description(Pango.FontDescription.from_string("Sans 9"))
+                layout.set_width(int((w - 20) * Pango.SCALE))
+                layout.set_ellipsize(Pango.EllipsizeMode.END)
+                layout.set_text(node.label, -1)
+                cr.set_source_rgba(*self.color("accent" if node.id == self.hover else "dim"))
+                cr.move_to(x + 10, y + (h - layout.get_pixel_size()[1]) / 2)
+                PangoCairo.show_layout(cr, layout)
+                continue
+            self.rounded(cr, x, y, w, h, self.radius)
+            cr.set_source_rgba(*self.color("bg", 1.0))
+            cr.fill_preserve()
+            fill = 0.10 if node.kind == "agent" else 0.05
+            cr.set_source_rgba(*self.color("fg", fill * (0.4 if faded else 1.0)))
+            cr.fill_preserve()
+            if node.id in self.selected:
+                cr.set_source_rgba(*self.color("accent", 0.40))
+                cr.fill_preserve()
+            border = "accent" if node.id == self.hover or node.id in self.defaults or node.kind == "agent" \
+                or node.id in self.selected else "fg"
+            cr.set_source_rgba(*self.color(border, (0.9 if border == "accent" else 0.18) * (0.3 if faded else 1)))
+            cr.set_line_width(2.5 if node.id in self.selected else 2 if node.id in active_models else 1)
+            cr.stroke()
+            if node.id in self.selected:
+                # A check mark in the corner: selected, not just highlighted.
+                layout.set_font_description(Pango.FontDescription.from_string("Sans Bold 10"))
+                layout.set_width(-1)
+                layout.set_text("✓", -1)
+                cr.set_source_rgba(*self.color("accent"))
+                text_w, text_h = layout.get_pixel_size()
+                cr.move_to(x + w - text_w - 8, y + (h - text_h) / 2)
+                PangoCairo.show_layout(cr, layout)
+
+            text_x = x + 10
+            use = self.runtime_use(node)
+            detail = node.detail
+            right = 0                # room kept free at the right for the loaded mark
+            if node.status:
+                # Status dot: green running, yellow installed but stopped, grey not installed.
+                name = {"running": "green", "stopped": "yellow"}.get(node.status, "muted")
+                cr.set_source_rgba(*self.color(name, 0.35 if faded else 1.0))
+                cr.arc(text_x + 4, y + h / 2, 4, 0, 2 * math.pi)
+                cr.fill()
+                if node.kind == "runtime" and use is not None and use.vram >= 256 * 1024 ** 2 \
+                        and self.usage.generating:
+                    # Working: a ring around the dot, as LLM Monitor's "generating".
+                    cr.set_source_rgba(*self.color("accent", 0.35 if faded else 1.0))
+                    cr.set_line_width(1.5)
+                    cr.arc(text_x + 4, y + h / 2, 7, 0, 2 * math.pi)
+                    cr.stroke()
+                text_x += 16
+            if node.kind == "runtime" and use is not None and use.vram >= 64 * 1024 ** 2:
+                detail = " · ".join(filter(None, [detail, f"{use.vram / 1024 ** 3:.1f} GB GPU"]))
+            if node.kind == "model" and use is not None:
+                state = use.models.get(node.label.lower())
+                if state:
+                    # Loaded (green), loading (yellow), asleep (a grey ring: listed, GPU memory free).
+                    cx, cy = x + w - (34 if node.id in self.selected else 12), y + h / 2
+                    if state == "sleeping":
+                        cr.set_source_rgba(*self.color("muted", 0.35 if faded else 1.0))
+                        cr.set_line_width(1.5)
+                        cr.arc(cx, cy, 3.5, 0, 2 * math.pi)
+                        cr.stroke()
+                    else:
+                        cr.set_source_rgba(*self.color("green" if state == "loaded" else "yellow",
+                                                       0.35 if faded else 1.0))
+                        cr.arc(cx, cy, 4, 0, 2 * math.pi)
+                        cr.fill()
+                    right = 14
+            if node.icon:
+                family = "omarchy" if node.icon_font == "omarchy" else "JetBrainsMono Nerd Font, Symbols Nerd Font"
+                layout.set_font_description(Pango.FontDescription.from_string(f"{family} 13"))
+                layout.set_width(-1)
+                layout.set_text(node.icon, -1)
+                cr.set_source_rgba(*self.color("accent", alpha))
+                cr.move_to(text_x, y + (h - layout.get_pixel_size()[1]) / 2)
+                PangoCairo.show_layout(cr, layout)
+                text_x += 24
+            layout.set_width(int((x + w - (26 if node.id in self.selected else 8) - right - text_x) * Pango.SCALE))
+            layout.set_ellipsize(Pango.EllipsizeMode.END)
+            if detail:
+                layout.set_font_description(Pango.FontDescription.from_string("Sans Bold 9"))
+                layout.set_text(node.label, -1)
+                cr.set_source_rgba(*self.color("fg", alpha))
+                cr.move_to(text_x, y + 4)
+                PangoCairo.show_layout(cr, layout)
+                layout.set_font_description(Pango.FontDescription.from_string("Sans 8"))
+                layout.set_text(detail, -1)
+                cr.set_source_rgba(*self.color("dim", alpha))
+                cr.move_to(text_x, y + h / 2 + 1)
+                PangoCairo.show_layout(cr, layout)
+            else:
+                weight = "Bold " if node.kind in ("agent", "cloud", "runtime") else ""
+                layout.set_font_description(Pango.FontDescription.from_string(f"Sans {weight}9"))
+                layout.set_text(node.label, -1)
+                cr.set_source_rgba(*self.color("fg", alpha))
+                cr.move_to(text_x, y + (h - layout.get_pixel_size()[1]) / 2)
+                PangoCairo.show_layout(cr, layout)
+
+        self.draw_link(cr)
+
+    @staticmethod
+    def rounded_top(cr, x, y, w, h, r):
+        """A bar: rounded at its data end (the top), square on the baseline."""
+        r = min(r, h, w / 2)
+        cr.new_sub_path()
+        cr.move_to(x, y + h)
+        cr.line_to(x, y + r)
+        if r > 0:
+            cr.arc(x + r, y + r, r, math.pi, 3 * math.pi / 2)
+            cr.arc(x + w - r, y + r, r, -math.pi / 2, 0)
+        else:
+            cr.line_to(x + w, y)
+        cr.line_to(x + w, y + h)
+        cr.close_path()
+
+    @staticmethod
+    def rounded(cr, x, y, w, h, r):
+        r = min(r, h / 2, w / 2)
+        if r <= 0:
+            cr.rectangle(x + 0.5, y + 0.5, w - 1, h - 1)
+            return
+        x, y, w, h = x + 0.5, y + 0.5, w - 1, h - 1
+        cr.new_sub_path()
+        cr.arc(x + w - r, y + r, r, -math.pi / 2, 0)
+        cr.arc(x + w - r, y + h - r, r, 0, math.pi / 2)
+        cr.arc(x + r, y + h - r, r, math.pi / 2, math.pi)
+        cr.arc(x + r, y + r, r, math.pi, 3 * math.pi / 2)
+        cr.close_path()
+
+
+class Meter(Gtk.DrawingArea):
+    """A thin rounded bar split into parts, as LLM Monitor's GPU memory and
+    activity meters: parts = [(fraction, colour name, alpha)], the rest is the
+    empty track. `colors`: a function (name, alpha) -> rgba, the map's palette."""
+
+    def __init__(self, colors, width: int = 120, height: int = 8):
+        super().__init__()
+        self.colors = colors
+        self.parts = []
+        self.set_content_width(width)
+        self.set_content_height(height)
+        self.set_valign(Gtk.Align.CENTER)
+        self.set_draw_func(self.on_draw)
+
+    def set_parts(self, parts):
+        self.parts = list(parts)
+        self.queue_draw()
+
+    def on_draw(self, _area, cr, width, height):
+        radius = height / 2
+        MapView.rounded(cr, 0, 0, width, height, radius)
+        cr.set_source_rgba(*self.colors("fg", 0.12))
+        cr.fill_preserve()
+        cr.save()
+        cr.clip()
+        x = 0.0
+        for fraction, name, alpha in self.parts:
+            part = width * max(0.0, min(1.0, fraction))
+            cr.rectangle(x, 0, part, height)
+            cr.set_source_rgba(*self.colors(name, alpha))
+            cr.fill()
+            x += part
+        cr.restore()
