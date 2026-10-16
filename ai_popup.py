@@ -27,6 +27,7 @@ from gi.repository import Adw, Gdk, Gio, GLib, Gtk, Pango
 import atexit
 
 import agent_details
+import claude_sessions
 import desktop
 import agent_updates
 import agent_profiles
@@ -1694,16 +1695,22 @@ class AgentsMap(Adw.Application):
             logged_in = agent_status.login_state(agent.command) if agent.installed else None
             checks = agent_status.agent_checks(agent, info, record, inventory, link_hints.load(), logged_in,
                                                issue=agent_status.load_issues().get(agent.command))
-            GLib.idle_add(done, info, usage, checks)
+            sessions = None
+            if agent.command == "claude" and agent.installed:
+                try:
+                    sessions = claude_sessions.collect()      # numbers only, incremental
+                except Exception:
+                    sessions = None
+            GLib.idle_add(done, info, usage, checks, sessions)
 
-        def done(info, usage, checks):
+        def done(info, usage, checks, sessions):
             if self.status_showing == ("agent", agent.command):
-                self.fill_agent_status(agent, info, usage, checks)
+                self.fill_agent_status(agent, info, usage, checks, sessions)
             return False
 
         threading.Thread(target=work, daemon=True).start()
 
-    def fill_agent_status(self, agent, info, usage, checks):
+    def fill_agent_status(self, agent, info, usage, checks, sessions=None):
         self.clear_status(agent.name)
         body = self.status_body
         # At the top: one sentence, then what it is doing now.
@@ -1756,6 +1763,9 @@ class AgentsMap(Adw.Application):
                 _("Usage from {0}'s own session records (numbers and times only)").format(usage.source)
             self.note(body, source)
 
+        if sessions:
+            self.fill_session_projects(body, sessions)
+
         self.settings_heading(body, _("Setup"))
         body.append(self.check_list(checks))
         self.settings_heading(body, _("Configuration"))
@@ -1763,6 +1773,44 @@ class AgentsMap(Adw.Application):
         config.add_css_class("am-boxed")
         self.fill_agent(config, agent, summary=True)
         body.append(config)
+
+    WEEKDAYS = (N_("Monday"), N_("Tuesday"), N_("Wednesday"), N_("Thursday"), N_("Friday"), N_("Saturday"),
+                N_("Sunday"))
+
+    @staticmethod
+    def duration_text(seconds: float) -> str:
+        minutes = int(seconds // 60)
+        return _("{0} h {1} min").format(minutes // 60, minutes % 60) if minutes >= 60 else \
+            _("{0} min").format(minutes)
+
+    def fill_session_projects(self, body, sessions):
+        """Claude Code's last 30 days per project folder: working time, sessions, tokens, lines
+        changed, API value (numbers from its session files; no text)."""
+        since = time.time() - 30 * 86400
+        rows = claude_sessions.projects(sessions, since)
+        if not rows:
+            return
+        self.settings_heading(body, _("Projects, last 30 days"))
+        listbox = self.boxed_list()
+        for project in rows[:10]:
+            parts = [_("{0} working").format(self.duration_text(project.active)),
+                     ngettext("1 session", "{0} sessions", project.sessions).format(project.sessions),
+                     _("{0} tokens").format(short_number(project.tokens))]
+            if project.lines_added or project.lines_removed:
+                parts.append(_("+{0} −{1} lines").format(project.lines_added, project.lines_removed))
+            if project.cost:
+                parts.append(_("API value {0}").format(f"$ {project.cost:.2f}"))
+            row = self.plain_row(inventory.tilde(project.cwd) if project.cwd != "?" else _("Unknown folder"),
+                                 " · ".join(parts))
+            row.set_title_selectable(True)
+            row.add_prefix(Gtk.Image.new_from_icon_name("folder-symbolic"))
+            listbox.append(row)
+        body.append(listbox)
+        peak = claude_sessions.busiest(sessions, since)
+        if peak is not None:
+            self.note(body, _("Most active: {0}, around {1}:00").format(_(self.WEEKDAYS[peak[0]]), peak[1]))
+        self.note(body, _("Numbers from Claude Code's session files (no text is read). The API value is what the "
+                          "tokens would cost at API prices, not what a plan costs."))
 
     def open_runtime_status(self, key: str):
         rt = next((r for r in self.inventory.runtimes if r.key == key), None)
