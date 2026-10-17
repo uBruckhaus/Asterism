@@ -1913,39 +1913,6 @@ class AgentsMap(Adw.Application):
 
     # --- an agent started here, in its own terminal ------------------------------------------
 
-    def ask_where_to_start(self, agent, anchor):
-        """Here in AI Agents Map, or in a terminal window of its own (Settings › Agents start
-        makes the choice for good)."""
-        popover = Gtk.Popover()
-        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6, margin_top=10, margin_bottom=10,
-                      margin_start=12, margin_end=12)
-        text = Gtk.Label(label=_("Start {0} where?").format(agent.name), xalign=0)
-        text.add_css_class("am-model-name")
-        box.append(text)
-        for where, label, hint in (
-                ("here", _("Here in AI Agents Map"), _("In a terminal beside the cards; Stop ends it, closing the "
-                                                       "app asks first.")),
-                ("terminal", _("In a terminal window"), _("A window of its own, as if you started it there."))):
-            button = Gtk.Button()
-            content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
-            title = Gtk.Label(label=label, xalign=0)
-            title.add_css_class("am-tree-title")
-            content.append(title)
-            sub = Gtk.Label(label=hint, xalign=0, wrap=True, max_width_chars=40)
-            sub.add_css_class("am-agent-detail")
-            content.append(sub)
-            button.set_child(content)
-            button.add_css_class("flat")
-            button.connect("clicked", lambda _b, w=where: (popover.popdown(), self.start_agent(agent, anchor, w)))
-            box.append(button)
-        note = Gtk.Label(label=_("Settings › Agents start: decide once."), xalign=0)
-        note.add_css_class("am-agent-detail")
-        box.append(note)
-        popover.set_child(box)
-        popover.set_parent(anchor if anchor is not None else self.title_label)
-        popover.connect("closed", lambda p: GLib.idle_add(p.unparent))
-        popover.popup()
-
     def start_outside(self, agent, path: str, folder: str):
         """The agent in a terminal window of its own (the desktop's terminal)."""
         ok = terminal_pane.open_outside(path, folder)
@@ -2003,16 +1970,9 @@ class AgentsMap(Adw.Application):
         popover.connect("closed", lambda p: GLib.idle_add(p.unparent))
         popover.popup()
 
-    START_WHERE = ("ask", "here", "terminal")
-
-    def start_where(self) -> str:
-        """Settings › Agents start: ask each time (default), here, or in a terminal window."""
-        where = ai_core.load_settings().get("agent_start", "ask")
-        return where if where in self.START_WHERE else "ask"
-
-    def start_agent(self, agent, anchor=None, where: str | None = None):
+    def start_agent(self, agent, anchor=None, where: str = "here"):
         """Start an agent: here (its terminal right of the cards; a running one is shown again)
-        or in a terminal window of its own, as chosen (asked each time unless set)."""
+        or in a terminal window of its own ("terminal")."""
         pane = self.sessions.get(agent.command)
         if pane is not None and pane.running:
             self.show_terminal(agent.command)
@@ -2022,10 +1982,6 @@ class AgentsMap(Adw.Application):
             self.show_notice(_("{0} cannot be started from here").format(agent.name))
             return
         folder = self.agent_folder()
-        where = where or self.start_where()
-        if where == "ask":
-            self.ask_where_to_start(agent, anchor)
-            return
         if where == "terminal":
             self.start_outside(agent, path, folder)
             return
@@ -2097,17 +2053,30 @@ class AgentsMap(Adw.Application):
         return self.start_button_only(agent, shown)
 
     def start_button_only(self, agent, shown: bool) -> Gtk.Widget:
-        button = Gtk.Button(halign=Gtk.Align.START)
-        content = Gtk.Box(spacing=6)
-        content.append(Gtk.Image.new_from_icon_name("utilities-terminal-symbolic"))
-        content.append(Gtk.Label(label=_("Show terminal") if shown else _("Start")))
-        button.set_child(content)
-        button.add_css_class("flat")
-        button.add_css_class("am-small-btn")
-        button.set_tooltip_text(_("Show the terminal {0} runs in here").format(agent.name) if shown else
-                                _("Start {0} in {1}").format(agent.name, self.agent_folder()))
-        button.connect("clicked", lambda b: self.start_agent(agent, b))
-        return button
+        """Not running here: Start here and Start in terminal. Running here: Show terminal."""
+        def button(icon, label, tip, where):
+            b = Gtk.Button(halign=Gtk.Align.START)
+            content = Gtk.Box(spacing=6)
+            content.append(Gtk.Image.new_from_icon_name(icon))
+            content.append(Gtk.Label(label=label))
+            b.set_child(content)
+            b.add_css_class("flat")
+            b.add_css_class("am-small-btn")
+            b.set_tooltip_text(tip)
+            b.connect("clicked", lambda w: self.start_agent(agent, w, where))
+            return b
+
+        if shown:
+            return button("utilities-terminal-symbolic", _("Show terminal"),
+                          _("Show the terminal {0} runs in here").format(agent.name), "here")
+        both = Gtk.Box(spacing=6)
+        both.append(button("utilities-terminal-symbolic", _("Start here"),
+                           _("Start {0} in {1}, in a terminal beside the cards; Stop ends it").format(
+                               agent.name, self.agent_folder()), "here"))
+        both.append(button("window-new-symbolic", _("Start in terminal"),
+                           _("Start {0} in {1}, in a terminal window of its own").format(
+                               agent.name, self.agent_folder()), "terminal"))
+        return both
 
     # --- agent and local LLM details (the (i) on their cards) -----------------------------------
 
@@ -7137,12 +7106,6 @@ class AgentsMap(Adw.Application):
         self.combo_row(group, _("Corners"), self.corners_tip(), [like, _("Rounded"), _("Square")],
                        corners.CHOICES.index(ai_core.saved_corners()),
                        lambda i: (self.save_setting(corners=corners.CHOICES[i]), self.apply_theme_css()))
-        self.combo_row(group, _("Agents start"),
-                       _("What Start on an agent does: ask each time, start it here beside the cards, or in a "
-                         "terminal window of its own."),
-                       [_("Ask each time"), _("Here in AI Agents Map"), _("In a terminal window")],
-                       self.START_WHERE.index(self.start_where()),
-                       lambda i: self.save_setting(agent_start=self.START_WHERE[i]))
         self.combo_row(group, _("Sidebar"),
                        _("Cards: a box per agent, local LLM, MCP server and skill folder. Tree: the same as a compact "
                          "tree; an opened entry shows its facts and its buttons (arrow keys open and close)."),
