@@ -697,6 +697,7 @@ class AgentsMap(Adw.Application):
         side.append(bar)
         self.side_map = MapView()
         self.side_map.set_layers(ai_core.map_layers())
+        self.side_map.set_animate(ai_core.load_settings().get("animate_lines", True) is not False)
         self.map_view = self.side_map      # the one map (code below still says map_view in places)
         self.side_map.on_zoom = lambda _z: self.zoom_changed()
         self.update_layer_toggles()
@@ -708,7 +709,7 @@ class AgentsMap(Adw.Application):
         self.side_map.on_failed_edge = self.show_link_hints
         self.side_map.on_context = lambda node_id, rect, v=self.side_map: self.show_context(v, node_id, rect)
         self.side_map.on_header = lambda column, rect: self.show_column_list(self.side_map, column, rect)
-        map_scroller = self.page_scroller(self.side_map)
+        map_scroller = self.page_scroller(self.side_map.with_flow_layer())   # the lights on running agents' paths on top
         map_scroller.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)   # zoomed in: sideways too
         side.append(map_scroller)
         self.side_map.set_zoom(ai_core.load_settings().get("map_zoom", 1.0)
@@ -6263,6 +6264,11 @@ class AgentsMap(Adw.Application):
                                                   2).format("N")),
                         settings.get("show_more_hint", True),
                         lambda on: (self.save_setting(show_more_hint=on), self.refresh_overview()))
+        self.switch_row(group, _("Animate active lines"),
+                        _("Light runs along a running agent's line to its provider and model on the map. Off: "
+                          "the lines stay still. Also off when the system turns animations off."),
+                        settings.get("animate_lines", True) is not False,
+                        lambda on: (self.save_setting(animate_lines=on), self.side_map.set_animate(on)))
         self.switch_row(group, _("Start local LLMs with their agents"),
                         _("When an agent connected to a local LLM starts, its LLM starts too; when the last such "
                           "agent closes, the LLM stops and its GPU memory is free again. Works with this window "
