@@ -620,6 +620,7 @@ class AgentsMap(Adw.Application):
         self.agents_box.add_css_class("am-agents")
         scroller = self.page_scroller(self.agents_box)
         scroller.set_vexpand(True)
+        self.agents_scroller = scroller
         # The cards as a panel of their own: a heading line with its filter, a frame,
         # and a rule between it and the map.
         self.list_pane = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6, hexpand=True)
@@ -1385,6 +1386,42 @@ class AgentsMap(Adw.Application):
             self.expanded.add(node_id)
             self.toggle_card_hook(node_id)
         self.fill_tree(focus=node_id)
+        if node_id in self.tree_open():
+            self.keep_tree_node_visible(node_id)
+
+    def keep_tree_node_visible(self, node_id: str):
+        """An opened node with all it holds in view (the rows below it that are deeper)."""
+        rows = list(self.tree_rows)
+        index = next((i for i, r in enumerate(rows) if r.node.id == node_id), None)
+        if index is None:
+            return
+        end = index
+        while end + 1 < len(rows) and rows[end + 1].depth > rows[index].depth:
+            end += 1
+        first, last = self.tree_list.get_row_at_index(index), self.tree_list.get_row_at_index(end)
+        if first is not None:
+            self.keep_visible(first, last)
+
+    def keep_visible(self, first, last=None, seconds: float = 1.0):
+        """Scroll the sidebar so first…last is all in view (first at the top when it is taller),
+        following it while it opens (the slide, details filled a moment later)."""
+        scroller, box, last = self.agents_scroller, self.agents_box, last or first
+        until = GLib.get_monotonic_time() + int(seconds * 1_000_000)
+
+        def tick():
+            top = first.translate_coordinates(box, 0, 0) if first.get_mapped() else None
+            bottom = last.translate_coordinates(box, 0, 0) if last.get_mapped() else None
+            if top is None or bottom is None:
+                return GLib.SOURCE_REMOVE
+            adjustment = scroller.get_vadjustment()
+            value, page = adjustment.get_value(), adjustment.get_page_size()
+            target = max(value, bottom[1] + last.get_height() + 8 - page)
+            target = max(0, min(target, top[1] - 8, adjustment.get_upper() - page))
+            if abs(target - value) > 0.5:
+                adjustment.set_value(target)
+            return GLib.get_monotonic_time() < until
+
+        GLib.timeout_add(30, tick)       # a timer, not a frame callback: it also runs before the first frame
 
     def on_tree_activate(self, row):
         node = row.node
@@ -1617,6 +1654,8 @@ class AgentsMap(Adw.Application):
         revealer.set_reveal_child(True)
         chevron.set_from_icon_name("pan-up-symbolic")
         self.toggle_card_hook(key)
+        if key in self.card_widgets:
+            self.keep_visible(self.card_widgets[key][0])
 
     def fill_card(self, key: str):
         entry = self.detail_boxes.get(key)
