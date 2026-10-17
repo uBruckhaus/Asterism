@@ -25,6 +25,16 @@
   <url type="bugtracker">https://github.com/uBruckhaus/asterism/issues</url>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.3.0" date="2026-10-17">
+      <description>
+        <p>Agents run in the window: Start here or in a terminal window, Stop on the card, and running
+        agents show a green icon in the cards and the new tree sidebar. Agent details show herdr's live
+        state and Claude Code's subagent runs. The map lights up along the lines of agents that are
+        working. The models page follows LM Studio's layout. Back returns to the page you came from, an
+        opened card scrolls fully into view, the install page has bigger buttons, and the health check
+        line shows only when something needs fixing.</p>
+      </description>
+    </release>
     <release version="0.2.1" date="2026-10-17">
       <description>
         <p>Downloads never write through a link someone planted in a shared model folder (the
