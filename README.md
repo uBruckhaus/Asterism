@@ -9,7 +9,10 @@ Asterism shows the AI setup on your computer as cards and a map:
 - **local LLMs** (llama.cpp, Ollama, LM Studio, vLLM, Jan, KoboldCpp) and their models: install
   them (every download checked against its release's SHA-256), download models, set the context
   size that fits your graphics card, start them with their agents;
-- **MCP servers and skills**, found on your computer or on the web;
+- **MCP servers and skills**, found on your computer or on the web: recommended servers (the MCP
+  project's reference servers and official ones from GitHub, Microsoft, Google, Brave, Upstash),
+  a search of the official MCP registry that says who published each server and how it runs, and a
+  short explanation on each page of what servers and skills are for;
 - a **health check**: what works, what to fix, what the setup is good for.
 
 Connect an agent to a local LLM, an MCP server or a skill folder by drawing a line on the map:
