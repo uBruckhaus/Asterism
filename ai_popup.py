@@ -6905,6 +6905,8 @@ class AgentsMap(Adw.Application):
         progressbar.am-progress progress {{ min-height: 6px; background: {accent_hex}; border-radius: 3px; }}
         .am-card button.am-menu-item {{ padding: 3px 8px; font-size: 12px; }}
         .am-form-list row .title {{ min-width: 110px; }}
+        /* A combo row's chosen value (its inline list): the size and colour of the subtitle, not of the title. */
+        row.combo listview.inline label {{ font-size: 0.9em; color: {dim_hex}; }}
         .am-card list.am-list:not(.boxed-list) {{ background: alpha({fg_hex}, 0.03); border-radius: {radius}px; }}
         .am-card list.am-list row:selected {{ background: alpha({accent_hex}, 0.22); }}
         .am-card-check {{ color: {accent_hex}; font-weight: 700; }}
