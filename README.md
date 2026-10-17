@@ -13,7 +13,9 @@ Asterism shows the AI setup on your computer as cards and a map:
 - a **health check**: what works, what to fix, what the setup is good for.
 
 Connect an agent to a local LLM, an MCP server or a skill folder by drawing a line on the map:
-a preview shows every change first, and Undo puts it back.
+a preview shows every change first, and Undo puts it back. The **ⓘ** in the header explains every
+dot, line and mark of the map. **Hide** leaves an agent, or a provider no shown agent uses a model
+of, out of **My setup**; **+ Available** lists it under **Hidden** with **Show again**.
 
 On [Omarchy](https://omarchy.org) the same app is the **AI Agents Map** plugin (bar icon, Omarchy
 theme, Hyprland window actions). Install that one there.
