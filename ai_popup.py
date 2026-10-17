@@ -4937,7 +4937,8 @@ class AgentsMap(Adw.Application):
         self.models_status.add_css_class("am-agent-detail")
         bottom.append(self.models_status)
         self.models_cancel = Gtk.Button(label=_("Cancel"))
-        self.models_cancel.add_css_class("am-small-btn")
+        self.models_cancel.add_css_class("am-action-btn")
+        self.models_cancel.set_valign(Gtk.Align.START)
         self.models_cancel.connect("clicked", lambda *_: self.cancel_model_download())
         bottom.append(self.models_cancel)
         page.append(bottom)
@@ -5620,6 +5621,7 @@ class AgentsMap(Adw.Application):
                 and not state.get("scanned") and not state.get("scanning"):
             GLib.idle_add(lambda: self.scan_local_models() and False)
         self.models_cancel.set_label(_("Stop download") if busy else _("Back"))
+        (self.models_cancel.add_css_class if busy else self.models_cancel.remove_css_class)("am-danger")
 
     def start_model_download(self, pull: bool):
         state = self.models_state
@@ -6234,18 +6236,19 @@ class AgentsMap(Adw.Application):
         self.install_status = Gtk.Label(xalign=0, wrap=True, max_width_chars=1)
         self.install_status.add_css_class("am-agent-detail")
         page.append(self.install_status)
-        page.append(Gtk.Box(vexpand=True))
-        buttons = Gtk.Box(spacing=8, halign=Gtk.Align.END)
-        self.install_cancel = Gtk.Button(label=_("Cancel"))
-        self.install_cancel.add_css_class("am-small-btn")
-        self.install_cancel.connect("clicked", lambda *_: self.cancel_install())
-        buttons.append(self.install_cancel)
+        # The choices right under the progress: the action first, then Cancel (Stop while it runs).
+        buttons = Gtk.Box(spacing=10, halign=Gtk.Align.START, margin_top=4)
         self.install_ok = Gtk.Button()
-        self.install_ok.add_css_class("am-small-btn")
+        self.install_ok.add_css_class("am-action-btn")
         self.install_ok.add_css_class("am-primary")
         self.install_ok.connect("clicked", lambda *_: self.run_install())
         buttons.append(self.install_ok)
+        self.install_cancel = Gtk.Button(label=_("Cancel"))
+        self.install_cancel.add_css_class("am-action-btn")
+        self.install_cancel.connect("clicked", lambda *_: self.cancel_install())
+        buttons.append(self.install_cancel)
         page.append(buttons)
+        page.append(Gtk.Box(vexpand=True))
         self.installing = None
         return page
 
@@ -6291,6 +6294,7 @@ class AgentsMap(Adw.Application):
         self.install_bar.set_visible(mode in ("install", "update"))
         self.install_status.set_label("")
         self.install_cancel.set_label(_("Cancel"))
+        self.install_cancel.remove_css_class("am-danger")
         self.install_ok.remove_css_class("am-danger")
         self.install_ok.set_sensitive(True)
         self.install_ok.set_visible(True)
@@ -6482,6 +6486,7 @@ class AgentsMap(Adw.Application):
             if widget is not None:
                 widget.set_sensitive(False)
         self.install_cancel.set_label(_("Stop"))
+        self.install_cancel.add_css_class("am-danger")
 
     def start_install_job(self, params: dict, replaces: str = ""):
         """Install, update, model folder or uninstall as a background job. An install or
@@ -6543,6 +6548,7 @@ class AgentsMap(Adw.Application):
         if here:
             info["busy"] = False
             self.install_cancel.set_label(_("Cancel"))
+            self.install_cancel.remove_css_class("am-danger")
         if job.state == "done":
             messages = {"install": _("{0} installed"), "update": _("{0} updated"),
                         "models": _("{0}: model folder changed"), "uninstall": _("{0} uninstalled")}
@@ -8126,6 +8132,9 @@ class AgentsMap(Adw.Application):
         levelbar.am-limit block.empty {{ background: transparent; }}
         .am-card button.am-small-btn {{ font-size: 11px; min-height: 0; padding: 1px 10px;
             border: 1px solid alpha({fg_hex}, 0.35); border-radius: {radius}px; }}
+        .am-card button.am-action-btn {{ font-size: 13px; font-weight: 600; min-height: 34px; min-width: 120px;
+            padding: 4px 22px; border: 1px solid alpha({fg_hex}, 0.35); border-radius: {radius}px; }}
+        .am-card button.am-action-btn:disabled {{ opacity: 0.45; }}
         .am-card button.am-chip {{ font-size: 11px; min-height: 0; padding: 1px 10px; border-radius: 999px;
             border: 1px solid alpha({fg_hex}, 0.25); background: transparent; color: {dim_hex}; }}
         .am-card button.am-chip:checked {{ background: alpha({accent_hex}, 0.18); border-color: {accent_hex};
