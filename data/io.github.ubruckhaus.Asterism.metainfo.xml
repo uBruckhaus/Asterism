@@ -25,6 +25,15 @@
   <url type="bugtracker">https://github.com/uBruckhaus/asterism/issues</url>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.4.0" date="2026-10-17">
+      <description>
+        <p>An ⓘ legend in the header explains every dot, line and mark of the map. Hide puts away the
+        agents and providers you don't use (a provider only while no shown agent uses one of its
+        models); + Available lists them under Hidden with Show again. Terminal tabs above the map and
+        the terminals show which agents are working, running or ended. The scroll bar no longer covers
+        the cards' arrows in a narrow window.</p>
+      </description>
+    </release>
     <release version="0.3.0" date="2026-10-17">
       <description>
         <p>Agents run in the window: Start here or in a terminal window, Stop on the card, and running
