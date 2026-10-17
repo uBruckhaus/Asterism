@@ -41,6 +41,18 @@ skills, installing) plus an update check every few hours (npm, the release pages
 installed, `mise outdated`). Every program runs without a shell, every answer with a size and
 time limit.
 
+**Claude Code's details** read its session files (`~/.claude/projects`), bounded and incremental:
+
+- per project, numbers only (tokens, working time, sessions, lines changed, API value) from its
+  replies and cost summaries; no message text;
+- **Topics:** the title Claude Code gave each session (its own `ai-title` lines, nothing else of
+  the conversation), cached owner-only in `~/.cache`;
+- **Summarize with Claude…** (only on a click, after showing exactly what is sent): those titles and
+  numbers, never the conversations, go to your own `claude -p`, which runs in plan mode without
+  MCP servers or a saved session, in an empty folder.
+
+(The AI Agents Map plugin shows only the numbers; titles and the summary are Asterism's.)
+
 ## Development
 
 `python3 -m unittest discover -s tests`. `ASTERISM_DESKTOP=omarchy|generic` picks the desktop

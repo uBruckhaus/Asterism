@@ -30,8 +30,8 @@ MAX_CACHE = 16 * 1024 * 1024
 GAP = 5 * 60                       # replies further apart than this are separate stretches of work
 CACHE_VERSION = 1
 _MODEL = re.compile(r"[A-Za-z0-9._:/-]{1,100}")
-_ASSISTANT = b'"type":"assistant"'
-_COST = b'"type":"cost-state"'
+_ASSISTANT = b'"assistant"'      # quick pre-filters (any JSON spacing); json decides
+_COST = b'"cost-state"'
 
 
 @dataclass
@@ -202,6 +202,11 @@ def _save_cache(files: dict, cache: Path):
 
 def collect(root: Path = ROOT, cache: Path = CACHE) -> list[Session]:
     """Every session's numbers (incremental, bounded; blocking: run it on a thread)."""
+    return list(collect_by_id(root, cache).values())
+
+
+def collect_by_id(root: Path = ROOT, cache: Path = CACHE) -> dict:
+    """{session id: Session} for every session with replies."""
     files = _load_cache(cache)
     seen, budget = {}, MAX_BYTES
     try:
@@ -223,12 +228,12 @@ def collect(root: Path = ROOT, cache: Path = CACHE) -> list[Session]:
             budget -= read_file(path, state, budget)
         seen[key] = state
     _save_cache(seen, cache)
-    sessions = []
+    sessions = {}
     for state in seen.values():
-        for data in state.get("sessions", {}).values():
+        for sid, data in state.get("sessions", {}).items():
             session = data if isinstance(data, Session) else _session_from(data)
             if session is not None and session.replies:
-                sessions.append(session)
+                sessions[sid] = session
     return sessions
 
 

@@ -28,6 +28,10 @@ import atexit
 
 import agent_details
 import claude_sessions
+try:
+    import session_topics       # Asterism only: session titles and a written summary (not in the Omarchy plugin)
+except ImportError:
+    session_topics = None
 import desktop
 import agent_updates
 import agent_profiles
@@ -1698,7 +1702,7 @@ class AgentsMap(Adw.Application):
             sessions = None
             if agent.command == "claude" and agent.installed:
                 try:
-                    sessions = claude_sessions.collect()      # numbers only, incremental
+                    sessions = claude_sessions.collect_by_id()      # numbers only, incremental
                 except Exception:
                     sessions = None
             GLib.idle_add(done, info, usage, checks, sessions)
@@ -1787,7 +1791,7 @@ class AgentsMap(Adw.Application):
         """Claude Code's last 30 days per project folder: working time, sessions, tokens, lines
         changed, API value (numbers from its session files; no text)."""
         since = time.time() - 30 * 86400
-        rows = claude_sessions.projects(sessions, since)
+        rows = claude_sessions.projects(list(sessions.values()), since)
         if not rows:
             return
         self.settings_heading(body, _("Projects, last 30 days"))
@@ -1806,11 +1810,13 @@ class AgentsMap(Adw.Application):
             row.add_prefix(Gtk.Image.new_from_icon_name("folder-symbolic"))
             listbox.append(row)
         body.append(listbox)
-        peak = claude_sessions.busiest(sessions, since)
+        peak = claude_sessions.busiest(list(sessions.values()), since)
         if peak is not None:
             self.note(body, _("Most active: {0}, around {1}:00").format(_(self.WEEKDAYS[peak[0]]), peak[1]))
         self.note(body, _("Numbers from Claude Code's session files (no text is read). The API value is what the "
                           "tokens would cost at API prices, not what a plan costs."))
+        if session_topics is not None:
+            session_topics.fill(self, body, sessions, since)
 
     def open_runtime_status(self, key: str):
         rt = next((r for r in self.inventory.runtimes if r.key == key), None)
