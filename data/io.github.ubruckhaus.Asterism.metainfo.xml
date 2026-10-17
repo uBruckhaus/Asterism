@@ -25,6 +25,13 @@
   <url type="bugtracker">https://github.com/uBruckhaus/asterism/issues</url>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.2.0" date="2026-10-17">
+      <description>
+        <p>Claude Code's details: your last 30 days per project (working time, sessions, tokens, lines
+        changed, API value), topics under Claude Code's own session titles, and an optional written
+        summary by Claude from those titles and numbers.</p>
+      </description>
+    </release>
     <release version="0.1.0" date="2026-10-17"/>
   </releases>
 </component>
