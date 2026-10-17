@@ -6,6 +6,10 @@ Only two kinds of line are parsed, and only their numbers are kept:
 - a session's cost summary ("type":"cost-state"): lines added/removed, cost, API and tool time.
 No message text, title or prompt is read into the results or shown.
 
+Subagent runs (<project>/<session>/subagents/[...]/agent-<id>.jsonl) are read the same way and
+counted for their session, per agent type: the type is the only thing read from the run's
+agent-<id>.meta.json (its task description is not).
+
 Reading is bounded and incremental: own regular files only (no symlinks), at most MAX_LINE bytes
 per line (longer lines are skipped), MAX_FILES files, MAX_BYTES per run; each file is read on from
 where the last run stopped (same inode, grown). The results are cached owner-only in CACHE.
@@ -28,8 +32,12 @@ MAX_DIRS = 500
 MAX_BYTES = 2 * 1024 ** 3          # per run; the rest is read next time
 MAX_CACHE = 16 * 1024 * 1024
 GAP = 5 * 60                       # replies further apart than this are separate stretches of work
-CACHE_VERSION = 1
+MAX_META = 64 * 1024
+MAX_DEPTH = 3                      # folders below <session>/subagents/ looked into
+CACHE_VERSION = 2
 _MODEL = re.compile(r"[A-Za-z0-9._:/-]{1,100}")
+_SID = re.compile(r"[A-Za-z0-9-]{1,64}")
+_AGENT_TYPE = re.compile(r"[A-Za-z0-9][A-Za-z0-9 ._:-]{0,63}")
 _ASSISTANT = b'"assistant"'      # quick pre-filters (any JSON spacing); json decides
 _COST = b'"cost-state"'
 
@@ -47,6 +55,9 @@ class Session:
     lines_removed: int = 0
     cost: float = 0.0
     api_ms: int = 0
+    # Filled in by collect_by_id from the session's subagent runs (not cached):
+    # agent type -> [runs, tokens (input + output + cache write), working seconds]
+    subagents: dict = field(default_factory=dict)
 
 
 def _epoch(stamp) -> float | None:
@@ -104,7 +115,7 @@ def _session_from(data) -> Session | None:
     if not isinstance(data, dict):
         return None
     try:
-        s = Session(**{k: data[k] for k in Session.__dataclass_fields__ if k in data})
+        s = Session(**{k: data[k] for k in Session.__dataclass_fields__ if k in data and k != "subagents"})
     except TypeError:
         return None
     if not isinstance(s.tokens, dict) or not isinstance(s.hours, dict) or not isinstance(s.cwd, str):
@@ -191,6 +202,7 @@ def _load_cache(cache: Path) -> dict:
 def _save_cache(files: dict, cache: Path):
     import ai_core
     plain = {path: {"inode": s.get("inode"), "offset": s.get("offset", 0),
+                    **({"type": s["type"]} if isinstance(s.get("type"), str) else {}),
                     "sessions": {sid: asdict(x) if isinstance(x, Session) else x
                                  for sid, x in s.get("sessions", {}).items()}}
              for path, s in files.items()}
@@ -205,35 +217,99 @@ def collect(root: Path = ROOT, cache: Path = CACHE) -> list[Session]:
     return list(collect_by_id(root, cache).values())
 
 
+def _subagent_files(session_dir: Path, limit: int) -> list[Path]:
+    """agent-*.jsonl below <session>/subagents/ (own folders only, no symlinks, bounded)."""
+    found, stack = [], [(session_dir / "subagents", 0)]
+    while stack and len(found) < limit:
+        folder, depth = stack.pop()
+        try:
+            with os.scandir(folder) as entries:
+                items = sorted(entries, key=lambda e: e.name)[:MAX_DIRS]
+        except OSError:
+            continue
+        for item in items:
+            if item.is_symlink():
+                continue
+            if item.is_dir(follow_symlinks=False):
+                if depth < MAX_DEPTH:
+                    stack.append((Path(item.path), depth + 1))
+            elif item.name.startswith("agent-") and item.name.endswith(".jsonl"):
+                found.append(Path(item.path))
+    return found[:limit]
+
+
+def agent_type(transcript: Path) -> str:
+    """The run's agent type from its agent-<id>.meta.json ("" when unknown); nothing else of it."""
+    meta = transcript.with_name(transcript.name[:-len(".jsonl")] + ".meta.json")
+    try:
+        fd = os.open(meta, os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC)
+        with os.fdopen(fd, "rb") as handle:
+            st = os.fstat(handle.fileno())
+            if not stat.S_ISREG(st.st_mode) or st.st_uid != os.getuid() or st.st_size > MAX_META:
+                return ""
+            data = json.loads(handle.read(MAX_META))
+    except (OSError, ValueError):
+        return ""
+    kind = data.get("agentType") if isinstance(data, dict) else None
+    return kind if isinstance(kind, str) and _AGENT_TYPE.fullmatch(kind) else ""
+
+
 def collect_by_id(root: Path = ROOT, cache: Path = CACHE) -> dict:
-    """{session id: Session} for every session with replies."""
+    """{session id: Session} for every session with replies, its subagent runs counted in."""
     files = _load_cache(cache)
     seen, budget = {}, MAX_BYTES
     try:
         dirs = sorted(p for p in root.iterdir() if p.is_dir() and not p.is_symlink())[:MAX_DIRS]
     except OSError:
         dirs = []
-    paths = []
+    paths, runs = [], []           # runs: (path, parent session id; None: from its lines)
     for folder in dirs:
         try:
-            paths += sorted(folder.glob("*.jsonl"))
+            for path in sorted(folder.glob("*.jsonl")):
+                # Older Claude Code versions kept subagent runs next to the sessions.
+                (runs.append((path, None)) if path.name.startswith("agent-") else paths.append(path))
+            session_dirs = sorted(p for p in folder.iterdir()
+                                  if p.is_dir() and not p.is_symlink() and _SID.fullmatch(p.name))[:MAX_FILES]
         except OSError:
             continue
-        if len(paths) >= MAX_FILES:
+        for session_dir in session_dirs:
+            if len(paths) + len(runs) >= MAX_FILES:
+                break
+            runs += [(path, session_dir.name)
+                     for path in _subagent_files(session_dir, MAX_FILES - len(paths) - len(runs))]
+        if len(paths) + len(runs) >= MAX_FILES:
             break
-    for path in paths[:MAX_FILES]:
+    for path in paths[:MAX_FILES] + [path for path, _sid in runs]:
         key = str(path)
         state = files.get(key) if isinstance(files.get(key), dict) else {}
         if budget > 0:
             budget -= read_file(path, state, budget)
         seen[key] = state
+    for path, _sid in runs:
+        state = seen[str(path)]
+        if "type" not in state:
+            state["type"] = agent_type(path)
     _save_cache(seen, cache)
     sessions = {}
-    for state in seen.values():
+    run_keys = {str(path): sid for path, sid in runs}
+    for key, state in seen.items():
+        if key in run_keys:
+            continue
         for sid, data in state.get("sessions", {}).items():
             session = data if isinstance(data, Session) else _session_from(data)
             if session is not None and session.replies:
                 sessions[sid] = session
+    for key, sid in run_keys.items():
+        state = seen[key]
+        for line_sid, data in state.get("sessions", {}).items():
+            parent = sessions.get(sid or line_sid)
+            run = data if isinstance(data, Session) else _session_from(data)
+            if parent is None or run is None or not run.replies:
+                continue
+            stats = parent.subagents.setdefault(state.get("type") or "?", [0, 0, 0.0])
+            stats[0] += 1
+            stats[1] += sum(c[0] + c[1] + c[3] for c in run.tokens.values())
+            stats[2] += run.active
     return sessions
 
 
@@ -250,6 +326,8 @@ class Project:
     lines_removed: int = 0
     cost: float = 0.0
     last: float = 0.0
+    subagent_runs: int = 0
+    subagent_tokens: int = 0       # part of tokens
 
 
 def projects(sessions: list[Session], since: float = 0.0) -> list[Project]:
@@ -268,6 +346,10 @@ def projects(sessions: list[Session], since: float = 0.0) -> list[Project]:
         p.lines_removed += s.lines_removed
         p.cost += s.cost
         p.last = max(p.last, s.last)
+        for runs, tokens, _active in s.subagents.values():
+            p.subagent_runs += runs
+            p.subagent_tokens += tokens
+            p.tokens += tokens
     return sorted(found.values(), key=lambda p: (-p.active, -p.tokens))
 
 
@@ -284,3 +366,18 @@ def busiest(sessions: list[Session], since: float = 0.0) -> tuple[int, int] | No
         return None
     slot = max(totals, key=totals.get)
     return slot // 24, slot % 24
+
+
+def subagents(sessions: list[Session], since: float = 0.0) -> list[tuple[str, int, int, float]]:
+    """(agent type, runs, tokens, working seconds) of the subagent runs in sessions active since
+    `since`, most runs first ("?" for runs whose type is unknown)."""
+    totals: dict[str, list] = {}
+    for s in sessions:
+        if s.last < since:
+            continue
+        for kind, (runs, tokens, active) in s.subagents.items():
+            t = totals.setdefault(kind, [0, 0, 0.0])
+            t[0] += runs
+            t[1] += tokens
+            t[2] += active
+    return sorted(((k, *v) for k, v in totals.items()), key=lambda r: (-r[1], -r[2]))

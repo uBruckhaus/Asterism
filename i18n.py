@@ -489,6 +489,25 @@ STRINGS = {
   "Only these titles and numbers go to Claude, not your conversations.": "Nur diese Titel und Zahlen gehen an Claude, nicht deine Unterhaltungen.",
   "Sends the titles and numbers above (no conversations) to Claude Code and shows what it writes. Uses some tokens.": "Sendet die Titel und Zahlen oben (keine Unterhaltungen) an Claude Code und zeigt, was es schreibt. Kostet einige Tokens.",
   "Projects, last 30 days": "Projekte, letzte 30 Tage",
+  "In herdr now": "Jetzt in herdr",
+  "Waiting for you": "Wartet auf dich",
+  "Working": "Arbeitet",
+  "Idle": "Leerlauf",
+  "{0} · workspace {1}": "{0} · Arbeitsbereich {1}",
+  "Subagents, last 30 days": "Subagenten, letzte 30 Tage",
+  "Unknown type": "Unbekannter Typ",
+  "\u00041 subagent run": [
+   "{0} Subagent-Lauf",
+   "{0} Subagent-Läufe"
+  ],
+  "\u00041 run": [
+   "{0} Lauf",
+   "{0} Läufe"
+  ],
+  "\u00041 more pane": [
+   "{0} weiterer Bereich",
+   "{0} weitere Bereiche"
+  ],
   "API value {0}": "API-Wert {0}",
   "Unknown folder": "Unbekannter Ordner",
   "{0} h {1} min": "{0} h {1} min",
@@ -1367,6 +1386,25 @@ STRINGS = {
   "Only these titles and numbers go to Claude, not your conversations.": "Solo estos títulos y cifras van a Claude, no tus conversaciones.",
   "Sends the titles and numbers above (no conversations) to Claude Code and shows what it writes. Uses some tokens.": "Envía los títulos y cifras de arriba (sin conversaciones) a Claude Code y muestra lo que escribe. Usa algunos tokens.",
   "Projects, last 30 days": "Proyectos, últimos 30 días",
+  "In herdr now": "Ahora en herdr",
+  "Waiting for you": "Te está esperando",
+  "Working": "Trabajando",
+  "Idle": "Inactivo",
+  "{0} · workspace {1}": "{0} · espacio de trabajo {1}",
+  "Subagents, last 30 days": "Subagentes, últimos 30 días",
+  "Unknown type": "Tipo desconocido",
+  "\u00041 subagent run": [
+   "{0} ejecución de subagente",
+   "{0} ejecuciones de subagentes"
+  ],
+  "\u00041 run": [
+   "{0} ejecución",
+   "{0} ejecuciones"
+  ],
+  "\u00041 more pane": [
+   "{0} panel más",
+   "{0} paneles más"
+  ],
   "API value {0}": "Valor de API {0}",
   "Unknown folder": "Carpeta desconocida",
   "{0} h {1} min": "{0} h {1} min",
@@ -2245,6 +2283,25 @@ STRINGS = {
   "Only these titles and numbers go to Claude, not your conversations.": "Seuls ces titres et chiffres vont à Claude, pas vos conversations.",
   "Sends the titles and numbers above (no conversations) to Claude Code and shows what it writes. Uses some tokens.": "Envoie les titres et chiffres ci-dessus (sans conversations) à Claude Code et affiche ce qu’il écrit. Utilise quelques tokens.",
   "Projects, last 30 days": "Projets, 30 derniers jours",
+  "In herdr now": "Maintenant dans herdr",
+  "Waiting for you": "Vous attend",
+  "Working": "En cours",
+  "Idle": "Inactif",
+  "{0} · workspace {1}": "{0} · espace de travail {1}",
+  "Subagents, last 30 days": "Sous-agents, 30 derniers jours",
+  "Unknown type": "Type inconnu",
+  "\u00041 subagent run": [
+   "{0} exécution de sous-agent",
+   "{0} exécutions de sous-agents"
+  ],
+  "\u00041 run": [
+   "{0} exécution",
+   "{0} exécutions"
+  ],
+  "\u00041 more pane": [
+   "{0} volet de plus",
+   "{0} volets de plus"
+  ],
   "API value {0}": "Valeur API {0}",
   "Unknown folder": "Dossier inconnu",
   "{0} h {1} min": "{0} h {1} min",
@@ -3123,6 +3180,25 @@ STRINGS = {
   "Only these titles and numbers go to Claude, not your conversations.": "A Claude vanno solo questi titoli e numeri, non le tue conversazioni.",
   "Sends the titles and numbers above (no conversations) to Claude Code and shows what it writes. Uses some tokens.": "Invia i titoli e i numeri qui sopra (nessuna conversazione) a Claude Code e mostra cosa scrive. Usa alcuni token.",
   "Projects, last 30 days": "Progetti, ultimi 30 giorni",
+  "In herdr now": "Ora in herdr",
+  "Waiting for you": "Ti sta aspettando",
+  "Working": "Al lavoro",
+  "Idle": "Inattivo",
+  "{0} · workspace {1}": "{0} · area di lavoro {1}",
+  "Subagents, last 30 days": "Subagenti, ultimi 30 giorni",
+  "Unknown type": "Tipo sconosciuto",
+  "\u00041 subagent run": [
+   "{0} esecuzione di subagente",
+   "{0} esecuzioni di subagenti"
+  ],
+  "\u00041 run": [
+   "{0} esecuzione",
+   "{0} esecuzioni"
+  ],
+  "\u00041 more pane": [
+   "{0} riquadro in più",
+   "{0} riquadri in più"
+  ],
   "API value {0}": "Valore API {0}",
   "Unknown folder": "Cartella sconosciuta",
   "{0} h {1} min": "{0} h {1} min",
@@ -4001,6 +4077,25 @@ STRINGS = {
   "Only these titles and numbers go to Claude, not your conversations.": "Alleen deze titels en cijfers gaan naar Claude, niet je gesprekken.",
   "Sends the titles and numbers above (no conversations) to Claude Code and shows what it writes. Uses some tokens.": "Stuurt de titels en cijfers hierboven (geen gesprekken) naar Claude Code en toont wat het schrijft. Kost wat tokens.",
   "Projects, last 30 days": "Projecten, laatste 30 dagen",
+  "In herdr now": "Nu in herdr",
+  "Waiting for you": "Wacht op jou",
+  "Working": "Bezig",
+  "Idle": "Inactief",
+  "{0} · workspace {1}": "{0} · werkruimte {1}",
+  "Subagents, last 30 days": "Subagents, laatste 30 dagen",
+  "Unknown type": "Onbekend type",
+  "\u00041 subagent run": [
+   "{0} subagent-run",
+   "{0} subagent-runs"
+  ],
+  "\u00041 run": [
+   "{0} run",
+   "{0} runs"
+  ],
+  "\u00041 more pane": [
+   "{0} extra paneel",
+   "{0} extra panelen"
+  ],
   "API value {0}": "API-waarde {0}",
   "Unknown folder": "Onbekende map",
   "{0} h {1} min": "{0} h {1} min",
@@ -4909,6 +5004,28 @@ STRINGS = {
   "Only these titles and numbers go to Claude, not your conversations.": "Do Claude trafiają tylko te tytuły i liczby, nie twoje rozmowy.",
   "Sends the titles and numbers above (no conversations) to Claude Code and shows what it writes. Uses some tokens.": "Wysyła powyższe tytuły i liczby (bez rozmów) do Claude Code i pokazuje, co napisze. Zużywa trochę tokenów.",
   "Projects, last 30 days": "Projekty, ostatnie 30 dni",
+  "In herdr now": "Teraz w herdr",
+  "Waiting for you": "Czeka na ciebie",
+  "Working": "Pracuje",
+  "Idle": "Bezczynny",
+  "{0} · workspace {1}": "{0} · obszar roboczy {1}",
+  "Subagents, last 30 days": "Subagenci, ostatnie 30 dni",
+  "Unknown type": "Nieznany typ",
+  "\u00041 subagent run": [
+   "{0} uruchomienie subagenta",
+   "{0} uruchomienia subagentów",
+   "{0} uruchomień subagentów"
+  ],
+  "\u00041 run": [
+   "{0} uruchomienie",
+   "{0} uruchomienia",
+   "{0} uruchomień"
+  ],
+  "\u00041 more pane": [
+   "{0} panel więcej",
+   "{0} panele więcej",
+   "{0} paneli więcej"
+  ],
   "API value {0}": "Wartość API {0}",
   "Unknown folder": "Nieznany folder",
   "{0} h {1} min": "{0} h {1} min",
@@ -5787,6 +5904,25 @@ STRINGS = {
   "Only these titles and numbers go to Claude, not your conversations.": "Só estes títulos e números vão para o Claude, não suas conversas.",
   "Sends the titles and numbers above (no conversations) to Claude Code and shows what it writes. Uses some tokens.": "Envia os títulos e números acima (sem conversas) ao Claude Code e mostra o que ele escreve. Usa alguns tokens.",
   "Projects, last 30 days": "Projetos, últimos 30 dias",
+  "In herdr now": "Agora no herdr",
+  "Waiting for you": "À sua espera",
+  "Working": "A trabalhar",
+  "Idle": "Inativo",
+  "{0} · workspace {1}": "{0} · área de trabalho {1}",
+  "Subagents, last 30 days": "Subagentes, últimos 30 dias",
+  "Unknown type": "Tipo desconhecido",
+  "\u00041 subagent run": [
+   "{0} execução de subagente",
+   "{0} execuções de subagentes"
+  ],
+  "\u00041 run": [
+   "{0} execução",
+   "{0} execuções"
+  ],
+  "\u00041 more pane": [
+   "{0} painel a mais",
+   "{0} painéis a mais"
+  ],
   "API value {0}": "Valor de API {0}",
   "Unknown folder": "Pasta desconhecida",
   "{0} h {1} min": "{0} h {1} min",

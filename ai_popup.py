@@ -28,6 +28,7 @@ import atexit
 
 import agent_details
 import claude_sessions
+import herdr_state
 try:
     import session_topics       # Asterism only: session titles and a written summary (not in the Omarchy plugin)
 except ImportError:
@@ -1705,16 +1706,20 @@ class AgentsMap(Adw.Application):
                     sessions = claude_sessions.collect_by_id()      # numbers only, incremental
                 except Exception:
                     sessions = None
-            GLib.idle_add(done, info, usage, checks, sessions)
+            try:
+                panes = herdr_state.snapshot()
+            except Exception:
+                panes = None
+            GLib.idle_add(done, info, usage, checks, sessions, panes)
 
-        def done(info, usage, checks, sessions):
+        def done(info, usage, checks, sessions, panes):
             if self.status_showing == ("agent", agent.command):
-                self.fill_agent_status(agent, info, usage, checks, sessions)
+                self.fill_agent_status(agent, info, usage, checks, sessions, panes)
             return False
 
         threading.Thread(target=work, daemon=True).start()
 
-    def fill_agent_status(self, agent, info, usage, checks, sessions=None):
+    def fill_agent_status(self, agent, info, usage, checks, sessions=None, panes=None):
         self.clear_status(agent.name)
         body = self.status_body
         # At the top: one sentence, then what it is doing now.
@@ -1727,6 +1732,12 @@ class AgentsMap(Adw.Application):
         else:
             now = _("Not running")
         body.append(self.status_hero(state, sentence, now))
+        if panes is not None:
+            # herdr's live state, read again every few seconds while this page shows.
+            self.herdr_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+            body.append(self.herdr_box)
+            self.fill_herdr_panes(agent, panes)
+            self.watch_herdr(agent)
 
         tiles = []
         if usage is not None and usage.has_tokens:
@@ -1778,6 +1789,66 @@ class AgentsMap(Adw.Application):
         self.fill_agent(config, agent, summary=True)
         body.append(config)
 
+    HERDR_STATES = {"blocked": (N_("Waiting for you"), "dialog-question-symbolic"),
+                    "working": (N_("Working"), "content-loading-symbolic"),
+                    "idle": (N_("Idle"), "media-playback-pause-symbolic"),
+                    "done": (N_("Done"), "object-select-symbolic"),
+                    "unknown": (N_("Running"), "media-playback-start-symbolic")}
+    HERDR_EVERY = 4                # seconds between reads while an agent's page shows
+
+    def fill_herdr_panes(self, agent, panes):
+        """The agent's panes in herdr now: state, folder and workspace (nothing of the screen)."""
+        box = self.herdr_box
+        while (child := box.get_first_child()) is not None:
+            box.remove(child)
+        mine = herdr_state.for_agent(panes, agent.command)
+        if not mine:
+            return
+        self.settings_heading(box, _("In herdr now"))
+        listbox = self.boxed_list()
+        for pane in mine[:12]:
+            label, icon = self.HERDR_STATES[pane.state]
+            where = inventory.tilde(pane.cwd) if pane.cwd else _("Unknown folder")
+            space = " › ".join(x for x in (pane.session, pane.workspace) if x)
+            row = self.plain_row(_(label), _("{0} · workspace {1}").format(where, space) if space else where)
+            row.add_prefix(Gtk.Image.new_from_icon_name(icon))
+            if pane.state == "blocked":
+                row.add_css_class("warning")
+            listbox.append(row)
+        box.append(listbox)
+        if len(mine) > 12:
+            self.note(box, ngettext("1 more pane", "{0} more panes", len(mine) - 12).format(len(mine) - 12))
+
+    def watch_herdr(self, agent):
+        """While this agent's page shows: herdr's state again every HERDR_EVERY seconds (on a thread)."""
+        showing, box, busy = ("agent", agent.command), self.herdr_box, {"on": False}
+
+        def current() -> bool:
+            return self.status_showing == showing and getattr(self, "herdr_box", None) is box
+
+        def tick():
+            if not current():
+                return False
+            if not busy["on"]:
+                busy["on"] = True
+                threading.Thread(target=work, daemon=True).start()
+            return True
+
+        def work():
+            try:
+                panes = herdr_state.snapshot()
+            except Exception:
+                panes = None
+            GLib.idle_add(done, panes)
+
+        def done(panes):
+            busy["on"] = False
+            if current():
+                self.fill_herdr_panes(agent, panes or [])
+            return False
+
+        GLib.timeout_add_seconds(self.HERDR_EVERY, tick)
+
     WEEKDAYS = (N_("Monday"), N_("Tuesday"), N_("Wednesday"), N_("Thursday"), N_("Friday"), N_("Saturday"),
                 N_("Sunday"))
 
@@ -1800,6 +1871,9 @@ class AgentsMap(Adw.Application):
             parts = [_("{0} working").format(self.duration_text(project.active)),
                      ngettext("1 session", "{0} sessions", project.sessions).format(project.sessions),
                      _("{0} tokens").format(short_number(project.tokens))]
+            if project.subagent_runs:
+                parts.append(ngettext("1 subagent run", "{0} subagent runs", project.subagent_runs)
+                             .format(project.subagent_runs))
             if project.lines_added or project.lines_removed:
                 parts.append(_("+{0} −{1} lines").format(project.lines_added, project.lines_removed))
             if project.cost:
@@ -1810,6 +1884,18 @@ class AgentsMap(Adw.Application):
             row.add_prefix(Gtk.Image.new_from_icon_name("folder-symbolic"))
             listbox.append(row)
         body.append(listbox)
+        runs = claude_sessions.subagents(list(sessions.values()), since)
+        if runs:
+            self.settings_heading(body, _("Subagents, last 30 days"))
+            listbox = self.boxed_list()
+            for kind, count, tokens, active in runs[:10]:
+                row = self.plain_row(kind if kind != "?" else _("Unknown type"), " · ".join((
+                    ngettext("1 run", "{0} runs", count).format(count),
+                    _("{0} tokens").format(short_number(tokens)),
+                    _("{0} working").format(self.duration_text(active)))))
+                row.add_prefix(Gtk.Image.new_from_icon_name("system-run-symbolic"))
+                listbox.append(row)
+            body.append(listbox)
         peak = claude_sessions.busiest(list(sessions.values()), since)
         if peak is not None:
             self.note(body, _("Most active: {0}, around {1}:00").format(_(self.WEEKDAYS[peak[0]]), peak[1]))

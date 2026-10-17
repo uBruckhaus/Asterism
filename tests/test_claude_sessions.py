@@ -111,3 +111,63 @@ class SessionsTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SubagentsTest(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.project = Path(self.tmp.name) / "projects" / "-home-u-project"
+        self.project.mkdir(parents=True)
+        self.cache = Path(self.tmp.name) / "cache.json"
+        (self.project / "s1.jsonl").write_text(line(reply("s1", "2026-10-16T10:00:00Z"))
+                                              + line(reply("s1", "2026-10-16T10:01:00Z")))
+
+    def run_file(self, name, kind=None, sid="s1", meta_extra=None, folder=None):
+        folder = folder or self.project / sid / "subagents"
+        folder.mkdir(parents=True, exist_ok=True)
+        (folder / f"agent-{name}.jsonl").write_text(
+            line(reply(sid, "2026-10-16T10:00:10Z", out=200, text="secret subagent text"))
+            + line(reply(sid, "2026-10-16T10:00:40Z", out=200)))
+        if kind is not None:
+            (folder / f"agent-{name}.meta.json").write_text(
+                json.dumps({"agentType": kind, "description": "secret task", **(meta_extra or {})}))
+
+    def collect(self):
+        return cs.collect_by_id(self.project.parent, self.cache)
+
+    def test_runs_count_for_their_session_per_type(self):
+        self.run_file("a1", "Explore")
+        self.run_file("a2", "Explore")
+        self.run_file("a3", "Plan", folder=self.project / "s1" / "subagents" / "workflows" / "w1")
+        self.run_file("a4")                                   # no meta: unknown type
+        sessions = self.collect()
+        self.assertEqual(set(sessions), {"s1"})              # runs never replace their session
+        s1 = sessions["s1"]
+        self.assertEqual(s1.replies, 2)
+        self.assertEqual(s1.subagents["Explore"], [2, 2 * 2 * (10 + 200 + 50), 60.0])
+        self.assertEqual(s1.subagents["Plan"][0], 1)
+        self.assertEqual(s1.subagents["?"][0], 1)
+        rows = cs.subagents(list(sessions.values()))
+        self.assertEqual([r[0] for r in rows][:1], ["Explore"])
+        project = cs.projects(list(sessions.values()))[0]
+        self.assertEqual(project.subagent_runs, 4)
+        self.assertEqual(project.tokens, 2 * (10 + 100 + 50) + 4 * 2 * (10 + 200 + 50))
+        cached = self.cache.read_text()
+        self.assertNotIn("secret", cached)
+        self.assertNotIn("subagents\": {\"Explore", cached)   # totals are not cached, only per file
+        again = self.collect()["s1"]                          # from the cache: same, not doubled
+        self.assertEqual(again.subagents["Explore"][0], 2)
+
+    def test_old_layout_and_bad_meta(self):
+        self.run_file("old", "Explore", folder=self.project)  # next to the sessions (older versions)
+        self.run_file("bad", "x" * 200)                       # type not a plain short name
+        self.run_file("big", "Plan", meta_extra={"pad": "y" * (cs.MAX_META + 10)})
+        target = self.project / "s1" / "subagents" / "agent-link.jsonl"
+        os.symlink(self.project / "s1.jsonl", target)         # links are not followed
+        sessions = self.collect()
+        self.assertEqual(set(sessions), {"s1"})
+        self.assertEqual(sessions["s1"].replies, 2)
+        self.assertEqual(sessions["s1"].subagents["Explore"][0], 1)
+        self.assertEqual(sessions["s1"].subagents["?"][0], 2)
+        self.assertEqual(sum(v[0] for v in sessions["s1"].subagents.values()), 3)
