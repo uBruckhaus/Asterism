@@ -98,6 +98,7 @@ class MapView(Gtk.DrawingArea):
         self.usage = None        # gpu_usage.Usage: GPU memory per local LLM, loaded models, activity
         self.animate = True      # Settings → Animate active lines: light flows along a running agent's path
         self.flow_layer = None   # FlowLayer over the map (with_flow_layer)
+        self.working = None      # agent commands working now (agent_activity); None: every running one flows
         self.set_draw_func(self.on_draw)
         self.scroll_adjustment = None
         self.connect("map", lambda *_: self.follow_scrolling())
@@ -726,7 +727,17 @@ class MapView(Gtk.DrawingArea):
         return settings is None or bool(settings.get_property("gtk-enable-animations"))
 
     def running_agents(self) -> set:
-        return {n.id for n in self.graph.nodes if n.kind == "agent" and n.status == "running"}
+        """The agents whose lines flow: running ones, and of those only the working ones once known."""
+        running = {n.id for n in self.graph.nodes if n.kind == "agent" and n.status == "running"}
+        if self.working is not None:
+            running &= {f"agent:{command}" for command in self.working}
+        return running
+
+    def set_working(self, commands):
+        working = set(commands)
+        if working != self.working:
+            self.working = working
+            self.queue_draw()          # the flow follows on this drawing
 
     def flow_paths(self, active_edges, drawn, running_only: bool = True) -> list:
         """[(agent id, [edges agent → provider → model])] of the agents (the running ones, unless
@@ -746,7 +757,8 @@ class MapView(Gtk.DrawingArea):
     FLOW_PERIOD = 2.6            # seconds for a light to run the whole path
     FLOW_PULSES = 3              # lights on a path at a time
     FLOW_FADE = 0.3              # seconds to fade an agent's lights in or out (never on and off at once)
-    FLOW_GRACE = 2.5             # seconds an agent's lights keep running after it stopped (a missed check)
+    FLOW_GRACE = 5.0             # seconds an agent's lights keep running after it stopped working (pauses
+                                 # between tokens, a missed check), so they do not blink
 
     def draw_flow(self, cr, paths, now: float, levels=None):
         """Comets running from the agent through the provider to the model: a bright head in a soft

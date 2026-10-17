@@ -26,6 +26,7 @@ from gi.repository import Adw, Gdk, Gio, GLib, Gtk, Pango
 
 import atexit
 
+import agent_activity
 import agent_details
 import claude_sessions
 import herdr_state
@@ -627,6 +628,22 @@ class AgentsMap(Adw.Application):
         heading = Gtk.Label(label=_("Overview").upper(), xalign=0, hexpand=True)
         heading.add_css_class("am-section-title")
         top.append(heading)
+        # Cards or tree, right here (also Settings › Sidebar).
+        style = Gtk.Box(spacing=0, valign=Gtk.Align.CENTER)
+        style.add_css_class("linked")
+        self.sidebar_buttons = {}
+        group = None
+        for key, icon, tip in (("cards", "view-grid-symbolic", _("Cards")), ("tree", "view-list-symbolic", _("Tree"))):
+            button = Gtk.ToggleButton(icon_name=icon, group=group, tooltip_text=tip)
+            group = group or button
+            button.add_css_class("am-small-btn")
+            button.add_css_class("am-style-btn")
+            style.append(button)
+            self.sidebar_buttons[key] = button
+        self.sidebar_buttons["tree" if self.sidebar_tree() else "cards"].set_active(True)
+        for key, button in self.sidebar_buttons.items():
+            button.connect("toggled", lambda b, k=key: b.get_active() and self.set_sidebar_style(k))
+        top.append(style)
         self.card_filter = Gtk.Button()
         self.card_filter.add_css_class("am-small-btn")
         self.card_filter.add_css_class("am-filter-btn")
@@ -850,10 +867,17 @@ class AgentsMap(Adw.Application):
                 usage = gpu_usage.snapshot(runtimes)
             except Exception:
                 usage = None
-            GLib.idle_add(done, usage, self.running_now())
+            pids = {}
+            running = self.running_now(pids)
+            try:
+                working = self.working_now(pids, usage, runtimes)
+            except Exception:
+                working = set(running)
+            GLib.idle_add(done, usage, running, working)
 
-        def done(usage, running):
+        def done(usage, running, working):
             self.gpu_reading = False
+            self.side_map.set_working(working)
             if usage is not None and self.window.is_visible():
                 self.show_gpu(usage, runtimes)
             if running != self.running and self.window.is_visible():
@@ -905,11 +929,28 @@ class AgentsMap(Adw.Application):
         if changed:
             self.sync_provider_watch()
 
-    def running_now(self) -> dict:
-        """Agent command -> the model each open instance runs with (/proc only)."""
+    def working_now(self, pids: dict, usage, runtimes) -> set:
+        """The running agents that work right now (agent_activity): the map's lines flow for them."""
+        if not hasattr(self, "activity"):
+            self.activity = agent_activity.Activity()
+        states = {}
+        if any(herdr_state.server_running(sock) for _name, sock in herdr_state.sessions()):
+            for pane in herdr_state.snapshot() or []:
+                states.setdefault(pane.agent, set()).add(pane.state)
+        generating = set()
+        if usage is not None and usage.generating:
+            for rt in runtimes:
+                use = usage.runtimes.get(rt.key)
+                if use is not None and use.running:
+                    generating.update(rt.active_agents)
+        return self.activity.working(pids, states, generating)
+
+    def running_now(self, pids: dict | None = None) -> dict:
+        """Agent command -> the model each open instance runs with (/proc only); pids gets
+        {agent: [process ids]} when given."""
         names = [a.command for a in getattr(self, "agent_list", []) if a.installed]
         try:
-            found = provider_watch.agent_instances(names)
+            found = provider_watch.agent_instances(names, pids=pids)
         except OSError:
             return {}
         return {name: sorted(provider_watch.instance_model(name, args) for args in found[name]) for name in found}
@@ -1053,6 +1094,16 @@ class AgentsMap(Adw.Application):
 
     def sidebar_tree(self) -> bool:
         return ai_core.load_settings().get("sidebar") == "tree"
+
+    def set_sidebar_style(self, style: str):
+        """Cards or tree (the buttons in the sidebar's heading, or Settings › Sidebar)."""
+        if (style == "tree") == self.sidebar_tree():
+            return
+        self.save_setting(sidebar=style)
+        button = getattr(self, "sidebar_buttons", {}).get(style)
+        if button is not None and not button.get_active():
+            button.set_active(True)
+        self.refresh_overview()
 
     def tree_nodes(self, installed, runtimes, servers, skill_sets, missing, names) -> list:
         """The categories and their boxes; what a box holds is made when it opens (tree_children)."""
@@ -7004,7 +7055,7 @@ class AgentsMap(Adw.Application):
                        _("Cards: a box per agent, local LLM, MCP server and skill folder. Tree: the same as a compact "
                          "tree; an opened entry shows its facts and its buttons (arrow keys open and close)."),
                        [_("Cards"), _("Tree")], 1 if self.sidebar_tree() else 0,
-                       lambda i: (self.save_setting(sidebar="tree" if i == 1 else "cards"), self.refresh_overview()))
+                       lambda i: self.set_sidebar_style("tree" if i == 1 else "cards"))
         if desktop.NAME == "omarchy":
             look = self.combo_row(group, _("Look"),
                            _("The colours, light or dark: from the Omarchy theme, or GNOME's Adwaita (light or dark "
@@ -7847,6 +7898,7 @@ class AgentsMap(Adw.Application):
         .am-tree-section {{ font-size: 11px; font-weight: 800; letter-spacing: 1px; color: {accent_hex}; }}
         .am-tree-title {{ font-weight: 600; font-size: 13px; }}
         .am-tree-icon {{ font-size: 15px; min-width: 20px; }}
+        button.am-style-btn {{ padding: 1px 6px; min-height: 0; }}
         .am-tree-arrow {{ color: {dim_hex}; }}
         .am-tree-dot {{ font-size: 9px; }}
         .am-tree-dot-off {{ color: transparent; }}

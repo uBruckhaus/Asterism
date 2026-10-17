@@ -36,6 +36,7 @@ class FlowTest(unittest.TestCase):
         self.view = FlowOnly()
         self.view.graph = sample()
         self.view.active = map_view.MapView.active_paths(self.view.graph)
+        self.view.working = None
         self.all = set(range(len(self.view.graph.edges)))
 
     def test_only_running_agents_flow_agent_provider_model(self):
@@ -51,6 +52,13 @@ class FlowTest(unittest.TestCase):
         second = next(i for i, e in enumerate(self.view.graph.edges) if e.source == "provider:anthropic")
         paths = self.view.flow_paths(self.all, self.all - {second})              # model hidden: agent → provider
         self.assertEqual(len(paths[0][1]), 1)
+
+    def test_only_working_agents_flow_once_known(self):
+        next(n for n in self.view.graph.nodes if n.id == "agent:pi").status = "running"
+        self.view.working = {"pi"}                                  # Claude runs, but waits at its prompt
+        self.assertEqual([a for a, _e in self.view.flow_paths(self.all, self.all)], ["agent:pi"])
+        self.view.working = set()
+        self.assertEqual(self.view.flow_paths(self.all, self.all), [])
 
     def test_pi_flows_once_running(self):
         next(n for n in self.view.graph.nodes if n.id == "agent:pi").status = "running"
