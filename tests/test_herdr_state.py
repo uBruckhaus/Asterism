@@ -77,6 +77,34 @@ class HerdrTest(unittest.TestCase):
                 self.assertIsNone(herdr_state.snapshot(config / "nothing"))
                 run.assert_not_called()                       # no server: herdr is not even run
 
+    def test_focus_and_clients(self):
+        panes = herdr_state.parse(SNAPSHOT, "work")
+        self.assertEqual(panes[1].pane_id, "p2")
+        with mock.patch("shutil.which", return_value="/usr/bin/herdr"), \
+                mock.patch("ai_core.read_bounded_output", return_value=(b"{}", True)) as run:
+            self.assertTrue(herdr_state.focus(panes[1]))
+            self.assertEqual(run.call_args.args[0], ["/usr/bin/herdr", "--session", "work", "agent", "focus", "p2"])
+            self.assertFalse(herdr_state.focus(herdr_state.Pane("claude", "idle", pane_id="")))
+            self.assertFalse(herdr_state.focus(herdr_state.Pane("claude", "idle", pane_id="-x; rm")))
+        processes = [(10, "herdr", ["herdr"]), (11, "herdr", ["herdr", "--session", "work"]),
+                     (12, "herdr", ["/usr/bin/herdr", "server"]), (13, "herdr", ["herdr", "api", "snapshot"]),
+                     (14, "herdr", ["herdr", "--session", "work", "api", "snapshot"]), (15, "bash", ["herdr"])]
+        self.assertEqual(herdr_state.client_pids("", processes), [10])
+        self.assertEqual(herdr_state.client_pids("work", processes), [11])
+
+    def test_terminal_found_through_its_parents(self):
+        import desktop_omarchy
+        parents = {500: 400, 400: 300, 300: 1}
+        with mock.patch.object(desktop_omarchy, "_clients", return_value=[{"pid": 300}, {"pid": 7}]), \
+                mock.patch.object(desktop_omarchy, "_parent", side_effect=lambda pid: parents.get(pid, 0)), \
+                mock.patch.object(desktop_omarchy, "_dispatch", return_value=True) as dispatch:
+            self.assertTrue(desktop_omarchy.focus_process([500]))
+            self.assertEqual(dispatch.call_args.args[0], 'hl.dsp.focus({ window = "pid:300" })')
+            dispatch.reset_mock()
+            self.assertFalse(desktop_omarchy.focus_process([999]))
+            dispatch.assert_not_called()
+        self.assertEqual(desktop_omarchy._parent(os.getpid()), os.getppid())
+
 
 if __name__ == "__main__":
     unittest.main()

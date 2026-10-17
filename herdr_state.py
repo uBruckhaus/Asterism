@@ -7,6 +7,10 @@ server runs: its socket must exist, be a socket and belong to this user, so
 nothing here starts a server or talks to another account's one. The output is size-capped
 and only the agent kind, its state, the folder and the workspace's label are
 kept (no terminal titles or screen text).
+
+focus() asks herdr to switch to a pane (`herdr agent focus <pane>`); the
+terminal window that shows that session is brought to the front by the
+desktop (desktop.focus_process) from the herdr clients' process ids.
 """
 
 import json
@@ -31,6 +35,7 @@ STATES = ("blocked", "working", "idle", "done", "unknown")
 KINDS = {"cursor": "cursor-agent"}
 _KIND = re.compile(r"[a-z0-9][a-z0-9-]{0,31}")
 _SESSION = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}")
+_PANE = re.compile(r"[A-Za-z0-9][A-Za-z0-9:_-]{0,63}")
 
 
 @dataclass
@@ -40,6 +45,7 @@ class Pane:
     cwd: str = ""
     workspace: str = ""        # the workspace's label, when it has one
     session: str = ""          # a named herdr session ("" for the default one)
+    pane_id: str = ""          # herdr's pane id ("w1:p2"), for focus()
 
 
 def server_running(socket: Path = SOCKET) -> bool:
@@ -78,8 +84,10 @@ def parse(data, session: str = "") -> list[Pane]:
         if not isinstance(kind, str) or not _KIND.fullmatch(kind) or state not in STATES:
             continue
         cwd = _text(item.get("foreground_cwd") or item.get("cwd"), 1024)
+        pane_id = item.get("pane_id")
         found.append(Pane(KINDS.get(kind, kind), state, cwd if cwd.startswith("/") else "",
-                          labels.get(item.get("workspace_id"), ""), session))
+                          labels.get(item.get("workspace_id"), ""), session,
+                          pane_id if isinstance(pane_id, str) and _PANE.fullmatch(pane_id) else ""))
     return found
 
 
@@ -123,3 +131,38 @@ def for_agent(panes: list[Pane] | None, command: str) -> list[Pane]:
     """One agent's panes, the ones that need someone first (blocked, then working)."""
     order = {s: i for i, s in enumerate(STATES)}
     return sorted((p for p in panes or [] if p.agent == command), key=lambda p: order[p.state])
+
+
+def _session_args(session: str) -> list[str]:
+    if session and not _SESSION.fullmatch(session):
+        raise ValueError("not a herdr session name")
+    return ["--session", session] if session else []
+
+
+def focus(pane: Pane) -> bool:
+    """herdr switches to this pane (in its session). Blocking, a few seconds at most."""
+    binary = shutil.which("herdr")
+    if binary is None or not _PANE.fullmatch(pane.pane_id or ""):
+        return False
+    _out, ok = ai_core.read_bounded_output([binary, *_session_args(pane.session), "agent", "focus", pane.pane_id],
+                                           max_bytes=64 * 1024, timeout=TIMEOUT)
+    return ok
+
+
+def client_pids(session: str, processes: list[tuple[int, str, list[str]]]) -> list[int]:
+    """The herdr clients (the TUI in a terminal, not the server) attached to `session`, from
+    (pid, comm, argv) of this user's processes (inventory.own_processes)."""
+    found = []
+    for pid, comm, argv in processes:
+        if comm != "herdr" or not argv or "server" in argv[1:]:
+            continue
+        args, named = list(argv[1:]), ""
+        if "--session" in args[:-1]:
+            at = args.index("--session")
+            named = args[at + 1]
+            del args[at:at + 2]
+        if any(not a.startswith("-") for a in args):
+            continue                    # a subcommand (api, agent, server, ...): not a client
+        if named == session:
+            found.append(pid)
+    return found

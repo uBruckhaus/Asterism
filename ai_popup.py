@@ -1814,10 +1814,35 @@ class AgentsMap(Adw.Application):
             row.add_prefix(Gtk.Image.new_from_icon_name(icon))
             if pane.state == "blocked":
                 row.add_css_class("warning")
+            if pane.pane_id:
+                row.set_activatable(True)
+                row.set_tooltip_text(_("Show this pane in herdr"))
+                row.add_suffix(Gtk.Image.new_from_icon_name("go-next-symbolic"))
+                row.connect("activated", lambda _r, p=pane: self.focus_herdr_pane(p))
             listbox.append(row)
         box.append(listbox)
         if len(mine) > 12:
             self.note(box, ngettext("1 more pane", "{0} more panes", len(mine) - 12).format(len(mine) - 12))
+
+    def focus_herdr_pane(self, pane):
+        """herdr switches to the pane; its terminal window comes to the front (where the desktop can)."""
+        def work():
+            try:
+                switched = herdr_state.focus(pane)
+                shown = switched and desktop.focus_process(
+                    herdr_state.client_pids(pane.session, inventory.own_processes()))
+            except Exception:
+                switched = shown = False
+            GLib.idle_add(done, switched, shown)
+
+        def done(switched, shown):
+            if not switched:
+                self.toast(_("herdr could not switch to this pane"), 4)
+            elif not shown:
+                self.toast(_("Switched in herdr; open herdr in a terminal to see it"), 5)
+            return False
+
+        threading.Thread(target=work, daemon=True).start()
 
     def watch_herdr(self, agent):
         """While this agent's page shows: herdr's state again every HERDR_EVERY seconds (on a thread)."""
