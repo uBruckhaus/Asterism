@@ -1209,6 +1209,7 @@ class AgentsMap(Adw.Application):
         """The tree in the sidebar: a list of rows with guide lines; arrows and Enter work as in a file tree."""
         self.tree_roots = nodes
         self.tree_list = Gtk.ListBox(selection_mode=Gtk.SelectionMode.SINGLE)
+        self.tree_list.set_margin_end(14)        # room for the scroll bar, which overlays the right edge
         self.tree_list.add_css_class("am-tree")
         self.tree_list.connect("row-activated", lambda _l, row: self.on_tree_activate(row))
         keys = Gtk.EventControllerKey()
