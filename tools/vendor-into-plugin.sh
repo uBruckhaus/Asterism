@@ -16,7 +16,8 @@ for file in "$root"/*.py; do
 done
 for name in $ASTERISM_ONLY; do rm -f "$plugin/$name" "$plugin/tests/test_$name"; done
 rm -rf "$plugin/tests" && cp -r "$root/tests" "$plugin/tests"
-# Pictures the pages show (the plugin keeps them in assets/).
+# The translations (one data file per language) and the pictures the pages show (assets/).
+rm -rf "$plugin/translations" && cp -r "$root/translations" "$plugin/translations"
 mkdir -p "$plugin/assets" && cp "$root/data/llm-monitor-preview.png" "$plugin/assets/"
 for name in $ASTERISM_ONLY; do rm -f "$plugin/tests/test_$name"; done
 echo "Asterism $(git -C "$root" describe --always --tags) → $plugin"

@@ -17,6 +17,8 @@ package() {
     cd "$pkgname-$pkgver"
     install -d "$pkgdir/usr/lib/asterism"
     install -m644 ./*.py "$pkgdir/usr/lib/asterism/"
+    install -Dm644 translations/*.json -t "$pkgdir/usr/lib/asterism/translations/"
+    install -Dm644 data/llm-monitor-preview.png -t "$pkgdir/usr/lib/asterism/data/"
     install -Dm755 bin/asterism "$pkgdir/usr/bin/asterism"
     install -Dm644 data/io.github.ubruckhaus.Asterism.desktop -t "$pkgdir/usr/share/applications/"
     install -Dm644 data/io.github.ubruckhaus.Asterism.metainfo.xml -t "$pkgdir/usr/share/metainfo/"
