@@ -6236,17 +6236,17 @@ class AgentsMap(Adw.Application):
         self.install_status = Gtk.Label(xalign=0, wrap=True, max_width_chars=1)
         self.install_status.add_css_class("am-agent-detail")
         page.append(self.install_status)
-        # The choices right under the progress: the action first, then Cancel (Stop while it runs).
-        buttons = Gtk.Box(spacing=10, halign=Gtk.Align.START, margin_top=4)
+        # The choices right under the progress, on the right: Cancel (Stop while it runs), then the action.
+        buttons = Gtk.Box(spacing=10, halign=Gtk.Align.END, margin_top=4)
+        self.install_cancel = Gtk.Button(label=_("Cancel"))
+        self.install_cancel.add_css_class("am-action-btn")
+        self.install_cancel.connect("clicked", lambda *_: self.cancel_install())
+        buttons.append(self.install_cancel)
         self.install_ok = Gtk.Button()
         self.install_ok.add_css_class("am-action-btn")
         self.install_ok.add_css_class("am-primary")
         self.install_ok.connect("clicked", lambda *_: self.run_install())
         buttons.append(self.install_ok)
-        self.install_cancel = Gtk.Button(label=_("Cancel"))
-        self.install_cancel.add_css_class("am-action-btn")
-        self.install_cancel.connect("clicked", lambda *_: self.cancel_install())
-        buttons.append(self.install_cancel)
         page.append(buttons)
         page.append(Gtk.Box(vexpand=True))
         self.installing = None
