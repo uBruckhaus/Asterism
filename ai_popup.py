@@ -7454,8 +7454,61 @@ class AgentsMap(Adw.Application):
         body = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14)
         body.add_css_class("am-settings")
         body.append(self.help_setup_card())
+        monitor = self.help_llm_monitor_card()
+        if monitor is not None:
+            body.append(monitor)
         page.append(self.page_scroller(body))
         return page
+
+    LLM_MONITOR_ID = "ubruckhaus.llm-usage"
+    LLM_MONITOR_LISTING = "https://omarchyplugins.com/plugin.html?id=ubruckhaus.llm-usage"
+    LLM_MONITOR_ADD = "omarchy plugin add https://github.com/uBruckhaus/omarchy-llm-usage.git --enable"
+
+    def help_llm_monitor_card(self) -> Gtk.Widget | None:
+        """On Omarchy: LLM Monitor, the bar plugin that shows what a local LLM is doing (the same
+        author's): its picture, the marketplace page and the command that installs it."""
+        if desktop.NAME != "omarchy":
+            return None
+        card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+        card.add_css_class("am-help-card")
+        top = Gtk.Box(spacing=10)
+        heading = Gtk.Label(label=_("Also for your bar: LLM Monitor").upper(), xalign=0, hexpand=True)
+        heading.add_css_class("am-setting-heading")
+        top.append(heading)
+        installed = (Path.home() / ".config/omarchy/plugins" / self.LLM_MONITOR_ID).is_dir()
+        if installed:
+            mark = Gtk.Label(label=_("Installed"))
+            mark.add_css_class("am-agent-badge")
+            top.append(mark)
+        card.append(top)
+        intro = Gtk.Label(label=_("A plugin of its own for Omarchy's bar: it shows when llama.cpp, Ollama, LM Studio or "
+                                  "vLLM holds a model on the graphics card, how full its context is, GPU memory, load "
+                                  "and speed, and frees GPU memory with one click."),
+                          xalign=0, wrap=True, max_width_chars=1)
+        intro.add_css_class("am-agent-detail")
+        card.append(intro)
+        here = Path(__file__).resolve().parent
+        image = next((p for p in (here / "assets/llm-monitor-preview.png", here / "data/llm-monitor-preview.png")
+                      if p.is_file()), None)
+        if image is not None:
+            picture = Gtk.Picture.new_for_filename(str(image))
+            picture.set_content_fit(Gtk.ContentFit.CONTAIN)
+            picture.set_can_shrink(True)
+            picture.set_size_request(-1, 300)
+            picture.set_alternative_text(_("LLM Monitor in the bar and its panel"))
+            picture.add_css_class("am-help-picture")
+            card.append(picture)
+        listbox = self.boxed_list()
+        listbox.append(self.command_row(self.LLM_MONITOR_ADD))
+        card.append(listbox)
+        hint = Gtk.Label(label=_("Run it in a terminal, or install it from Omarchy's plugin marketplace."), xalign=0,
+                         wrap=True, max_width_chars=1)
+        hint.add_css_class("am-agent-detail")
+        card.append(hint)
+        link = Gtk.LinkButton(uri=self.LLM_MONITOR_LISTING, label=_("Open LLM Monitor in the marketplace"),
+                              halign=Gtk.Align.START)
+        card.append(link)
+        return card
 
     def help_setup_card(self) -> Gtk.Widget:
         """Setting up by drawing: an animation with dummy boxes, played on Start."""
@@ -7786,6 +7839,7 @@ class AgentsMap(Adw.Application):
         popover button.am-danger {{ color: {red_hex}; border-color: alpha({red_hex}, 0.6); }}
         .am-hint-error {{ color: {red_hex}; font-weight: bold; }}
         .am-model-name {{ font-weight: 600; }}
+        .am-help-picture {{ border-radius: 8px; }}
         list.am-tree {{ background: transparent; }}
         list.am-tree row {{ padding: 2px 6px 2px 2px; min-height: 0; border-radius: 6px; }}
         list.am-tree row:selected {{ background: alpha({accent_hex}, 0.22); }}
