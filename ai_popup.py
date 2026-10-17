@@ -5809,7 +5809,11 @@ class AgentsMap(Adw.Application):
         page.append(rule)
         self.settings_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=18, margin_top=6, margin_bottom=12)
         self.settings_box.add_css_class("am-settings")
-        clamp = Adw.Clamp(maximum_size=1240, tightening_threshold=900, child=self.settings_box)
+        # One column: at most 760 px wide, centred. Two columns: the whole width, half and half.
+        # Pixels, not libadwaita's default "sp", so the page does not grow and shrink with the text size.
+        clamp = Adw.Clamp(maximum_size=760, tightening_threshold=560, child=self.settings_box,
+                          unit=Adw.LengthUnit.PX)
+        self.settings_clamp = clamp
         page.append(self.page_scroller(clamp))
         return page
 
@@ -6022,6 +6026,8 @@ class AgentsMap(Adw.Application):
         # else one, so everything fits without scrolling.
         wide = self.window is not None and self.window.get_width() >= 900
         self.settings_two_columns = wide
+        self.settings_clamp.set_maximum_size(100000 if wide else 760)
+        self.settings_clamp.set_tightening_threshold(100000 if wide else 560)
         columns = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL if wide else Gtk.Orientation.VERTICAL,
                           spacing=24 if wide else 18, homogeneous=wide)
         left = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=18, valign=Gtk.Align.START)
