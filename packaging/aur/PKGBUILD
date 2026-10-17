@@ -1,6 +1,6 @@
 # Maintainer: Uwe Bruckhaus
 pkgname=asterism
-pkgver=0.3.0
+pkgver=0.4.0
 pkgrel=1
 pkgdesc="Your AI agents, models and tools on one map (GTK4/libadwaita)"
 arch=('any')
@@ -11,7 +11,7 @@ optdepends=('vte4: agents in a terminal inside the window'
             'xdg-terminal-exec: start agents in your own terminal'
             'mise: updates for agents installed with mise')
 source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/v$pkgver.tar.gz")
-sha256sums=('b423a5d9619cb24f806965d752d40d5ba3ccddede6aa8b23f1f67bd2bdc2add4')
+sha256sums=('26a558048e7bac982e3f58dcd23c6116574779908e9e3de12c728232fe61d6b5')
 
 package() {
     cd "$pkgname-$pkgver"
