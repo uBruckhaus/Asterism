@@ -1300,13 +1300,18 @@ class AgentsMap(Adw.Application):
             line.append(label)
             row.set_activatable(False)
         else:
-            dot = Gtk.Label(label="●")
-            dot.add_css_class("am-tree-dot")
-            dot.add_css_class({"running": "am-state-ok", "stopped": "am-state-warn"}.get(node.status, "am-tree-dot-off"))
-            line.append(dot)
-            if node.icon:
+            if not node.icon:
+                dot = Gtk.Label(label="●")
+                dot.add_css_class("am-tree-dot")
+                dot.add_css_class({"running": "am-state-ok", "stopped": "am-state-warn"}.get(node.status,
+                                                                                            "am-tree-dot-off"))
+                line.append(dot)
+            else:
+                # As on the cards: the icon itself turns green (running) or yellow (installed, not running).
                 icon = Gtk.Label(label=node.icon)
                 icon.add_css_class("am-agent-icon")
+                if node.status in ("running", "stopped"):
+                    icon.add_css_class(f"am-status-{node.status}")
                 if node.icon_font == "omarchy":
                     icon.add_css_class("am-agent-icon-omarchy")
                 icon.add_css_class("am-tree-icon")
