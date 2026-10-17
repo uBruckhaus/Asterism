@@ -962,7 +962,12 @@ class AgentsMap(Adw.Application):
             return ""
         configured = graph.split_model(agent_details.details_for(agent.command).model)[0]
         names = sorted({graph.split_model(m)[0] if m else configured for m in models} - {""})
-        state = _("running") if len(models) == 1 else _("{0} running").format(len(models))
+        pane = getattr(self, "sessions", {}).get(agent.command)
+        here = pane is not None and pane.running and pane.pid
+        if len(models) == 1:
+            state = _("running here") if here else _("running")
+        else:
+            state = _("{0} running").format(len(models)) + (" · " + _("one here") if here else "")
         return " · ".join([state] + names)
 
     def sync_provider_watch(self):
@@ -1682,7 +1687,8 @@ class AgentsMap(Adw.Application):
         card = self.expandable_card(key, agent.icon, agent.icon_font, agent.name, subtitle,
                          lambda b, a=agent: self.fill_agent(b, a), dim=not agent.installed,
                          badge=_("Default") if agent.default else "", badge_tip=_("Omarchy's default agent"),
-                         highlight=agent.default)
+                         highlight=agent.default,
+                         status="running" if agent.installed and self.running.get(agent.command) else "")
         if key in self.expanded and agent.installed and agent_details.usage_is_stale(agent.command):
             self.refresh_usage(agent)
         return card
@@ -7219,7 +7225,27 @@ class AgentsMap(Adw.Application):
         sys.stderr.flush()
         os.execv(sys.executable, [sys.executable, *sys.argv])
 
+    def remember_page(self):
+        """The page right of the cards before Settings or Help opened (a terminal, details…)."""
+        inner = self.right_stack.get_visible_child_name() if self.stack.get_visible_child_name() == "main" else None
+        self.return_page = inner if inner and inner != "map" else None
+
+    def back_to_last_page(self):
+        page = getattr(self, "return_page", None)
+        self.return_page = None
+        self.show_view(self.view, save=False)
+        if page and self.right_stack.get_child_by_name(page) is not None:
+            self.stack.set_visible_child_name("main")
+            self.right_stack.set_visible_child_name(page)
+            self.place_panes()
+            self.update_header()
+            command = page[5:] if page.startswith("term:") else ""
+            if command in getattr(self, "sessions", {}):
+                GLib.idle_add(lambda: self.sessions[command].terminal.grab_focus() and False)
+
     def open_settings(self):
+        if self.page_name() not in ("settings", "help"):
+            self.remember_page()
         self.fill_settings()
         self.show_page("settings")
 
@@ -7657,13 +7683,15 @@ class AgentsMap(Adw.Application):
         return card
 
     def open_help(self):
+        if self.page_name() not in ("settings", "help"):
+            self.remember_page()
         self.show_page("help")
 
     def close_help(self):
-        self.show_view(self.view, save=False)
+        self.back_to_last_page()
 
     def close_settings(self):
-        self.show_view(self.view, save=False)
+        self.back_to_last_page()
 
     # --- size ----------------------------------------------------------------------
 
@@ -8292,6 +8320,7 @@ class AgentsMap(Adw.Application):
 
 
 def main():
+    ai_core.drop_agent_session_vars()       # started from an agent's terminal: nothing here inherits its session
     i18n.set_name("AI Agents Map", desktop.app_name())     # "Asterism" outside Omarchy
     app = AgentsMap()
     atexit.register(cleanup_pid)
