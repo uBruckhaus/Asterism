@@ -6906,7 +6906,8 @@ class AgentsMap(Adw.Application):
         .am-card button.am-menu-item {{ padding: 3px 8px; font-size: 12px; }}
         .am-form-list row .title {{ min-width: 110px; }}
         /* A combo row's chosen value (its inline list): the size and colour of the subtitle, not of the title. */
-        row.combo listview.inline label {{ font-size: 0.9em; color: {dim_hex}; }}
+        row.combo listview.inline label {{ font-size: smaller; color: {dim_hex}; }}
+        row.combo popover listview label {{ font-size: smaller; }}
         .am-card list.am-list:not(.boxed-list) {{ background: alpha({fg_hex}, 0.03); border-radius: {radius}px; }}
         .am-card list.am-list row:selected {{ background: alpha({accent_hex}, 0.22); }}
         .am-card-check {{ color: {accent_hex}; font-weight: 700; }}
