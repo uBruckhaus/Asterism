@@ -1523,6 +1523,13 @@ class AgentsMap(Adw.Application):
             card.add_css_class("am-agent-selected")
         self.card_widgets[key] = (card, check)
         expanded = key in self.expanded
+        if status == "running":
+            # Collapsed too: a small green dot before the arrow (as in the tree and on the map).
+            dot = Gtk.Label(label="●", valign=Gtk.Align.CENTER)
+            dot.add_css_class("am-tree-dot")
+            dot.add_css_class("am-state-ok")
+            dot.set_tooltip_text(_("running"))
+            top.append(dot)
         chevron = Gtk.Image.new_from_icon_name("pan-up-symbolic" if expanded else "pan-down-symbolic")
         chevron.add_css_class("am-agent-chevron")
         chevron.set_valign(Gtk.Align.CENTER)
