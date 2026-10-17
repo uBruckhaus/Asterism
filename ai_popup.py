@@ -56,6 +56,7 @@ import skills_web
 import runtime_ctl
 import install_ctl
 import models_ctl
+import side_tree
 import model_names
 import context_ctl
 import time
@@ -950,13 +951,26 @@ class AgentsMap(Adw.Application):
         names = self.agent_names()
         self.update_card_filter()
 
+        runtimes = [] if "local" in off else \
+            [rt for rt in sorted(inv.runtimes, key=lambda r: not r.installed) if f"runtime:{rt.key}" not in hidden]
+        servers = [m for m in inv.mcp if f"mcp:{m.name}" not in hidden]
+        skill_sets = [s for s in inv.skill_sets if f"skills:{s.path}" not in hidden]
+        self.tree_list = None
+        if self.sidebar_tree():
+            self.render_tree(self.tree_nodes(installed, runtimes, servers, skill_sets, missing, names))
+            new_mcp, new_skills = self.new_found()
+        else:
+            new_mcp, new_skills = self.overview_cards(installed, runtimes, servers, skill_sets, missing, names)
+        self.overview_hints(new_mcp, new_skills)
+
+    def overview_cards(self, installed, runtimes, servers, skill_sets, missing, names):
+        """The sidebar as cards, in categories (Settings › Sidebar: Cards)."""
+        inv = self.inventory
         if installed:
             group = self.section(_("Agents ({0})").format(len(installed)))
             for agent in installed:
                 group.add(self.agent_card(agent))
 
-        runtimes = [] if "local" in off else \
-            [rt for rt in sorted(inv.runtimes, key=lambda r: not r.installed) if f"runtime:{rt.key}" not in hidden]
         if runtimes:
             group = self.section(_("Local LLMs ({0})").format(len([rt for rt in runtimes if rt.installed])))
         # Installed ones first; the others too, grey, as something to install and connect.
@@ -969,7 +983,6 @@ class AgentsMap(Adw.Application):
                                             lambda b, rt=rt: self.fill_runtime(b, rt, names),
                                             dim=not rt.installed, status=status))
 
-        servers = [m for m in inv.mcp if f"mcp:{m.name}" not in hidden]
         group = self.section(_("MCP servers ({0})").format(len(servers)))
         if not inv.mcp:
             self.section_hint(_("No agent has an MCP server set up."))
@@ -985,7 +998,6 @@ class AgentsMap(Adw.Application):
         add.connect("clicked", lambda *_: self.open_add_mcp())
         group.set_header_suffix(add)
 
-        skill_sets = [s for s in inv.skill_sets if f"skills:{s.path}" not in hidden]
         group = self.section(_("Skills ({0})").format(sum(len(s.skills) for s in skill_sets)))
         if not inv.skill_sets:
             self.section_hint(_("No skills found for the installed agents."))
@@ -1005,7 +1017,11 @@ class AgentsMap(Adw.Application):
             group = self.section(_("Not installed ({0})").format(len(missing)))
             for agent in missing:
                 group.add(self.agent_card(agent))
+        return new_mcp, new_skills
 
+    def overview_hints(self, new_mcp, new_skills):
+        """The hint area at the bottom of the sidebar (cards or tree)."""
+        inv = self.inventory
         # The hint area: what was found on this PC, then what else could be set up.
         def listed(names, most):
             return ", ".join(names[:most]) + ("…" if len(names) > most else "")
@@ -1030,6 +1046,316 @@ class AgentsMap(Adw.Application):
                            [(_("Show"), lambda: self.set_scope("all"))],
                            tip=_("Agents and local LLMs that are not installed, MCP servers no agent uses "
                                  "(+ Available in the header)"))
+
+    # --- the sidebar as a tree (Settings › Sidebar: Tree) ---------------------------------------
+
+    TREE_INDENT = 18
+
+    def sidebar_tree(self) -> bool:
+        return ai_core.load_settings().get("sidebar") == "tree"
+
+    def tree_nodes(self, installed, runtimes, servers, skill_sets, missing, names) -> list:
+        """The categories and their boxes; what a box holds is made when it opens (tree_children)."""
+        T = side_tree.TreeNode
+        sections = []
+        if installed:
+            sections.append(T("section:agents", _("Agents ({0})").format(len(installed)), kind="section", children=[
+                T(f"agent:{a.command}", a.name, self.agent_subtitle(a), kind="agent", icon=a.icon,
+                  icon_font=a.icon_font, status="running" if self.running.get(a.command) else "",
+                  badge=_("Default") if a.default else "", lazy=True) for a in installed]))
+        if runtimes:
+            nodes = []
+            for rt in runtimes:
+                status = graph.runtime_status(rt)
+                state = {"running": _("running"), "stopped": _("installed, not running")}.get(status, _("not installed"))
+                sub = state if not rt.installed else " · ".join(
+                    [state, ngettext("1 model", "{0} models", len(rt.models)).format(len(rt.models))])
+                nodes.append(T(f"runtime:{rt.key}", rt.name, sub, kind="runtime", icon="\U000F061A",
+                               status=status, dim=not rt.installed, lazy=True))
+            sections.append(T("section:runtimes", _("Local LLMs ({0})").format(len([r for r in runtimes if r.installed])),
+                              kind="section", children=nodes))
+        sections.append(T("section:mcp", _("MCP servers ({0})").format(len(servers)), kind="section", children=[
+            T(f"mcp:{s.name}", s.name, ", ".join(names.get(a, a) for a in s.agents) or _("not used by any agent"),
+              kind="mcp", icon="\U000F0337", lazy=True) for s in servers]))
+        sections.append(T("section:skills", _("Skills ({0})").format(sum(len(s.skills) for s in skill_sets)),
+                          kind="section", children=[
+            T(f"skills:{s.path}", s.path, ngettext("1 skill", "{0} skills", len(s.skills)).format(len(s.skills))
+              + " · " + ", ".join(names.get(a, a) for a in s.agents), kind="skills", icon="\U000F0EB3", lazy=True)
+            for s in skill_sets]))
+        if missing:
+            sections.append(T("section:missing", _("Not installed ({0})").format(len(missing)), kind="section",
+                              children=[T(f"agent:{a.command}", a.name, _("Not installed"), kind="agent", icon=a.icon,
+                                          icon_font=a.icon_font, dim=True, lazy=True) for a in missing]))
+        return sections
+
+    def agent_subtitle(self, agent) -> str:
+        subtitle = (agent.version or _("Installed")) if agent.installed else _("Not installed")
+        if agent.installed and self.instance_label(agent):
+            subtitle = " · ".join(filter(None, [agent.version, self.instance_label(agent)]))
+        return subtitle
+
+    def tree_children(self, node) -> list:
+        """What an opened box holds: its facts as label · value rows, its models or skills, its buttons."""
+        T = side_tree.TreeNode
+        inv, names = self.inventory, self.agent_names()
+
+        def info(label, value):
+            return T(f"{node.id}/{label}", label, kind="info", value=value) if value else None
+
+        more = lambda n: ngettext("+ 1 more", "+ {0} more", n).format(n)   # noqa: E731
+        key, _sep, ident = node.id.partition(":")
+        children = []
+        if key == "agent":
+            agent = next((a for a in self.agent_list if a.command == ident), None)
+            if agent is None:
+                return []
+            if agent.installed:
+                details = agent_details.details_for(ident)
+                providers = []
+                for provider in details.providers:
+                    providers.append(provider.name + (f" ({provider.runtime})" if provider.runtime and
+                                                      provider.runtime != provider.name else "")
+                                     + ("" if provider.active else " · " + _("ready to switch to")))
+                sets = inv.agent_skills.get(ident, [])
+                count = sum(len(s.skills) for s in inv.skill_sets if s.path in sets)
+                children = [info(_("Model"), details.model), info(_("Provider"), ", ".join(providers)),
+                            info(_("MCP servers"), ", ".join(inv.agent_mcp.get(ident, []))),
+                            info(_("Skills"), ngettext("1 skill", "{0} skills", count).format(count) if count else ""),
+                            info(_("Last used"), when(details.last_used))]
+                actions = (["start"] if terminal_pane.program(ident) else []) + ["details"]
+            else:
+                children = [info(_("Status"), _("Not installed"))]
+                actions = ["details"]
+        elif key == "runtime":
+            rt = next((r for r in inv.runtimes if r.key == ident), None)
+            if rt is None:
+                return []
+            children = [info(_("Address"), rt.address), info(_("Used by"), ", ".join(names.get(a, a) for a in rt.agents)),
+                        info(_("Models folder"), inventory.tilde(rt.models_dir) if rt.models_dir else "")]
+            children += side_tree.limited([T(f"{node.id}/model/{m}", m, kind="item") for m in rt.models], 12, more)
+            actions = ["details"] + (["models"] if rt.installed and rt.key != "vllm" else [])
+        elif key == "mcp":
+            server = next((s for s in inv.mcp if s.name == ident), None)
+            if server is None:
+                return []
+            kind = {"command": _("runs a program"), "url": _("remote server")}.get(server.kind, "")
+            children = [info(_("Runs"), server.target), info(_("Type"), kind),
+                        info(_("Used by"), ", ".join(names.get(a, a) for a in server.agents))]
+            actions = ["details"]
+        elif key == "skills":
+            skill_set = next((s for s in inv.skill_sets if s.path == ident), None)
+            if skill_set is None:
+                return []
+            children = [info(_("Read by"), ", ".join(names.get(a, a) for a in skill_set.agents))]
+            children += side_tree.limited([T(f"{node.id}/skill/{getattr(s, 'name', s)}", str(getattr(s, "name", s)),
+                                             kind="item") for s in skill_set.skills], 15, more)
+            actions = ["details"]
+        else:
+            return []
+        return [c for c in children if c is not None] + [T(f"{node.id}/actions", "", kind="actions", actions=actions)]
+
+    def render_tree(self, nodes):
+        """The tree in the sidebar: a list of rows with guide lines; arrows and Enter work as in a file tree."""
+        self.tree_roots = nodes
+        self.tree_list = Gtk.ListBox(selection_mode=Gtk.SelectionMode.SINGLE)
+        self.tree_list.add_css_class("am-tree")
+        self.tree_list.connect("row-activated", lambda _l, row: self.on_tree_activate(row))
+        keys = Gtk.EventControllerKey()
+        keys.connect("key-pressed", self.on_tree_key)
+        self.tree_list.add_controller(keys)
+        self.agents_box.append(self.tree_list)
+        self.fill_tree()
+
+    def tree_open(self) -> set:
+        """Sections are open unless closed; boxes are open when in self.expanded (as the cards)."""
+        closed = getattr(self, "tree_closed", set())
+        return {n.id for n in self.tree_roots if n.id not in closed} | set(self.expanded)
+
+    def fill_tree(self, focus: str = ""):
+        listbox = self.tree_list
+        while (row := listbox.get_first_child()) is not None:
+            listbox.remove(row)
+        opened = self.tree_open()
+
+        def load(nodes):
+            for node in nodes:
+                if node.lazy and node.id in opened and not node.children:
+                    try:
+                        node.children = self.tree_children(node)
+                    except (OSError, ValueError):
+                        node.children = []
+                load(node.children)
+
+        load(self.tree_roots)
+        self.tree_rows = side_tree.flatten(self.tree_roots, opened)
+        chosen = None
+        for item in self.tree_rows:
+            row = self.tree_row(item, item.node.id in opened)
+            listbox.append(row)
+            if item.node.id == focus or (not focus and item.node.id in self.selection):
+                chosen = row
+        if chosen is not None:
+            listbox.select_row(chosen)
+            if focus:
+                chosen.grab_focus()
+
+    def tree_row(self, item, is_open: bool) -> Gtk.ListBoxRow:
+        node = item.node
+        row = Gtk.ListBoxRow()
+        row.node = node
+        row.item = item
+        line = Gtk.Box(spacing=6)
+        if item.depth:
+            guide = Gtk.DrawingArea()
+            guide.set_content_width(self.TREE_INDENT * item.depth)
+            guide.set_draw_func(lambda _a, cr, w, h, it=item: self.draw_tree_guide(cr, w, h, it))
+            line.append(guide)
+        arrow = Gtk.Image.new_from_icon_name(("pan-down-symbolic" if is_open else "pan-end-symbolic")
+                                             if node.expandable else "")
+        arrow.set_size_request(14, -1)
+        arrow.add_css_class("am-tree-arrow")
+        line.append(arrow)
+        if node.kind == "section":
+            label = Gtk.Label(label=node.title.upper(), xalign=0, hexpand=True)
+            label.add_css_class("am-tree-section")
+            line.append(label)
+            row.add_css_class("am-tree-section-row")
+        elif node.kind == "info":
+            key = Gtk.Label(label=node.title, xalign=0, valign=Gtk.Align.START)
+            key.set_size_request(92, -1)
+            key.add_css_class("am-line-label")
+            line.append(key)
+            value = Gtk.Label(label=node.value, xalign=0, hexpand=True, wrap=True, max_width_chars=1, selectable=True)
+            value.set_wrap_mode(Pango.WrapMode.WORD_CHAR)
+            value.add_css_class("am-detail-value")
+            line.append(value)
+            row.set_activatable(False)
+        elif node.kind == "actions":
+            for action in node.actions:
+                line.append(self.tree_action(node, action))
+            row.set_activatable(False)
+            row.set_selectable(False)
+        elif node.kind in ("item", "more"):
+            label = Gtk.Label(label=node.title, xalign=0, hexpand=True)
+            label.set_ellipsize(Pango.EllipsizeMode.MIDDLE)
+            label.set_max_width_chars(1)
+            label.add_css_class("am-agent-detail" if node.kind == "more" else "am-detail-value")
+            line.append(label)
+            row.set_activatable(False)
+        else:
+            dot = Gtk.Label(label="●")
+            dot.add_css_class("am-tree-dot")
+            dot.add_css_class({"running": "am-state-ok", "stopped": "am-state-warn"}.get(node.status, "am-tree-dot-off"))
+            line.append(dot)
+            if node.icon:
+                icon = Gtk.Label(label=node.icon)
+                icon.add_css_class("am-agent-icon")
+                if node.icon_font == "omarchy":
+                    icon.add_css_class("am-agent-icon-omarchy")
+                icon.add_css_class("am-tree-icon")
+                line.append(icon)
+            texts = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, hexpand=True)
+            title = Gtk.Label(label=node.title, xalign=0)
+            title.set_ellipsize(Pango.EllipsizeMode.MIDDLE)
+            title.set_max_width_chars(1)
+            title.add_css_class("am-tree-title")
+            texts.append(title)
+            if node.subtitle:
+                sub = Gtk.Label(label=node.subtitle, xalign=0)
+                sub.set_ellipsize(Pango.EllipsizeMode.END)
+                sub.set_max_width_chars(1)
+                sub.add_css_class("am-agent-detail")
+                texts.append(sub)
+            line.append(texts)
+            if node.badge:
+                badge = Gtk.Label(label=node.badge, valign=Gtk.Align.CENTER)
+                badge.add_css_class("am-agent-badge")
+                line.append(badge)
+        if node.dim:
+            row.add_css_class("am-dim")
+        row.set_child(line)
+        return row
+
+    def draw_tree_guide(self, cr, width, height, item):
+        """│ for each ancestor that goes on below, then ├ or └ to this row."""
+        cr.set_source_rgba(*self.side_map.color("muted", 0.55))
+        cr.set_line_width(1)
+        step = self.TREE_INDENT
+        for level, goes_on in enumerate(item.guides):
+            if goes_on:
+                x = level * step + step / 2 + 0.5
+                cr.move_to(x, 0)
+                cr.line_to(x, height)
+        x = len(item.guides) * step + step / 2 + 0.5
+        cr.move_to(x, 0)
+        cr.line_to(x, height if not item.last else height / 2)
+        cr.move_to(x, height / 2 + 0.5)
+        cr.line_to(width, height / 2 + 0.5)
+        cr.stroke()
+
+    def tree_action(self, node, action: str) -> Gtk.Widget:
+        owner = node.id.rsplit("/", 1)[0]
+        key, _sep, ident = owner.partition(":")
+        if action == "start":
+            agent = next(a for a in self.agent_list if a.command == ident)
+            return self.start_button(agent)
+        if action == "models":
+            rt = next(r for r in self.inventory.runtimes if r.key == ident)
+            button = Gtk.Button(label=_("Models…"), halign=Gtk.Align.START)
+            button.add_css_class("flat")
+            button.add_css_class("am-small-btn")
+            button.connect("clicked", lambda *_: self.open_models(rt))
+            return button
+        opener = {"agent": lambda: self.open_agent_status(next(a for a in self.agent_list if a.command == ident)),
+                  "runtime": lambda: self.open_runtime_status(ident),
+                  "mcp": lambda: self.open_mcp_details(ident),
+                  "skills": lambda: self.open_skills_details(ident)}[key]
+        return self.details_button(lambda *_: opener())
+
+    def toggle_tree_node(self, node_id: str):
+        if node_id.startswith("section:"):
+            closed = getattr(self, "tree_closed", set())
+            closed.symmetric_difference_update({node_id})
+            self.tree_closed = closed
+        elif node_id in self.expanded:
+            self.expanded.discard(node_id)
+        else:
+            self.expanded.add(node_id)
+            self.toggle_card_hook(node_id)
+        self.fill_tree(focus=node_id)
+
+    def on_tree_activate(self, row):
+        node = row.node
+        if node.kind in ("agent", "runtime", "mcp", "skills") and self.split and node.id in self.map_node_ids():
+            self.set_selection([node.id])        # the map beside it shows this box's connections
+        if node.expandable:
+            self.toggle_tree_node(node.id)
+
+    def on_tree_key(self, _controller, keyval, _code, _state):
+        row = self.tree_list.get_selected_row()
+        if row is None:
+            return False
+        node, is_open = row.node, row.node.id in self.tree_open()
+        if keyval == Gdk.KEY_Right and node.expandable:
+            if not is_open:
+                self.toggle_tree_node(node.id)
+            else:
+                index = row.get_index() + 1
+                nxt = self.tree_list.get_row_at_index(index)
+                if nxt is not None:
+                    self.tree_list.select_row(nxt)
+                    nxt.grab_focus()
+            return True
+        if keyval == Gdk.KEY_Left:
+            if node.expandable and is_open:
+                self.toggle_tree_node(node.id)
+            elif row.item.parent:
+                self.fill_tree(focus=row.item.parent)
+            return True
+        if keyval == Gdk.KEY_space and node.expandable:
+            self.toggle_tree_node(node.id)
+            return True
+        return False
 
     def agent_names(self) -> dict:
         names = {a.command: a.name for a in self.agent_list}
@@ -6674,6 +7000,11 @@ class AgentsMap(Adw.Application):
         self.combo_row(group, _("Corners"), self.corners_tip(), [like, _("Rounded"), _("Square")],
                        corners.CHOICES.index(ai_core.saved_corners()),
                        lambda i: (self.save_setting(corners=corners.CHOICES[i]), self.apply_theme_css()))
+        self.combo_row(group, _("Sidebar"),
+                       _("Cards: a box per agent, local LLM, MCP server and skill folder. Tree: the same as a compact "
+                         "tree; an opened entry shows its facts and its buttons (arrow keys open and close)."),
+                       [_("Cards"), _("Tree")], 1 if self.sidebar_tree() else 0,
+                       lambda i: (self.save_setting(sidebar="tree" if i == 1 else "cards"), self.refresh_overview()))
         if desktop.NAME == "omarchy":
             look = self.combo_row(group, _("Look"),
                            _("The colours, light or dark: from the Omarchy theme, or GNOME's Adwaita (light or dark "
@@ -7455,6 +7786,17 @@ class AgentsMap(Adw.Application):
         popover button.am-danger {{ color: {red_hex}; border-color: alpha({red_hex}, 0.6); }}
         .am-hint-error {{ color: {red_hex}; font-weight: bold; }}
         .am-model-name {{ font-weight: 600; }}
+        list.am-tree {{ background: transparent; }}
+        list.am-tree row {{ padding: 2px 6px 2px 2px; min-height: 0; border-radius: 6px; }}
+        list.am-tree row:selected {{ background: alpha({accent_hex}, 0.22); }}
+        list.am-tree row.am-tree-section-row {{ padding-top: 10px; }}
+        .am-tree-section {{ font-size: 11px; font-weight: 800; letter-spacing: 1px; color: {accent_hex}; }}
+        .am-tree-title {{ font-weight: 600; font-size: 13px; }}
+        .am-tree-icon {{ font-size: 15px; min-width: 20px; }}
+        .am-tree-arrow {{ color: {dim_hex}; }}
+        .am-tree-dot {{ font-size: 9px; }}
+        .am-tree-dot-off {{ color: transparent; }}
+        list.am-tree row.am-dim {{ opacity: 0.6; }}
         button.am-download-btn {{ padding: 6px 18px; font-weight: 700; }}
         .am-model-title {{ font-size: 17px; font-weight: 700; }}
         .am-model-card {{ background: alpha({fg_hex}, 0.05); border-radius: 8px; padding: 12px 14px; }}
