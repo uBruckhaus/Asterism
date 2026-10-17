@@ -1,6 +1,6 @@
 pkgbase = asterism
 	pkgdesc = Your AI agents, models and tools on one map (GTK4/libadwaita)
-	pkgver = 0.2.1
+	pkgver = 0.3.0
 	pkgrel = 1
 	url = https://github.com/uBruckhaus/asterism
 	arch = any
@@ -14,7 +14,7 @@ pkgbase = asterism
 	optdepends = vte4: agents in a terminal inside the window
 	optdepends = xdg-terminal-exec: start agents in your own terminal
 	optdepends = mise: updates for agents installed with mise
-	source = asterism-0.2.1.tar.gz::https://github.com/uBruckhaus/asterism/archive/refs/tags/v0.2.1.tar.gz
-	sha256sums = 53a5d2dc6272eaae59cb588bf84c2be2d12140ef85da72a1fce9ae899a3b22c8
+	source = asterism-0.3.0.tar.gz::https://github.com/uBruckhaus/asterism/archive/refs/tags/v0.3.0.tar.gz
+	sha256sums = b423a5d9619cb24f806965d752d40d5ba3ccddede6aa8b23f1f67bd2bdc2add4
 
 pkgname = asterism
