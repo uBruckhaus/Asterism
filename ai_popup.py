@@ -5809,7 +5809,7 @@ class AgentsMap(Adw.Application):
         page.append(rule)
         self.settings_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=18, margin_top=6, margin_bottom=12)
         self.settings_box.add_css_class("am-settings")
-        clamp = Adw.Clamp(maximum_size=760, tightening_threshold=560, child=self.settings_box)
+        clamp = Adw.Clamp(maximum_size=1240, tightening_threshold=900, child=self.settings_box)
         page.append(self.page_scroller(clamp))
         return page
 
@@ -6018,10 +6018,21 @@ class AgentsMap(Adw.Application):
         box = self.settings_box
         while (child := box.get_first_child()) is not None:
             box.remove(child)
-        # First, so a "Not now" at the first start is easy to redo (only where the app offers an entry).
+        # Two columns when the window is wide enough (General left; the app, Models and Window right),
+        # else one, so everything fits without scrolling.
+        wide = self.window is not None and self.window.get_width() >= 900
+        self.settings_two_columns = wide
+        columns = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL if wide else Gtk.Orientation.VERTICAL,
+                          spacing=24 if wide else 18, homogeneous=wide)
+        left = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=18, valign=Gtk.Align.START)
+        right = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=18, valign=Gtk.Align.START)
+        columns.append(left)
+        columns.append(right)
+        box.append(columns)
+        self.fill_general_settings(left, right)
         if desktop.launcher_entry():
-            self.fill_launcher_setting(box)
-        self.fill_general_settings(box)
+            self.fill_launcher_setting(right)
+            right.reorder_child_after(right.get_last_child(), None)     # the app's own entry first on the right
         self.settings_ready = True
 
     def preference_group(self, box, title: str) -> Adw.PreferencesGroup:
@@ -6029,16 +6040,24 @@ class AgentsMap(Adw.Application):
         box.append(group)
         return group
 
+    @staticmethod
+    def short_hint(hint: str) -> str:
+        """A long explanation's first sentence (the whole one goes into the tooltip)."""
+        first = re.split(r"(?<=[.;])\s", hint, maxsplit=1)[0].rstrip(".;") + "."
+        return first if len(hint) > 90 and len(first) < len(hint) else hint
+
     def switch_row(self, group, title: str, hint: str, active: bool, on_toggle) -> Adw.SwitchRow:
-        row = Adw.SwitchRow(title=title, subtitle=hint, active=active, use_markup=False)
+        short = self.short_hint(hint)
+        row = Adw.SwitchRow(title=title, subtitle=short, active=active, use_markup=False)
+        if short != hint:
+            row.set_tooltip_text(hint)
         row.connect("notify::active", lambda r, *_: self.settings_ready and on_toggle(r.get_active()))
         group.add(row)
         return row
 
     def combo_row(self, group, title: str, hint: str, labels: list[str], selected: int, on_change) -> Adw.ComboRow:
         """A long explanation would squeeze the chosen value: its first sentence shows, all of it on hover."""
-        first = re.split(r"(?<=[.;])\s", hint, maxsplit=1)[0].rstrip(".;") + "."
-        short = first if len(hint) > 90 and len(first) < len(hint) else hint
+        short = self.short_hint(hint)
         row = Adw.ComboRow(title=title, subtitle=short, model=Gtk.StringList.new(labels), use_markup=False)
         if short != hint:
             row.set_tooltip_text(hint)
@@ -6084,7 +6103,8 @@ class AgentsMap(Adw.Application):
                         ai_core.load_settings().get("launcher_entry") is True,
                         lambda on: (self.save_setting(launcher_entry=on), app_entry.ensure_entry(on)))
 
-    def fill_general_settings(self, box):
+    def fill_general_settings(self, box, side):
+        """General in `box`; Models and Window in `side` (the right column, or below)."""
         settings = ai_core.load_settings()
         group = self.preference_group(box, _("General"))
         codes = ["auto"] + [code for code, _name in i18n.LANGUAGES]
@@ -6111,8 +6131,10 @@ class AgentsMap(Adw.Application):
                              "and the accent colour as set in the system). Everything else works the same."),
                            [_("Omarchy theme"), _("GNOME (Adwaita)")], ai_core.LOOKS.index(ai_core.saved_look()),
                            lambda i: self.set_look(ai_core.LOOKS[i]))
-            # A line break after "Adwaita", before its bracket (the same place in every language).
-            look.set_subtitle(look.get_subtitle().replace(" (", "\n(", 1))
+            # One column: a line break after "Adwaita", before its bracket (the same place in every
+            # language). Two columns are too narrow for it: the text just wraps.
+            if not getattr(self, "settings_two_columns", False):
+                look.set_subtitle(look.get_subtitle().replace(" (", "\n(", 1))
         self.switch_row(group, _("Look up new agents"),
                         _("When a new agent is installed, Claude Code or Codex finds out on the web where it keeps "
                           "MCP servers and skills (once, a few minutes in the background)."),
@@ -6133,9 +6155,11 @@ class AgentsMap(Adw.Application):
         self.folder_row(group, _("Agents start in"),
                         _("The folder an agent started here (Start on its card) works in. Enter saves it."),
                         self.agent_folder(), self.save_agent_folder)
+        models_group = self.preference_group(side, _("Models"))
         if desktop.NAME == "omarchy":
             # Hyprland tiles the window: what "Maximize to see the map" does, with its sketch below
             # (last in the group: libadwaita puts what is not a row after the list).
+            group = self.preference_group(side, _("Window"))
             modes = previews.WIDEN_MODES
             self.combo_row(group, _("Too narrow for the map"),
                            _("What “Maximize to see the map” in the header does when the window is tiled too narrow "
@@ -6148,7 +6172,7 @@ class AgentsMap(Adw.Application):
             preview.append(previews.WidenSketch(lambda: self.theme.colors, self.widen_mode))
             group.add(preview)
 
-        group = self.preference_group(box, _("Models"))
+        group = models_group
         models = self.folder_row(group, _("Models folder"),
                                  _("One folder for the models of every local LLM. On this PC (Add models) looks "
                                    "here too."), self.models_root(), self.save_models_root)
@@ -6922,7 +6946,8 @@ class AgentsMap(Adw.Application):
         row.combo listview.inline label {{ font-size: smaller; color: {dim_hex}; }}
         row.combo popover listview label {{ font-size: smaller; }}
         /* The chosen value and its arrow framed like the other controls, well apart from a long explanation. */
-        row.combo box.suffixes {{ margin-left: 40px; padding: 3px 6px 3px 10px; border: 1px solid alpha({fg_hex}, 0.28);
+        row.combo listview.inline {{ min-width: 128px; }}    /* the chosen value stays readable; the explanation wraps */
+        row.combo box.suffixes {{ margin-left: 24px; padding: 3px 6px 3px 10px; border: 1px solid alpha({fg_hex}, 0.28);
             border-radius: {max(4, min(radius, 8))}px; }}
         row.combo:hover box.suffixes {{ border-color: alpha({fg_hex}, 0.45); }}
         .am-card list.am-list:not(.boxed-list) {{ background: alpha({fg_hex}, 0.03); border-radius: {radius}px; }}
