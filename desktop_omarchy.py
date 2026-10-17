@@ -212,7 +212,10 @@ def focus_window(app_id: str) -> bool:
 
 
 def _parent(pid: int) -> int:
+    """The parent of one of this user's processes (0: unknown, or not this user's)."""
     try:
+        if os.stat(f"/proc/{pid}").st_uid != os.getuid():
+            return 0
         with open(f"/proc/{pid}/stat", "rb") as handle:
             stat = handle.read(4096)
         return int(stat[stat.rindex(b")") + 2:].split()[1])    # after "(comm)": state, ppid

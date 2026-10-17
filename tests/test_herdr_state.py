@@ -104,6 +104,8 @@ class HerdrTest(unittest.TestCase):
             self.assertFalse(desktop_omarchy.focus_process([999]))
             dispatch.assert_not_called()
         self.assertEqual(desktop_omarchy._parent(os.getpid()), os.getppid())
+        with mock.patch.object(os, "getuid", return_value=os.getuid() + 1):
+            self.assertEqual(desktop_omarchy._parent(os.getpid()), 0)   # another user's process: not followed
 
 
 if __name__ == "__main__":
