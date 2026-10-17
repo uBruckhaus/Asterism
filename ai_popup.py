@@ -6044,6 +6044,17 @@ class AgentsMap(Adw.Application):
             row.set_tooltip_text(hint)
         row.set_selected(max(0, selected))
         row.connect("notify::selected", lambda r, *_: self.settings_ready and on_change(r.get_selected()))
+        # The framed value and arrow at their own height, centred, not the row's (see the CSS).
+        stack = [row]
+        while stack:
+            widget = stack.pop()
+            if widget.has_css_class("suffixes"):
+                widget.set_valign(Gtk.Align.CENTER)
+                break
+            child = widget.get_first_child()
+            while child is not None:
+                stack.append(child)
+                child = child.get_next_sibling()
         group.add(row)
         return row
 
@@ -6095,11 +6106,13 @@ class AgentsMap(Adw.Application):
                        corners.CHOICES.index(ai_core.saved_corners()),
                        lambda i: (self.save_setting(corners=corners.CHOICES[i]), self.apply_theme_css()))
         if desktop.NAME == "omarchy":
-            self.combo_row(group, _("Look"),
+            look = self.combo_row(group, _("Look"),
                            _("The colours, light or dark: from the Omarchy theme, or GNOME's Adwaita (light or dark "
                              "and the accent colour as set in the system). Everything else works the same."),
                            [_("Omarchy theme"), _("GNOME (Adwaita)")], ai_core.LOOKS.index(ai_core.saved_look()),
                            lambda i: self.set_look(ai_core.LOOKS[i]))
+            # A line break after "Adwaita", before its bracket (the same place in every language).
+            look.set_subtitle(look.get_subtitle().replace(" (", "\n(", 1))
         self.switch_row(group, _("Look up new agents"),
                         _("When a new agent is installed, Claude Code or Codex finds out on the web where it keeps "
                           "MCP servers and skills (once, a few minutes in the background)."),
@@ -6908,8 +6921,10 @@ class AgentsMap(Adw.Application):
         /* A combo row's chosen value (its inline list): the size and colour of the subtitle, not of the title. */
         row.combo listview.inline label {{ font-size: smaller; color: {dim_hex}; }}
         row.combo popover listview label {{ font-size: smaller; }}
-        /* Room between a long (two-line) explanation and the chosen value. */
-        row.combo box.suffixes {{ margin-left: 28px; }}
+        /* The chosen value and its arrow framed like the other controls, well apart from a long explanation. */
+        row.combo box.suffixes {{ margin-left: 40px; padding: 3px 6px 3px 10px; border: 1px solid alpha({fg_hex}, 0.28);
+            border-radius: {max(4, min(radius, 8))}px; }}
+        row.combo:hover box.suffixes {{ border-color: alpha({fg_hex}, 0.45); }}
         .am-card list.am-list:not(.boxed-list) {{ background: alpha({fg_hex}, 0.03); border-radius: {radius}px; }}
         .am-card list.am-list row:selected {{ background: alpha({accent_hex}, 0.22); }}
         .am-card-check {{ color: {accent_hex}; font-weight: 700; }}
