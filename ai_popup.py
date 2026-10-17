@@ -6908,6 +6908,8 @@ class AgentsMap(Adw.Application):
         /* A combo row's chosen value (its inline list): the size and colour of the subtitle, not of the title. */
         row.combo listview.inline label {{ font-size: smaller; color: {dim_hex}; }}
         row.combo popover listview label {{ font-size: smaller; }}
+        /* Room between a long (two-line) explanation and the chosen value. */
+        row.combo box.suffixes {{ margin-left: 28px; }}
         .am-card list.am-list:not(.boxed-list) {{ background: alpha({fg_hex}, 0.03); border-radius: {radius}px; }}
         .am-card list.am-list row:selected {{ background: alpha({accent_hex}, 0.22); }}
         .am-card-check {{ color: {accent_hex}; font-weight: 700; }}
