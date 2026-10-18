@@ -25,6 +25,14 @@
   <url type="bugtracker">https://github.com/uBruckhaus/asterism/issues</url>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.6.0" date="2026-10-18">
+      <description>
+        <p>Check for updates (Add MCP › On this PC) moves every app that provides an MCP server to its
+        new version in one step, with one preview, backup and Undo, and then tests each updated
+        server. Models moved to the trash in LM Studio leave the map. Help shows LLM Monitor as a
+        small animation in your theme's colours, and the user manual has new screenshots.</p>
+      </description>
+    </release>
     <release version="0.5.0" date="2026-10-18">
       <description>
         <p>A Healthy &amp; Security check on every agent's details page shows what the agent may do
