@@ -143,7 +143,10 @@
   <p>On the first open, the app asks whether to add itself to the app launcher. Nothing is written
   there unless you say yes; you can change it later in Settings › <b>In the app launcher</b>.</p>
   <p>The window is a normal app window: it can be tiled, floated, moved to another workspace and
-  reached with <kbd>Alt</kbd>+<kbd>Tab</kbd>. <span class="badge omarchy">Omarchy</span> The bar
+  reached with <kbd>Alt</kbd>+<kbd>Tab</kbd>. <span class="badge">Asterism</span> A fresh Asterism opens on
+  <b>Set up Asterism</b>: the agents and local LLMs installed on this computer are ticked, and
+  <b>Switch on</b> puts them on the map (see <a href="#addons-setup">Setting up Asterism</a>).
+  <span class="badge omarchy">Omarchy</span> The bar
   button opens the window, brings it to the front, or hides it when it is already in front.
   Closing the window hides it; the program keeps running in the background so it opens again at
   once.</p>
@@ -723,9 +726,24 @@
 <section class="chapter" id="addons">
   <h1>Add-ons</h1>
   <p>Everything Asterism understands about an agent or an LLM provider is an <b>adapter</b>: how it
-  is found and installed, its sessions, security settings, MCP servers and skills. Many are built
-  in; <b>add-ons</b> bring more — new agents, new providers, and features beyond the numbers, such as
-  <b>Insights</b> (session topics and a summary by Claude). The AI Agents Map plugin has no add-ons.</p>
+  is found and installed, its sessions, security settings, MCP servers and skills. In Asterism every
+  adapter is an <b>add-on</b>: the packages bring all of them, signed and switched off, and you switch
+  on the ones you use. Add-ons also bring new agents, new providers, and features beyond the numbers,
+  such as <b>Insights</b> (session topics and a summary by Claude). The AI Agents Map plugin has the
+  adapters built in and no add-ons.</p>
+
+  <h2 id="addons-setup">Setting up Asterism</h2>
+  <p>On the first start, <b>Set up Asterism</b> lists every agent and local LLM Asterism knows:</p>
+  <ul>
+    <li><b>Found on this PC</b> — installed here, found the same way the map finds them; ticked;</li>
+    <li><b>Used before</b> — not installed now, but its settings are still here; not ticked;</li>
+    <li><b>Not on this PC</b> — tick one to install it afterwards from its card;</li>
+    <li><b>Online providers</b> — the names of Anthropic, OpenAI and the others on the map; ticked.</li>
+  </ul>
+  <p><b>Switch on</b> loads the ticked add-ons and shows the map; when you ticked programs that are not
+  installed, the Add-ons page opens on their cards, each with <b>Install</b>. <b>Later</b> starts with
+  an empty map, which offers the setup again; Settings › Add-ons › <b>Set up</b> brings the page back at
+  any time. Each row has a button that opens the program's homepage.</p>
 
   <h2 id="addons-page">The Add-ons page</h2>
   <p>Open it with the puzzle button in the header, from Settings › <b>Add-ons</b>, or from any
@@ -735,9 +753,12 @@
       shown yet;</li>
     <li><b>Installed add-ons</b> — on, off, or <i>not loaded</i> with the reason (for example a changed file);</li>
     <li><b>Available</b> — the other add-ons of the catalog;</li>
-    <li><b>Built into Asterism</b> — the agents, local LLMs and online providers that need no add-on,
-      each with what Asterism knows about it.</li>
+    <li><b>Built into Asterism</b> — agents and providers that no installed add-on brings (when you
+      run Asterism from its source folder without add-ons).</li>
   </ul>
+  <p>The card of an agent or local LLM that is switched on has <b>Install</b> and <b>Uninstall</b> for
+  the program itself (the one that does not apply is greyed out), and every card with a homepage has a
+  globe button that opens it in your browser.</p>
   <p>Search finds names, descriptions and what an add-on reads; the chips above narrow the list to
   agents, providers, features, the installed ones or those with an update. Click a card for its
   details: what it reads, what it sends, what it may do, and its privacy level.</p>
