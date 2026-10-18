@@ -1605,5 +1605,23 @@
  "Switch the add-on on to install or remove it here.": "Schakel de add-on in om het hier te installeren of te verwijderen.",
  "Ticked ones appear on the Add-ons page with an Install button.": "Aangevinkte verschijnen op de Add-ons-pagina met een knop Installeren.",
  "Used before": "Eerder gebruikt",
- "{0} add-ons are on.": "{0} add-ons staan aan."
+ "{0} add-ons are on.": "{0} add-ons staan aan.",
+ "Skills for this server": "Skills voor deze server",
+ "Matches the server's tools as last asked.": "Past bij de tools van de server zoals het laatst gevraagd.",
+ "The server's tools changed since the skill was updated: update it.": "De tools van de server zijn veranderd sinds de skill werd bijgewerkt: werk hem bij.",
+ "Not compared with the server's tools yet.": "Nog niet vergeleken met de tools van de server.",
+ "Comes with its app (not your own file): it is updated with the app.": "Komt met zijn app (niet je eigen bestand): wordt met de app bijgewerkt.",
+ "Update skill…": "Skill bijwerken…",
+ "Asks the server for its tools, then {0} rewrites the skill to match them (without any tools of its own). You see the change first; Undo brings the old skill back.": "Vraagt de server om zijn tools, daarna herschrijft {0} de skill zodat die erbij past (zonder eigen tools). Je ziet de wijziging eerst; Ongedaan maken haalt de oude skill terug.",
+ "Asking the server for its tools…": "De server om zijn tools vragen…",
+ "{0} rewrites the skill (this can take a few minutes)…": "{0} herschrijft de skill (dit kan een paar minuten duren)…",
+ "Skill {0} not updated: {1}": "Skill {0} niet bijgewerkt: {1}",
+ "Skill {0} already matches the server's tools.": "Skill {0} past al bij de tools van de server.",
+ "Update skill {0}": "Skill {0} bijwerken",
+ "{0} rewrote {1} to match the tools {2} offers now ({3}). Read the change before you take it: it was written by an AI. Undo brings the old skill back.": "{0} heeft {1} herschreven voor de tools die {2} nu biedt ({3}). Lees de wijziging voordat je hem overneemt: hij is door een AI geschreven. Ongedaan maken haalt de oude skill terug.",
+ "Skill {0} updated": "Skill {0} bijgewerkt",
+ "\u0004The skill {1} may need an update: MCP server page › Update skill…": [
+  "De skill {1} heeft misschien een update nodig: pagina van de MCP-server › Skill bijwerken…",
+  "{0} skills hebben misschien een update nodig ({1}): pagina van de MCP-server › Skill bijwerken…"
+ ]
 }

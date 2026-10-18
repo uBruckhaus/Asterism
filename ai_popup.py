@@ -58,6 +58,7 @@ import llm_clients
 import jan_ctl
 import kobold_ctl
 import mcp_update
+import skill_update
 import skills_ctl
 import skills_scan
 import skills_web
@@ -279,6 +280,7 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, AddonsPage, Adw.Applicat
         self.refreshing = set()    # commands whose usage Omarchy is collecting right now
         self.researching = set()   # new agents being looked up on the web (agent_profiles)
         self.asking_tools = set()  # MCP servers being asked for their tools (mcp_tools)
+        self.updating_skills = {}  # real SKILL.md path -> what its update is doing (skill_update)
         self.found_mcp = None      # mcp_scan results (None: not scanned in this session)
         self.configured_now = None
         self.scanning_mcp = False
@@ -3185,6 +3187,7 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, AddonsPage, Adw.Applicat
             self.section_heading(body, _("Not set up"))
             self.note(body, ", ".join(missing) + " · "
                       + _("draw a line from the agent to this box on the map to add it."))
+        self.mcp_skills_section(body, server)
         self.mcp_tools_section(body, server)
         self.mcp_showing = name
         self.show_page("mcp")
@@ -3260,6 +3263,127 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, AddonsPage, Adw.Applicat
                                 for name in skill_set.skills])
         self.show_page("mcp")
         self.update_header()
+
+    def skills_of_server(self, name: str) -> list:
+        """The skill folders written for this MCP server (one per real folder)."""
+        folders, seen = [], set()
+        for skill_set in self.inventory.skill_sets:
+            for folder in skills_ctl.skills_of(skills_ctl.expand(skill_set.path)):
+                real = os.path.realpath(folder)
+                if real not in seen:
+                    seen.add(real)
+                    folders.append(folder)
+        return skill_update.based_on(folders, [name]).get(name, [])
+
+    def mcp_skills_section(self, body, server):
+        """Skills written for this server: do they still match its tools? Update skill… rewrites one."""
+        folders = self.skills_of_server(server.name)
+        if not folders:
+            return
+        self.section_heading(body, _("Skills for this server"))
+        tools = mcp_tools.cached(server.name)
+        texts = {"current": _("Matches the server's tools as last asked."),
+                 "changed": _("The server's tools changed since the skill was updated: update it."),
+                 "unknown": _("Not compared with the server's tools yet.")}
+        for folder in folders:
+            line = Gtk.Box(spacing=10)
+            file = skill_update.own_skill_file(folder)
+            if file is None:
+                text = _("Comes with its app (not your own file): it is updated with the app.")
+            elif str(file) in self.updating_skills:
+                text = self.updating_skills[str(file)]
+            else:
+                text = texts[skill_update.status(file, server.name, tools)]
+            label = Gtk.Label(label=f"{folder.name} · {text}", xalign=0, wrap=True, max_width_chars=1, hexpand=True)
+            label.add_css_class("am-agent-detail")
+            line.append(label)
+            if file is not None:
+                button = Gtk.Button(label=_("Update skill…"), valign=Gtk.Align.CENTER)
+                button.add_css_class("am-small-btn")
+                button.set_tooltip_text(_(
+                    "Asks the server for its tools, then {0} rewrites the skill to match them (without any "
+                    "tools of its own). You see the change first; Undo brings the old skill back.").format(
+                    " / ".join(skill_update.writers(self.installed_commands())) or "Claude Code / Codex"))
+                button.set_sensitive(str(file) not in self.updating_skills
+                                     and bool(skill_update.writers(self.installed_commands())))
+                button.connect("clicked", lambda _b, f=file: self.update_skill(server, f))
+                line.append(button)
+            body.append(line)
+
+    def installed_commands(self) -> list:
+        return [a.command for a in self.agent_list if a.installed]
+
+    def update_skill(self, server, file: Path):
+        """Update skill…: ask the server, let an agent rewrite the SKILL.md, then the preview."""
+        name = server.name
+        entry = None
+        for command in server.agents:
+            entry = mcp_ctl.normal(mcp_ctl.raw_entries(command).get(name))
+            if entry is not None:
+                break
+        if entry is None or str(file) in self.updating_skills:
+            return
+        installed = self.installed_commands()
+
+        def say(text):
+            self.updating_skills[str(file)] = text
+            if self.page_name() == "mcp" and getattr(self, "mcp_showing", None) == name:
+                self.open_mcp_details(name)
+            return False
+
+        say(_("Asking the server for its tools…"))
+
+        def work():
+            tools = mcp_tools.ask_and_keep(name, entry)
+            if tools.get("status") != "ok":
+                GLib.idle_add(done, None, None, tools, tools.get("error", ""))
+                return
+            GLib.idle_add(say, _("{0} rewrites the skill (this can take a few minutes)…").format(
+                " / ".join(skill_update.writers(installed))))
+            try:
+                old = file.read_text(encoding="utf-8")
+                new, writer = skill_update.rewrite(file, name, tools, installed)
+            except (OSError, RuntimeError) as error:
+                GLib.idle_add(done, None, None, tools, str(error))
+                return
+            GLib.idle_add(done, old, (new, writer), tools, "")
+
+        def done(old, answer, tools, error):
+            self.updating_skills.pop(str(file), None)
+            if error:
+                self.show_note(_("Skill {0} not updated: {1}").format(file.parent.name, error[:300]))
+            elif answer[0] == old:
+                skill_update.remember(file, name, tools)
+                self.show_note(_("Skill {0} already matches the server's tools.").format(file.parent.name))
+            else:
+                self.open_skill_update(name, file, old, answer[0], answer[1], tools)
+                return False
+            if self.page_name() == "mcp" and getattr(self, "mcp_showing", None) == name:
+                self.open_mcp_details(name)
+            return False
+
+        threading.Thread(target=work, daemon=True).start()
+
+    def open_skill_update(self, server: str, file: Path, old: str, new: str, writer: str, tools: dict):
+        self.connecting = {"skill_update": (file, old, new), "server": server, "tools": tools,
+                           "from": self.view, "remove_only": False}
+        self.connect_title.set_label(_("Update skill {0}").format(file.parent.name).upper())
+        form = self.connect_form
+        while (child := form.get_first_child()) is not None:
+            form.remove(child)
+        self.connect_status.set_label("")
+        self.connect_preview_heading.set_visible(True)
+        self.connect_preview_scroller.set_visible(True)
+        self.connect_ok.set_visible(True)
+        self.connect_ok.set_label(_("Update"))
+        self.connect_remove.set_visible(False)
+        self.connect_intro.set_label(_(
+            "{0} rewrote {1} to match the tools {2} offers now ({3}). Read the change before you take it: it "
+            "was written by an AI. Undo brings the old skill back.").format(
+            {"claude": "Claude Code", "codex": "Codex"}.get(writer, writer), skills_ctl.tilde(file),
+            server, tools.get("server") or server))
+        self.update_connect_preview()
+        self.show_page("connect")
 
     def mcp_tools_section(self, body, server):
         """The tools (and prompts) the server offers: asked on request, kept with the date."""
@@ -5660,21 +5784,30 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, AddonsPage, Adw.Applicat
         agents = [a.command for a in self.agent_list if a.installed]
 
         def work():
-            failed, count = [], 0
+            failed, count, servers = [], 0, []
             for name, entry in mcp_update.updated_entries(updates, agents).items():
                 count += 1
                 result = mcp_tools.ask_and_keep(name, entry)
                 if result.get("status") != "ok":
                     failed.append(f"{name}: {result.get('error', '')}"[:200])
-            GLib.idle_add(done, count, failed)
+                else:
+                    servers.append(name)
+            GLib.idle_add(done, count, failed, servers)
 
-        def done(count, failed):
+        def done(count, failed, servers):
+            # Skills written for an updated server whose tools changed: say so (Update skill… on its page).
+            stale = [f.name for name in servers for f in self.skills_of_server(name)
+                     if (file := skill_update.own_skill_file(f)) is not None
+                     and skill_update.status(file, name, mcp_tools.cached(name)) != "current"]
+            extra = (" " + ngettext("The skill {1} may need an update: MCP server page › Update skill…",
+                                    "{0} skills may need an update ({1}): MCP server page › Update skill…",
+                                    len(stale)).format(len(stale), ", ".join(stale))) if stale else ""
             if failed:
-                self.toast(_("Not working after the update: {0}").format("; ".join(failed)), 30, _("Undo"),
+                self.toast(_("Not working after the update: {0}").format("; ".join(failed)) + extra, 30, _("Undo"),
                            lambda: self.undo_last(backup))
             elif count:
                 self.toast(ngettext("Tested: the updated server works.", "Tested: all {0} updated servers work.",
-                                    count).format(count), 30, _("Undo"), lambda: self.undo_last(backup))
+                                    count).format(count) + extra, 30, _("Undo"), lambda: self.undo_last(backup))
             return False
 
         threading.Thread(target=work, daemon=True).start()
@@ -5710,6 +5843,9 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, AddonsPage, Adw.Applicat
         info = self.connecting
         if "security" in info:
             return agent_security.plan(info["agent"].command, info["security"], info["value"])
+        if "skill_update" in info:
+            file, old, new = info["skill_update"]
+            return connect.Plan("", "", info["server"], changes=[connect.Change(file, old, new)])
         if "updates" in info:
             return mcp_update.plan_all(info["updates"], [a.command for a in self.agent_list if a.installed])
         if "delete" in info:
@@ -5801,6 +5937,15 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, AddonsPage, Adw.Applicat
         if "security" in info:
             self.close_connect()
             self.show_undo(_("{0}: {1} is now {2}").format(info["agent"].name, info["title"], info["label"]), backup)
+            return
+        if "skill_update" in info:
+            file = info["skill_update"][0]
+            try:
+                skill_update.remember(file, info["server"], info["tools"])
+            except OSError:
+                pass
+            self.close_connect()
+            self.show_undo(_("Skill {0} updated").format(file.parent.name), backup)
             return
         remove = remove or bool(info.get("remove_only"))
         if link is not None and remove:
@@ -5966,6 +6111,9 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, AddonsPage, Adw.Applicat
         self.connecting = None
         if info and "security" in info:
             self.open_agent_status(info["agent"])      # back to its page, read again
+            return
+        if info and "skill_update" in info:
+            self.open_mcp_details(info["server"])      # back to the server's page
             return
         self.show_view(info["from"] if info else self.view, save=False)
 

@@ -1605,5 +1605,23 @@
  "Switch the add-on on to install or remove it here.": "Activa el complemento para instalarlo o quitarlo aquí.",
  "Ticked ones appear on the Add-ons page with an Install button.": "Los marcados aparecen en la página de complementos con un botón Instalar.",
  "Used before": "Usado antes",
- "{0} add-ons are on.": "{0} complementos están activados."
+ "{0} add-ons are on.": "{0} complementos están activados.",
+ "Skills for this server": "Skills para este servidor",
+ "Matches the server's tools as last asked.": "Coincide con las herramientas del servidor según la última consulta.",
+ "The server's tools changed since the skill was updated: update it.": "Las herramientas del servidor cambiaron desde la última actualización del skill: actualízalo.",
+ "Not compared with the server's tools yet.": "Aún no comparado con las herramientas del servidor.",
+ "Comes with its app (not your own file): it is updated with the app.": "Viene con su app (no es tu propio archivo): se actualiza con la app.",
+ "Update skill…": "Actualizar skill…",
+ "Asks the server for its tools, then {0} rewrites the skill to match them (without any tools of its own). You see the change first; Undo brings the old skill back.": "Pide al servidor sus herramientas y luego {0} reescribe el skill para que coincida (sin herramientas propias). Primero ves el cambio; Deshacer recupera el skill anterior.",
+ "Asking the server for its tools…": "Pidiendo al servidor sus herramientas…",
+ "{0} rewrites the skill (this can take a few minutes)…": "{0} reescribe el skill (puede tardar unos minutos)…",
+ "Skill {0} not updated: {1}": "Skill {0} no actualizado: {1}",
+ "Skill {0} already matches the server's tools.": "El skill {0} ya coincide con las herramientas del servidor.",
+ "Update skill {0}": "Actualizar skill {0}",
+ "{0} rewrote {1} to match the tools {2} offers now ({3}). Read the change before you take it: it was written by an AI. Undo brings the old skill back.": "{0} reescribió {1} para que coincida con las herramientas que {2} ofrece ahora ({3}). Lee el cambio antes de aceptarlo: lo escribió una IA. Deshacer recupera el skill anterior.",
+ "Skill {0} updated": "Skill {0} actualizado",
+ "\u0004The skill {1} may need an update: MCP server page › Update skill…": [
+  "Puede que el skill {1} necesite una actualización: página del servidor MCP › Actualizar skill…",
+  "{0} skills pueden necesitar una actualización ({1}): página del servidor MCP › Actualizar skill…"
+ ]
 }

@@ -1605,5 +1605,23 @@
  "Switch the add-on on to install or remove it here.": "Schalte das Add-on ein, um es hier zu installieren oder zu entfernen.",
  "Ticked ones appear on the Add-ons page with an Install button.": "Angehakte erscheinen auf der Add-ons-Seite mit einem Installieren-Knopf.",
  "Used before": "Früher benutzt",
- "{0} add-ons are on.": "{0} Add-ons sind an."
+ "{0} add-ons are on.": "{0} Add-ons sind an.",
+ "Skills for this server": "Skills für diesen Server",
+ "Matches the server's tools as last asked.": "Passt zu den Werkzeugen des Servers, wie zuletzt abgefragt.",
+ "The server's tools changed since the skill was updated: update it.": "Die Werkzeuge des Servers haben sich seit dem letzten Skill-Update geändert: aktualisieren.",
+ "Not compared with the server's tools yet.": "Noch nicht mit den Werkzeugen des Servers verglichen.",
+ "Comes with its app (not your own file): it is updated with the app.": "Kommt mit seiner App (nicht deine eigene Datei): wird mit der App aktualisiert.",
+ "Update skill…": "Skill aktualisieren…",
+ "Asks the server for its tools, then {0} rewrites the skill to match them (without any tools of its own). You see the change first; Undo brings the old skill back.": "Fragt den Server nach seinen Werkzeugen, dann schreibt {0} den Skill passend dazu neu (ohne eigene Werkzeuge). Du siehst die Änderung zuerst; Rückgängig holt den alten Skill zurück.",
+ "Asking the server for its tools…": "Frage den Server nach seinen Werkzeugen…",
+ "{0} rewrites the skill (this can take a few minutes)…": "{0} schreibt den Skill neu (das kann ein paar Minuten dauern)…",
+ "Skill {0} not updated: {1}": "Skill {0} nicht aktualisiert: {1}",
+ "Skill {0} already matches the server's tools.": "Skill {0} passt schon zu den Werkzeugen des Servers.",
+ "Update skill {0}": "Skill {0} aktualisieren",
+ "{0} rewrote {1} to match the tools {2} offers now ({3}). Read the change before you take it: it was written by an AI. Undo brings the old skill back.": "{0} hat {1} an die Werkzeuge angepasst, die {2} jetzt anbietet ({3}). Lies die Änderung, bevor du sie übernimmst: Sie wurde von einer KI geschrieben. Rückgängig holt den alten Skill zurück.",
+ "Skill {0} updated": "Skill {0} aktualisiert",
+ "\u0004The skill {1} may need an update: MCP server page › Update skill…": [
+  "Der Skill {1} braucht vielleicht ein Update: MCP-Server-Seite › Skill aktualisieren…",
+  "{0} Skills brauchen vielleicht ein Update ({1}): MCP-Server-Seite › Skill aktualisieren…"
+ ]
 }

@@ -1605,5 +1605,23 @@
  "Switch the add-on on to install or remove it here.": "Active l'extension pour l'installer ou la retirer ici.",
  "Ticked ones appear on the Add-ons page with an Install button.": "Les éléments cochés apparaissent sur la page Extensions avec un bouton Installer.",
  "Used before": "Utilisé auparavant",
- "{0} add-ons are on.": "{0} extensions sont activées."
+ "{0} add-ons are on.": "{0} extensions sont activées.",
+ "Skills for this server": "Skills pour ce serveur",
+ "Matches the server's tools as last asked.": "Correspond aux outils du serveur tels que demandés la dernière fois.",
+ "The server's tools changed since the skill was updated: update it.": "Les outils du serveur ont changé depuis la mise à jour du skill : mettez-le à jour.",
+ "Not compared with the server's tools yet.": "Pas encore comparé aux outils du serveur.",
+ "Comes with its app (not your own file): it is updated with the app.": "Fourni avec son app (pas votre propre fichier) : mis à jour avec l’app.",
+ "Update skill…": "Mettre à jour le skill…",
+ "Asks the server for its tools, then {0} rewrites the skill to match them (without any tools of its own). You see the change first; Undo brings the old skill back.": "Demande ses outils au serveur, puis {0} réécrit le skill pour qu’il corresponde (sans aucun outil). Vous voyez d’abord la modification ; Annuler rétablit l’ancien skill.",
+ "Asking the server for its tools…": "Demande des outils au serveur…",
+ "{0} rewrites the skill (this can take a few minutes)…": "{0} réécrit le skill (cela peut prendre quelques minutes)…",
+ "Skill {0} not updated: {1}": "Skill {0} non mis à jour : {1}",
+ "Skill {0} already matches the server's tools.": "Le skill {0} correspond déjà aux outils du serveur.",
+ "Update skill {0}": "Mettre à jour le skill {0}",
+ "{0} rewrote {1} to match the tools {2} offers now ({3}). Read the change before you take it: it was written by an AI. Undo brings the old skill back.": "{0} a réécrit {1} pour correspondre aux outils que {2} propose maintenant ({3}). Lisez la modification avant de l’accepter : elle a été écrite par une IA. Annuler rétablit l’ancien skill.",
+ "Skill {0} updated": "Skill {0} mis à jour",
+ "\u0004The skill {1} may need an update: MCP server page › Update skill…": [
+  "Le skill {1} a peut-être besoin d’une mise à jour : page du serveur MCP › Mettre à jour le skill…",
+  "{0} skills ont peut-être besoin d’une mise à jour ({1}) : page du serveur MCP › Mettre à jour le skill…"
+ ]
 }

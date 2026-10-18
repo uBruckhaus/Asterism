@@ -1654,5 +1654,24 @@
  "Switch the add-on on to install or remove it here.": "Włącz dodatek, aby tu go zainstalować lub usunąć.",
  "Ticked ones appear on the Add-ons page with an Install button.": "Zaznaczone pojawią się na stronie Dodatki z przyciskiem Zainstaluj.",
  "Used before": "Używany wcześniej",
- "{0} add-ons are on.": "Włączone dodatki: {0}."
+ "{0} add-ons are on.": "Włączone dodatki: {0}.",
+ "Skills for this server": "Skille dla tego serwera",
+ "Matches the server's tools as last asked.": "Pasuje do narzędzi serwera z ostatniego zapytania.",
+ "The server's tools changed since the skill was updated: update it.": "Narzędzia serwera zmieniły się od ostatniej aktualizacji skilla: zaktualizuj go.",
+ "Not compared with the server's tools yet.": "Jeszcze nie porównano z narzędziami serwera.",
+ "Comes with its app (not your own file): it is updated with the app.": "Pochodzi z aplikacji (to nie twój plik): aktualizuje się razem z nią.",
+ "Update skill…": "Zaktualizuj skill…",
+ "Asks the server for its tools, then {0} rewrites the skill to match them (without any tools of its own). You see the change first; Undo brings the old skill back.": "Pyta serwer o jego narzędzia, potem {0} przepisuje skill, aby do nich pasował (bez żadnych własnych narzędzi). Najpierw widzisz zmianę; Cofnij przywraca stary skill.",
+ "Asking the server for its tools…": "Pytam serwer o jego narzędzia…",
+ "{0} rewrites the skill (this can take a few minutes)…": "{0} przepisuje skill (to może potrwać kilka minut)…",
+ "Skill {0} not updated: {1}": "Skill {0} nie został zaktualizowany: {1}",
+ "Skill {0} already matches the server's tools.": "Skill {0} już pasuje do narzędzi serwera.",
+ "Update skill {0}": "Zaktualizuj skill {0}",
+ "{0} rewrote {1} to match the tools {2} offers now ({3}). Read the change before you take it: it was written by an AI. Undo brings the old skill back.": "{0} przepisał {1}, aby pasował do narzędzi, które {2} oferuje teraz ({3}). Przeczytaj zmianę, zanim ją przyjmiesz: napisała ją SI. Cofnij przywraca stary skill.",
+ "Skill {0} updated": "Skill {0} zaktualizowany",
+ "\u0004The skill {1} may need an update: MCP server page › Update skill…": [
+  "Skill {1} może wymagać aktualizacji: strona serwera MCP › Zaktualizuj skill…",
+  "{0} skille mogą wymagać aktualizacji ({1}): strona serwera MCP › Zaktualizuj skill…",
+  "{0} skilli może wymagać aktualizacji ({1}): strona serwera MCP › Zaktualizuj skill…"
+ ]
 }
