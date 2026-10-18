@@ -35,6 +35,11 @@ import edition
 import harnesses
 import herdr_state
 try:
+    import addon_api            # Asterism only: signed add-ons (not in the Omarchy plugin)
+    import addons
+except ImportError:
+    addon_api = addons = None
+try:
     import session_topics       # Asterism only: session titles and a written summary (not in the Omarchy plugin)
 except ImportError:
     session_topics = None
@@ -295,6 +300,7 @@ class AgentsMap(SettingsPages, ThemeCss, Adw.Application):
 
     def do_activate(self):
         if self.window is None:
+            self.load_addons()
             self.build_window()
             self.hold()  # Keep the singleton alive while its popup is hidden.
             signal.signal(signal.SIGUSR1, lambda *_: GLib.idle_add(self.toggle))
@@ -304,6 +310,23 @@ class AgentsMap(SettingsPages, ThemeCss, Adw.Application):
             self.watch_theme()
             write_pid_file()
         self.open()
+
+    # --- add-ons (Asterism only) ---------------------------------------------------------------
+
+    def load_addons(self):
+        """Verify every add-on found and load the ones switched on (Settings keeps the list)."""
+        self.addons = []
+        if addons is None:
+            return
+        enabled = ai_core.load_settings().get("addons_enabled", [])
+        try:
+            self.addons = addons.load_all(set(e for e in enabled if isinstance(e, str)) if isinstance(enabled, list)
+                                          else set())
+        except Exception:               # never keep the app from starting
+            self.addons = []
+
+    def addon_hooks(self, kind: str) -> list:
+        return list(getattr(addon_api.HOOKS, kind)) if addon_api is not None else []
 
     # --- window ----------------------------------------------------------------
 
@@ -2707,6 +2730,9 @@ class AgentsMap(SettingsPages, ThemeCss, Adw.Application):
         self.note(body, harness.sessions.note())
         if session_topics is not None and edition.allows(edition.TITLES):
             session_topics.fill(self, body, harness, sessions, since)
+        for addon_id, builder, privacy in self.addon_hooks("details"):
+            if edition.allows(privacy):
+                addon_api.call(addon_id, builder, addon_api.UI(self, addon_id), body, harness, sessions, since)
 
     def open_runtime_status(self, key: str):
         rt = next((r for r in self.inventory.runtimes if r.key == key), None)

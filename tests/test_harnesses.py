@@ -140,11 +140,11 @@ class RegistryTest(unittest.TestCase):
 
 class EditionTest(unittest.TestCase):
     def setUp(self):
-        edition._maximum = None
-        self.addCleanup(setattr, edition, "_maximum", None)
+        edition._built_in = None
+        self.addCleanup(setattr, edition, "_built_in", None)
 
     def test_without_session_topics_numbers_only(self):
-        with mock.patch.dict(sys.modules, {"session_topics": None}):
+        with mock.patch.dict(sys.modules, {"session_topics": None, "addon_api": None}):
             self.assertEqual(edition.maximum(), edition.NUMBERS)
             self.assertTrue(edition.allows(edition.NUMBERS))
             self.assertFalse(edition.allows(edition.TITLES))

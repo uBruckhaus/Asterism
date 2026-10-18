@@ -1,0 +1,197 @@
+import hashlib
+import json
+import os
+import shutil
+import subprocess
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+from unittest import mock
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+import addon_api  # noqa: E402
+import addons  # noqa: E402
+import edition  # noqa: E402
+
+GOOD = '''
+CALLS = []
+
+def register(api):
+    api.add_help_card(lambda ui, box: CALLS.append("help"))
+    api.add_details_section(lambda ui, box, harness, sessions, since: None, 2)
+    api.add_session_titles("opencode", lambda: {"a": "A title"})
+'''
+
+
+@unittest.skipUnless(shutil.which("ssh-keygen"), "needs OpenSSH's ssh-keygen")
+class AddonsTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.keys = tempfile.TemporaryDirectory()
+        cls.key = Path(cls.keys.name) / "key"
+        subprocess.run(["ssh-keygen", "-q", "-t", "ed25519", "-N", "", "-C", "test", "-f", str(cls.key)], check=True)
+        cls.signers = f'{addons.PRINCIPAL} namespaces="{addons.NAMESPACE}" ' + \
+            " ".join(cls.key.with_suffix(".pub").read_text().split()[:2])
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.keys.cleanup()
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.root = Path(tmp.name) / "addons"
+        self.root.mkdir(mode=0o755)
+        self.hooks = addon_api.Hooks()
+
+    def build(self, addon_id="insights", code=GOOD, meta=None, extra=None, sign=True):
+        folder = self.root / addon_id
+        (folder / "translations").mkdir(parents=True)
+        info = {"id": addon_id, "name": "Insights", "version": "1.0.0", "api": addon_api.API_VERSION,
+                "privacy": "titles", "harnesses": ["opencode"], "reads": ["OpenCode's session titles"],
+                "sends": []}
+        info.update(meta or {})
+        files = {"addon.json": json.dumps(info), "addon.py": code,
+                 "translations/de.json": json.dumps({"Topics": "Themen"}), **(extra or {})}
+        for name, text in files.items():
+            (folder / name).write_text(text)
+        manifest = "".join(f"{hashlib.sha256((folder / n).read_bytes()).hexdigest()}  {n}\n" for n in sorted(files))
+        (folder / "MANIFEST.sha256").write_text(manifest)
+        if sign:
+            subprocess.run(["ssh-keygen", "-q", "-Y", "sign", "-f", str(self.key), "-n", addons.NAMESPACE,
+                            str(folder / "MANIFEST.sha256")], check=True, capture_output=True)
+            (folder / "MANIFEST.sha256.sig").rename(folder / "SIGNATURE")
+        for path in folder.rglob("*"):
+            path.chmod(0o755 if path.is_dir() else 0o644)
+        folder.chmod(0o755)
+        return folder
+
+    def verify(self, folder):
+        return addons.verify(folder, self.signers)
+
+    def test_a_signed_addon_verifies_and_loads(self):
+        addon = self.verify(self.build())
+        self.assertEqual((addon.state, addon.reason), ("verified", ""))
+        self.assertEqual((addon.name, addon.version, addon.privacy), ("Insights", "1.0.0", edition.TITLES))
+        self.assertEqual(addon.reads, ["OpenCode's session titles"])
+        addons.load(addon, self.hooks)
+        self.assertEqual(addon.state, "loaded")
+        self.assertEqual([h[0] for h in self.hooks.help], ["insights"])
+        self.assertEqual(self.hooks.privacy, {"insights": edition.TITLES})
+        api = addon_api.AddonAPI("other", edition.NUMBERS, hooks=self.hooks)
+        self.assertEqual(api.session_titles("opencode"), {"a": "A title"})
+
+    def test_only_uwes_key(self):
+        addon = addons.verify(self.build())          # the built-in key, not the test key
+        self.assertEqual((addon.state, addon.reason), ("refused", "not signed by Uwe Bruckhaus"))
+        self.assertEqual(addon.files, {})
+
+    def test_unsigned(self):
+        self.assertEqual(self.verify(self.build(sign=False)).reason, "not signed")
+
+    def test_changed_file(self):
+        folder = self.build()
+        with open(folder / "addon.py", "a") as handle:
+            handle.write("\nimport os\n")
+        self.assertEqual(self.verify(folder).reason, "addon.py was changed")
+
+    def test_added_file(self):
+        folder = self.build()
+        (folder / "translations/fr.json").write_text("{}")
+        (folder / "translations/fr.json").chmod(0o644)
+        self.assertEqual(self.verify(folder).reason, "files differ from the signed list")
+
+    def test_unexpected_file_kind(self):
+        folder = self.build(extra={"helper.py": "x = 1"})
+        self.assertEqual(self.verify(folder).reason, "unexpected file helper.py")
+
+    def test_link(self):
+        folder = self.build()
+        (folder / "addon.py").rename(folder / "real.py")
+        (folder / "addon.py").symlink_to(folder / "real.py")
+        self.assertIn("link", self.verify(folder).reason)
+
+    def test_writable_by_others(self):
+        folder = self.build()
+        (folder / "addon.py").chmod(0o666)
+        self.assertEqual(self.verify(folder).reason, "addon.py cannot be read safely")
+        (folder / "addon.py").chmod(0o644)
+        folder.chmod(0o775)
+        self.assertIn("writable by others", self.verify(folder).reason)
+
+    def test_wrong_api(self):
+        addon = self.verify(self.build(meta={"api": 99}))
+        self.assertIn("API 99", addon.reason)
+
+    def test_id_must_match_folder(self):
+        self.assertEqual(self.verify(self.build(meta={"id": "other"})).reason,
+                         "addon.json does not name this add-on")
+
+    def test_nothing_runs_while_verifying(self):
+        folder = self.build(code="raise SystemExit('ran')\n")
+        self.assertEqual(self.verify(folder).state, "verified")
+
+    def test_more_than_declared_privacy_fails_cleanly(self):
+        code = "def register(api):\n    api.add_help_card(lambda ui, box: None)\n    api.add_session_titles('x', dict)\n"
+        addon = addons.load(self.verify(self.build(code=code, meta={"privacy": "numbers"})), self.hooks)
+        self.assertEqual(addon.state, "failed")
+        self.assertIn("privacy", addon.reason)
+        self.assertEqual(self.hooks.help, [])                     # its earlier hooks are taken back
+        self.assertEqual(self.hooks.privacy, {})
+
+    def test_broken_register_fails_cleanly(self):
+        addon = addons.load(self.verify(self.build(code="def register(api):\n    1 / 0\n")), self.hooks)
+        self.assertEqual(addon.state, "failed")
+        self.assertIn("ZeroDivisionError", addon.reason)
+
+    def test_runs_from_verified_bytes(self):
+        folder = self.build()
+        addon = self.verify(folder)
+        (folder / "addon.py").write_text("def register(api):\n    raise RuntimeError('swapped')\n")
+        self.assertEqual(addons.load(addon, self.hooks).state, "loaded")
+
+    def test_load_all_only_loads_switched_on(self):
+        self.build()
+        found = addons.load_all(set(), dirs=(self.root,), signers=self.signers, hooks=self.hooks)
+        self.assertEqual([a.state for a in found], ["verified"])
+        found = addons.load_all({"insights"}, dirs=(self.root,), signers=self.signers, hooks=self.hooks)
+        self.assertEqual([a.state for a in found], ["loaded"])
+
+    def test_user_folder_wins(self):
+        self.build()
+        system = self.root.parent / "system"
+        system.mkdir()
+        (system / "insights").mkdir()
+        self.assertEqual(addons.find((self.root, system)), [self.root / "insights"])
+
+    def test_translations(self):
+        api = addon_api.AddonAPI("insights", edition.TITLES, addons.strings(self.verify(self.build())))
+        with mock.patch("i18n.current", return_value="de"):
+            self.assertEqual(api.tr("Topics"), "Themen")
+            self.assertEqual(api.tr("Other"), "Other")
+
+    def test_without_ssh_keygen(self):
+        folder = self.build()
+        with mock.patch("shutil.which", return_value=None):
+            self.assertIn("ssh-keygen", self.verify(folder).reason)
+
+    def test_edition_follows_loaded_addons(self):
+        self.addCleanup(addon_api.HOOKS.clear)
+        addon_api.HOOKS.clear()
+        with mock.patch.object(edition, "_built_in_level", return_value=edition.NUMBERS):
+            self.assertEqual(edition.maximum(), edition.NUMBERS)
+            addons.load(self.verify(self.build()))
+            self.assertEqual(edition.maximum(), edition.TITLES)
+
+
+class HookCallTest(unittest.TestCase):
+    def test_failing_callback_is_noted_not_raised(self):
+        hooks = addon_api.Hooks()
+        with mock.patch.object(addon_api, "HOOKS", hooks):
+            self.assertIsNone(addon_api.call("x", lambda: 1 / 0))
+            self.assertIn("ZeroDivisionError", hooks.errors["x"])
+
+
+if __name__ == "__main__":
+    unittest.main()

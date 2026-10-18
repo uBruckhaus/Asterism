@@ -78,6 +78,17 @@ file sizes (`lstat`, links not followed, bounded); nothing is opened or deleted.
 (The AI Agents Map plugin shows only the numbers; titles and the summary are Asterism's: `edition.py`
 derives this from `session_topics.py`, which is not in the plugin.)
 
+## Add-ons
+
+Features beyond the numbers come as add-ons, from the author only. An add-on is a folder in
+`~/.local/share/asterism/addons/` (or `/usr/lib/asterism/addons/`) and loads only when it is
+switched on in Settings and **signed with the author's key** (checked with OpenSSH's
+`ssh-keygen -Y verify`; fingerprint `SHA256:e5cC634Ke3Our5LAeSc88qs22NKZEHTncBW5Ig3amWQ`). Every
+file must match the signed list, nothing may be added, and nothing of it runs before those checks.
+Each add-on states in plain words what it reads and sends, and its privacy level (numbers, titles
+or summary) is the most it can do. Add-ons build on a small, versioned API (`addon_api.py`), so a
+new add-on needs no new Asterism. The AI Agents Map plugin has no add-ons.
+
 ## Development
 
 `python3 -m unittest discover -s tests`. `ASTERISM_DESKTOP=omarchy|generic` picks the desktop

@@ -25,6 +25,10 @@ import provider_watch
 import web_sources
 from i18n import _, N_, ngettext
 from ui_helpers import SpaceBar, size_text
+try:
+    import addon_api            # Asterism only (not in the Omarchy plugin); hooks are empty without it
+except ImportError:
+    addon_api = None
 
 
 class SettingsPages:
@@ -285,6 +289,8 @@ class SettingsPages:
         if desktop.launcher_entry():
             self.fill_launcher_setting(right)
             right.reorder_child_after(right.get_last_child(), None)     # the app's own entry first on the right
+        for addon_id, builder in self.addon_hooks("settings"):
+            addon_api.call(addon_id, builder, addon_api.UI(self, addon_id), right)
         self.settings_ready = True
 
     def preference_group(self, box, title: str) -> Adw.PreferencesGroup:
@@ -868,6 +874,12 @@ class SettingsPages:
         monitor = self.help_llm_monitor_card()
         if monitor is not None:
             body.append(monitor)
+        for addon_id, builder in self.addon_hooks("help"):
+            card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+            card.add_css_class("am-help-card")
+            addon_api.call(addon_id, builder, addon_api.UI(self, addon_id), card)
+            if card.get_first_child() is not None:
+                body.append(card)
         page.append(self.page_scroller(body))
         return page
 
