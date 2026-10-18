@@ -225,10 +225,10 @@ class AddonsPage:
         return [a for a in self.addons if a.kind in ("agent", "provider") and a.state in ("verified", "loaded")]
 
     def setup_needed(self) -> bool:
-        """Adapter add-ons are there, none is on, and the setup was neither done nor put off."""
+        """Adapter add-ons are there and none is on: the map would be empty, so Asterism starts on
+        the welcome page with the cards (also after Later, until something is switched on)."""
         adapters = self.adapter_addons()
-        return bool(adapters) and not any(a.state == "loaded" for a in adapters) \
-            and not ai_core.load_settings().get("setup_done")
+        return bool(adapters) and not any(a.state == "loaded" for a in adapters)
 
     def installed_adapters(self, adapters: list) -> set:
         """Ids of the adapter add-ons whose program is really installed: every adapter is loaded for a
