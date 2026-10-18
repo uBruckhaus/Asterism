@@ -977,6 +977,8 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, AddonsPage, Adw.Applicat
             self.stack.set_visible_child_name(name)
         self.place_panes()
         self.update_header()
+        if getattr(self, "jobs_box", None) is not None:
+            self.render_jobs()
 
     def place_panes(self):
         """Wide: the cards stay beside whatever is on the right. Narrow (cards only):
@@ -7321,7 +7323,11 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, AddonsPage, Adw.Applicat
     def render_jobs(self):
         """The main page's job lines: rebuilt when a job comes, goes or changes state,
         otherwise only their text and bar move."""
-        shown = self.jobs.shown()
+        # A job its own page shows (install, models) with its bar there: no second bar above it.
+        page = self.page_name() if getattr(self, "stack", None) is not None else ""
+        own = (getattr(self, "installing", None) or {}).get("job") if page == "install" else \
+            (getattr(self, "models_state", None) or {}).get("job") if page == "models" else None
+        shown = [j for j in self.jobs.shown() if own is None or j.id != own]
         layout = [(j.id, j.state) for j in shown]
         if layout != self.job_layout:
             self.job_layout = layout
@@ -7521,7 +7527,7 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, AddonsPage, Adw.Applicat
                     form, _("Data folder"), _("Jan's models, chats and settings. Change it later in Jan "
                                               "(Settings › General)."), str(models[0]), models)
             else:
-                models = install_ctl.models_suggestions(runtimes, folders[0])
+                models = install_ctl.models_suggestions(runtimes, folders[0], rt.key)
                 self.install_models = self.folder_field(
                     form, _("Model folder"), _("Where the models go. You can change it later (right-click → Model folder…)."),
                     str(models[0]), models)
@@ -7546,7 +7552,7 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, AddonsPage, Adw.Applicat
             self.install_intro.set_label(_("{0} looks for its models here. Models already in the old folder stay "
                                            "there; move them yourself if you want them in the new one.").format(rt.name))
             self.install_models = self.folder_field(form, _("Model folder"), "", current,
-                                                    install_ctl.models_suggestions(runtimes, inst.installed_folder()))
+                                                    install_ctl.models_suggestions(runtimes, inst.installed_folder(), rt.key))
             self.install_ok.set_label(_("Change"))
         else:
             folder = inst.installed_folder()
