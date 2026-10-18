@@ -11,7 +11,7 @@ optdepends=('vte4: agents in a terminal inside the window'
             'xdg-terminal-exec: start agents in your own terminal'
             'mise: updates for agents installed with mise')
 source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/v$pkgver.tar.gz")
-sha256sums=('26a558048e7bac982e3f58dcd23c6116574779908e9e3de12c728232fe61d6b5')
+sha256sums=('a237ba23225df7248cdae54fc283f96d27713c47bc1f5306e1285246c9e5f65a')
 
 package() {
     cd "$pkgname-$pkgver"
