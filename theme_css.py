@@ -166,6 +166,21 @@ class ThemeCss:
         .am-help-card {{ background: alpha({fg_hex}, 0.03); border: 1px solid alpha({fg_hex}, 0.10);
             border-radius: {radius}px; padding: 12px 14px; }}
         .am-help-mark {{ font-weight: 700; }}
+        .am-addon-card {{ background: alpha({fg_hex}, 0.04); border: 1px solid alpha({fg_hex}, 0.10);
+            border-radius: {radius}px; padding: 10px 12px; min-height: 96px; }}
+        .am-addon-card:hover {{ background: alpha({fg_hex}, 0.07); }}
+        .am-addon-suggested {{ border-color: alpha({accent_hex}, 0.7); }}
+        .am-addon-refused {{ border-color: alpha({red_hex}, 0.6); }}
+        .am-addon-name {{ font-size: 13px; font-weight: 600; }}
+        .am-addon-badge {{ font-size: 10px; font-weight: 600; border-radius: {min(radius, 4)}px; padding: 1px 6px; }}
+        .am-addon-builtin {{ color: {dim_hex}; background: alpha({fg_hex}, 0.07); }}
+        .am-addon-on {{ color: {bg_hex}; background: {accent_hex}; }}
+        .am-addon-off {{ color: {fg_hex}; background: alpha({fg_hex}, 0.12); }}
+        .am-addon-failed {{ color: {red_hex}; background: alpha({red_hex}, 0.16); }}
+        .am-addon-available {{ color: {accent_hex}; border: 1px solid alpha({accent_hex}, 0.5); }}
+        .am-addon-privacy {{ font-size: 10px; color: {dim_hex}; }}
+        .am-addon-chip {{ font-size: 11px; min-height: 0; padding: 2px 12px; border-radius: 999px; }}
+        .am-addon-chip:checked {{ background: {accent_hex}; color: {bg_hex}; }}
         .am-stat-value {{ font-size: 17px; font-weight: 600; }}
         .am-group-heading {{ font-size: 10px; font-weight: 700; letter-spacing: 1px; color: {dim_hex};
             margin-top: 4px; }}

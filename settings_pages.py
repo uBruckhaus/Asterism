@@ -289,6 +289,15 @@ class SettingsPages:
         if desktop.launcher_entry():
             self.fill_launcher_setting(right)
             right.reorder_child_after(right.get_last_child(), None)     # the app's own entry first on the right
+        if hasattr(self, "open_addons"):
+            group = self.preference_group(right, _("Add-ons"))
+            self.switch_row(group, _("Look for add-ons online"),
+                            _("Reads the list of add-ons (signed by Uwe Bruckhaus) from GitHub every few hours, to "
+                              "suggest one when a harness it knows is on this PC. Nothing is sent but the request."),
+                            ai_core.load_settings().get("addons_online") is not False,
+                            lambda on: self.save_setting(addons_online=on))
+            self.button_row(group, _("Add-ons"), _("Agents, providers and features: what is built in, installed "
+                                                   "and available."), _("Open"), self.open_addons)
         for addon_id, builder in self.addon_hooks("settings"):
             addon_api.call(addon_id, builder, addon_api.UI(self, addon_id), right)
         self.settings_ready = True

@@ -94,6 +94,11 @@ from gi.repository import PangoCairo  # noqa: E402  (map_view asked for its vers
 from palette import ThemePalette, outside_color
 from settings_pages import SettingsPages
 from theme_css import ThemeCss
+try:
+    from addons_page import AddonsPage      # Asterism only: the Add-ons page (not in the Omarchy plugin)
+except ImportError:
+    class AddonsPage:                       # the plugin: no add-ons, no page
+        pass
 from ui_helpers import SpaceBar, size_text
 
 # Smallest card (a small monitor); normally the card fills the screen.
@@ -257,7 +262,7 @@ class AppWindow(Adw.ApplicationWindow):
             GLib.idle_add(self.on_width, width)
 
 
-class AgentsMap(SettingsPages, ThemeCss, Adw.Application):
+class AgentsMap(SettingsPages, ThemeCss, AddonsPage, Adw.Application):
     def __init__(self):
         super().__init__(application_id=desktop.app_id())
         self.window = None
@@ -473,6 +478,8 @@ class AgentsMap(SettingsPages, ThemeCss, Adw.Application):
         stack.add_named(self.build_settings_page(), "settings")
         stack.add_named(self.build_help_page(), "help")
         stack.add_named(self.build_reorganize_page(), "reorganize")
+        if hasattr(self, "build_addons_page"):
+            stack.add_named(self.build_addons_page(), "addons")
         # Details and the pages that change something open right of the cards, where the map is.
         right = self.right_stack
         right.add_named(self.build_connect_page(), "connect")
@@ -588,6 +595,18 @@ class AgentsMap(SettingsPages, ThemeCss, Adw.Application):
         header.append(legend_button)
         self.legend_button = legend_button
 
+        # Add-ons (Asterism only): everything the app understands, and what can be added.
+        self.addons_button = None
+        if hasattr(self, "open_addons"):
+            addons_button = Gtk.Button()
+            addons_button.set_child(Gtk.Image.new_from_icon_name("application-x-addon-symbolic"))
+            addons_button.set_tooltip_text(_("Add-ons"))
+            addons_button.add_css_class("flat")
+            addons_button.add_css_class("am-header-btn")
+            addons_button.add_css_class("am-gear-btn")
+            addons_button.connect("clicked", lambda *_: self.open_addons())
+            header.append(addons_button)
+            self.addons_button = addons_button
         # Help (the manual: setting up by drawing, …), left of the gear, in the same bordered box.
         help_button = Gtk.Button()
         mark = Gtk.Label(label="?")
@@ -5203,11 +5222,12 @@ class AgentsMap(SettingsPages, ThemeCss, Adw.Application):
 
     def update_header(self):
         page = self.page_name()
-        on_settings = page in ("settings", "help", "reorganize", "connect", "install", "models", "mcp", "addmcp",
-                               "addskills", "health")
+        on_settings = page in ("settings", "help", "addons", "reorganize", "connect", "install", "models", "mcp",
+                               "addmcp", "addskills", "health")
         # Faded out rather than hidden: the header keeps its height, so the
         # card does not jump when the settings page opens.
-        for widget in (self.settings_button, self.help_button, self.view_switch, self.scope_switch):
+        for widget in [self.settings_button, self.help_button, self.view_switch, self.scope_switch] + \
+                ([self.addons_button] if self.addons_button is not None else []):
             widget.set_opacity(0 if on_settings else 1)
             widget.set_can_target(not on_settings)
             widget.set_can_focus(not on_settings)
@@ -8307,6 +8327,11 @@ class AgentsMap(SettingsPages, ThemeCss, Adw.Application):
             return True
         if page == "help" and keyval in (Gdk.KEY_Escape, Gdk.KEY_BackSpace):
             self.close_help()
+            return True
+        if page == "addons" and (keyval == Gdk.KEY_Escape or keyval == Gdk.KEY_BackSpace
+                                 and not self.addons_search.has_focus()
+                                 and not self.addons_search.get_delegate().has_focus()):
+            self.close_addons()
             return True
         if page == "reorganize" and keyval == Gdk.KEY_Escape:
             self.close_reorganize()

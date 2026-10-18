@@ -1,0 +1,528 @@
+"""Asterism: the Add-ons page (a mixin of ai_popup.AgentsMap; not in the AI Agents Map plugin).
+
+One place for everything the app understands: the agents and providers built in, the add-ons
+installed (on, off, refused), the ones in the signed catalog, and the ones suggested because their
+harness is on this PC. Cards with search and filters; a details view per add-on with what it reads,
+sends and may do; install, switch on/off, update, remove, install from a file. Every change goes
+through addon_store (signature and hashes first) and reload_addons (no restart).
+"""
+
+from __future__ import annotations
+
+import threading
+from dataclasses import dataclass, field
+from pathlib import Path
+
+from gi.repository import Adw, Gio, GLib, Gtk
+
+import addon_api
+import addon_store
+import addons
+import harnesses
+import providers
+from i18n import _
+
+KIND_ICONS = {"agent": "system-users-symbolic", "provider": "network-server-symbolic",
+              "feature": "application-x-addon-symbolic"}
+FILTERS = ("all", "agent", "provider", "feature", "installed", "updates")
+
+
+@dataclass
+class Item:
+    id: str
+    name: str
+    kind: str                         # agent | provider | feature
+    state: str                        # builtin | on | off | failed | available | suggested
+    summary: str = ""
+    description: str = ""
+    version: str = ""
+    icon: str = ""                    # icon name, or a glyph with glyph_font
+    glyph: str = ""
+    glyph_font: str = ""
+    privacy: int = 1
+    capabilities: list = field(default_factory=list)
+    reads: list = field(default_factory=list)
+    sends: list = field(default_factory=list)
+    reason: str = ""
+    entry: addon_store.Entry | None = None
+    addon: addons.Addon | None = None
+    update: bool = False
+    words: str = ""                   # what search looks through
+
+
+def privacy_name(level: int) -> str:
+    return {1: _("Numbers only"), 2: _("Session titles"), 3: _("Titles and a summary by Claude")}.get(level, "")
+
+
+def capability_text(capability: str) -> str:
+    return {"agent": _("Adds an agent to the map and the cards"),
+            "provider": _("Adds an LLM provider to the map"),
+            "installer": _("Can install a program (from a download checked against its release's SHA-256)")
+            }.get(capability, capability)
+
+
+def harness_summary(h) -> str:
+    parts = [part for part, has in ((_("sessions"), h.sessions), (_("security"), h.security),
+                                    (_("MCP servers"), h.mcp), (_("skills"), h.skills),
+                                    (_("local LLMs"), h.local_llm), (_("updates"), h.self_update))
+             if has]
+    return " · ".join(parts) if parts else _("Shown on the map")
+
+
+def build_items(installed: list, entries: list) -> list:
+    """Built-ins, installed add-ons and catalog entries as one list of cards."""
+    items = []
+    by_id = {e.id: e for e in entries}
+    for addon in installed:
+        entry = by_id.pop(addon.id, None)
+        if addon.state in ("refused", "failed"):
+            state = "failed"
+        else:
+            state = "on" if addon.state == "loaded" else "off"
+        item = Item(addon.id, addon.name or addon.id, entry.kind if entry else "feature", state,
+                    entry.summary if entry else "", entry.description if entry else "", addon.version,
+                    (entry.icon if entry else "") or KIND_ICONS["feature"], privacy=addon.privacy or 1,
+                    capabilities=list(addon.capabilities), reads=list(addon.reads), sends=list(addon.sends),
+                    reason=addon.reason, entry=entry, addon=addon,
+                    update=bool(entry and addon.version and addon_store.newer(entry.version, addon.version)))
+        if entry and item.kind == "feature" and "agent" in addon.capabilities:
+            item.kind = "agent"
+        items.append(item)
+    for entry in by_id.values():
+        items.append(Item(entry.id, entry.name, entry.kind, "suggested" if addon_store.present(entry) else "available",
+                          entry.summary, entry.description, entry.version, entry.icon or KIND_ICONS[entry.kind],
+                          privacy=entry.privacy, capabilities=list(entry.capabilities), reads=list(entry.reads),
+                          sends=list(entry.sends), entry=entry))
+    for h in harnesses._built_in():
+        items.append(Item(h.command, h.full_name or h.name, "agent", "builtin", harness_summary(h),
+                          glyph=h.icon, glyph_font=h.icon_font))
+    for p in providers._built_in_local():
+        items.append(Item(p.key, p.name, "provider", "builtin", _("Local LLM: found, installed, started and stopped "
+                                                                  "here, its models on the map"),
+                          icon=KIND_ICONS["provider"]))
+    for p in providers._built_in_online():
+        items.append(Item(p.key, p.name, "provider", "builtin", _("Online provider"), icon="network-workgroup-symbolic"))
+    for item in items:
+        item.words = " ".join([item.id, item.name, item.summary, item.description] + item.reads).lower()
+    return items
+
+
+def visible(item: Item, flt: str, query: str) -> bool:
+    if query and query.lower() not in item.words:
+        return False
+    if flt == "installed":
+        return item.state in ("on", "off", "failed")
+    if flt == "updates":
+        return item.update
+    return flt == "all" or item.kind == flt
+
+
+class AddonsPage:
+    """The page; needs AgentsMap's helpers (page_scroller, boxed_list, plain_row, note, toast, …)."""
+
+    def build_addons_page(self) -> Gtk.Widget:
+        page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        header = Gtk.Box(spacing=8)
+        back = Gtk.Button()
+        back.add_css_class("flat")
+        back.add_css_class("am-header-btn")
+        back.add_css_class("am-back-bordered")
+        back_box = Gtk.Box(spacing=6)
+        back_box.append(Gtk.Image.new_from_icon_name("go-previous-symbolic"))
+        back_box.append(Gtk.Label(label=_("Back")))
+        back_box.append(Gtk.Label(label="· ⌫"))
+        back.set_child(back_box)
+        back.set_tooltip_text(_("Back (Backspace, Esc)"))
+        back.connect("clicked", lambda *_a: self.close_addons())
+        header.append(back)
+        title = Gtk.Label(label=_("Add-ons").upper(), xalign=0)
+        title.add_css_class("am-section-title")
+        header.append(title)
+        self.addons_search = Gtk.SearchEntry(placeholder_text=_("Search add-ons, agents, providers…"),
+                                             hexpand=True, max_width_chars=40, halign=Gtk.Align.END)
+        self.addons_search.connect("search-changed", lambda *_a: self.fill_addons_list())
+        header.append(self.addons_search)
+        from_file = Gtk.Button(label=_("Install from file…"))
+        from_file.add_css_class("am-small-btn")
+        from_file.connect("clicked", lambda *_a: self.addon_from_file())
+        header.append(from_file)
+        page.append(header)
+        rule = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
+        rule.add_css_class("am-settings-rule")
+        page.append(rule)
+        chips = Gtk.Box(spacing=6)
+        self.addons_filter = "all"
+        self.addons_chips = {}
+        first = None
+        labels = {"all": _("All"), "agent": _("Agents"), "provider": _("Providers"), "feature": _("Features"),
+                  "installed": _("Installed"), "updates": _("Updates")}
+        for key in FILTERS:
+            chip = Gtk.ToggleButton(label=labels[key])
+            chip.add_css_class("am-addon-chip")
+            if first is None:
+                first = chip
+                chip.set_active(True)
+            else:
+                chip.set_group(first)
+            chip.connect("toggled", lambda button, k=key: button.get_active() and self.set_addons_filter(k))
+            chips.append(chip)
+            self.addons_chips[key] = chip
+        page.append(chips)
+        self.addons_status = Gtk.Label(xalign=0, wrap=True)
+        self.addons_status.add_css_class("am-agent-detail")
+        page.append(self.addons_status)
+        self.addons_stack = Gtk.Stack(vexpand=True, transition_type=Gtk.StackTransitionType.CROSSFADE)
+        self.addons_list = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14, margin_bottom=12)
+        self.addons_stack.add_named(self.page_scroller(self.addons_list), "list")
+        self.addons_detail = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12, margin_bottom=12)
+        clamp = Adw.Clamp(maximum_size=820, child=self.addons_detail, unit=Adw.LengthUnit.PX)
+        self.addons_stack.add_named(self.page_scroller(clamp), "detail")
+        page.append(self.addons_stack)
+        self.addons_items = []
+        self.addons_entries = []
+        return page
+
+    # --- open, close, data ---
+    def open_addons(self, select: str = ""):
+        if self.page_name() not in ("settings", "help", "addons"):
+            self.remember_page()
+        self.addons_stack.set_visible_child_name("list")
+        self.show_page("addons")
+        self.addons_select = select
+        self.refresh_addons()
+
+    def close_addons(self):
+        if self.addons_stack.get_visible_child_name() == "detail":
+            self.addons_stack.set_visible_child_name("list")
+            return
+        self.back_to_last_page()
+
+    def refresh_addons(self):
+        """The cards from what is installed now; the catalog read in the background."""
+        self.addons_items = build_items(self.addons, self.addons_entries)
+        self.fill_addons_list()
+        online = addon_store.online()
+        self.addons_status.set_label(_("Looking for add-ons…") if online else
+                                     _("Looking for add-ons online is off (Settings › Add-ons): only what is "
+                                       "installed is shown."))
+
+        def work():
+            try:
+                return addon_store.catalog(online)
+            except Exception:
+                return []
+
+        def done(entries):
+            self.addons_entries = entries
+            self.addons_items = build_items(self.addons, entries)
+            if online:
+                self.addons_status.set_label(
+                    _("Only add-ons signed by Uwe Bruckhaus are offered and loaded.") if entries else
+                    _("The add-on catalog could not be read right now."))
+            self.fill_addons_list()
+            select = getattr(self, "addons_select", "")
+            self.addons_select = ""
+            item = next((i for i in self.addons_items if i.id == select), None)
+            if item is not None:
+                self.show_addon(item)
+            return False
+
+        threading.Thread(target=lambda: GLib.idle_add(done, work()), daemon=True).start()
+
+    def set_addons_filter(self, key: str):
+        self.addons_filter = key
+        self.fill_addons_list()
+
+    # --- the list ---
+    def fill_addons_list(self):
+        box = self.addons_list
+        while (child := box.get_first_child()) is not None:
+            box.remove(child)
+        query = self.addons_search.get_text().strip()
+        shown = [i for i in self.addons_items if visible(i, self.addons_filter, query)]
+        updates = sum(1 for i in self.addons_items if i.update)
+        self.addons_chips["updates"].set_label(_("Updates") + (f" {updates}" if updates else ""))
+        sections = ((_("Suggested for this PC"), [i for i in shown if i.state == "suggested"]),
+                    (_("Installed add-ons"), [i for i in shown if i.state in ("on", "off", "failed")]),
+                    (_("Available"), [i for i in shown if i.state == "available"]),
+                    (_("Built into Asterism"), [i for i in shown if i.state == "builtin"]))
+        for title, items in sections:
+            if not items:
+                continue
+            heading = Gtk.Label(label=title, xalign=0)
+            heading.add_css_class("heading")
+            box.append(heading)
+            flow = Gtk.FlowBox(selection_mode=Gtk.SelectionMode.NONE, homogeneous=True, column_spacing=10,
+                               row_spacing=10, min_children_per_line=1, max_children_per_line=4)
+            for item in items:
+                flow.append(self.addon_card(item))
+            box.append(flow)
+        if not shown:
+            self.note(box, _("Nothing matches."))
+
+    def addon_icon(self, item: Item, size: int = 24) -> Gtk.Widget:
+        if item.glyph:
+            label = Gtk.Label(label=item.glyph)
+            label.add_css_class("am-agent-icon")
+            if item.glyph_font == "omarchy":
+                label.add_css_class("am-agent-icon-omarchy")
+            return label
+        image = Gtk.Image.new_from_icon_name(item.icon or KIND_ICONS.get(item.kind, KIND_ICONS["feature"]))
+        image.set_pixel_size(size)
+        return image
+
+    def state_badge(self, item: Item) -> Gtk.Label:
+        text, css = {"builtin": (_("Built in"), "am-addon-builtin"), "on": (_("On"), "am-addon-on"),
+                     "off": (_("Off"), "am-addon-off"), "failed": (_("Not loaded"), "am-addon-failed"),
+                     "available": (_("Available"), "am-addon-available"),
+                     "suggested": (_("For this PC"), "am-addon-on")}[item.state]
+        if item.update:
+            text, css = _("Update"), "am-addon-on"
+        badge = Gtk.Label(label=text, valign=Gtk.Align.CENTER)
+        badge.add_css_class("am-addon-badge")
+        badge.add_css_class(css)
+        return badge
+
+    def addon_card(self, item: Item) -> Gtk.Widget:
+        card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        card.add_css_class("am-addon-card")
+        if item.state == "suggested":
+            card.add_css_class("am-addon-suggested")
+        if item.state == "failed":
+            card.add_css_class("am-addon-refused")
+        top = Gtk.Box(spacing=8)
+        top.append(self.addon_icon(item))
+        names = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, hexpand=True)
+        name = Gtk.Label(label=item.name, xalign=0, ellipsize=3)
+        name.add_css_class("am-addon-name")
+        names.append(name)
+        kind = {"agent": _("Agent"), "provider": _("Provider"), "feature": _("Feature")}[item.kind]
+        sub = Gtk.Label(label=kind + (f" · {item.version}" if item.version else ""), xalign=0)
+        sub.add_css_class("am-agent-detail")
+        names.append(sub)
+        top.append(names)
+        top.append(self.state_badge(item))
+        card.append(top)
+        summary = Gtk.Label(label=item.reason if item.state == "failed" else item.summary, xalign=0, wrap=True,
+                            max_width_chars=1, lines=2, ellipsize=3)
+        summary.add_css_class("am-agent-detail")
+        card.append(summary)
+        bottom = Gtk.Box(spacing=6)
+        if item.state != "builtin":
+            chip = Gtk.Label(label=privacy_name(item.privacy), xalign=0, hexpand=True)
+            chip.add_css_class("am-addon-privacy")
+            bottom.append(chip)
+        else:
+            bottom.append(Gtk.Box(hexpand=True))
+        action = self.addon_action(item)
+        if action is not None:
+            bottom.append(action)
+        card.append(bottom)
+        click = Gtk.GestureClick()
+        click.connect("released", lambda *_a: self.show_addon(item))
+        card.add_controller(click)
+        card.set_tooltip_text(_("Click for details"))
+        return card
+
+    def addon_action(self, item: Item) -> Gtk.Widget | None:
+        label, run = {"suggested": (_("Get add-on"), self.install_addon), "available": (_("Install"), self.install_addon),
+                      "off": (_("Switch on"), self.switch_addon_on), "on": (_("Switch off"), self.switch_addon_off),
+                      "failed": (_("Remove"), self.remove_addon)}.get(item.state, (None, None))
+        if item.update:
+            label, run = _("Update"), self.update_addon
+        if label is None:
+            return None
+        button = Gtk.Button(label=label, valign=Gtk.Align.CENTER)
+        button.add_css_class("am-small-btn")
+        if item.state in ("suggested", "available") or item.update:
+            button.add_css_class("suggested-action")
+        button.connect("clicked", lambda *_a: run(item))
+        return button
+
+    # --- details ---
+    def show_addon(self, item: Item):
+        box = self.addons_detail
+        while (child := box.get_first_child()) is not None:
+            box.remove(child)
+        top = Gtk.Box(spacing=12)
+        top.append(self.addon_icon(item, 48))
+        names = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, hexpand=True, valign=Gtk.Align.CENTER)
+        name = Gtk.Label(label=item.name, xalign=0)
+        name.add_css_class("title-2")
+        names.append(name)
+        kind = {"agent": _("Agent"), "provider": _("Provider"), "feature": _("Feature")}[item.kind]
+        line = Gtk.Label(label=kind + (f" · {item.version}" if item.version else ""), xalign=0)
+        line.add_css_class("am-agent-detail")
+        names.append(line)
+        top.append(names)
+        top.append(self.state_badge(item))
+        box.append(top)
+        if item.description or item.summary:
+            text = Gtk.Label(label=item.description or item.summary, xalign=0, wrap=True, max_width_chars=1,
+                             selectable=True)
+            box.append(text)
+        if item.state == "failed":
+            self.settings_heading(box, _("Why it is not loaded"))
+            self.note(box, item.reason)
+        if item.state == "builtin":
+            self.note(box, _("Part of Asterism itself: always there, nothing to install or remove."))
+        else:
+            self.settings_heading(box, _("What it reads"))
+            rows = self.boxed_list()
+            for text in item.reads or [_("Nothing beyond what Asterism shows anyway.")]:
+                rows.append(self.plain_row(text))
+            box.append(rows)
+            self.settings_heading(box, _("What it sends"))
+            rows = self.boxed_list()
+            for text in item.sends or [_("Nothing: it sends nothing anywhere.")]:
+                rows.append(self.plain_row(text))
+            box.append(rows)
+            self.settings_heading(box, _("What it may do"))
+            rows = self.boxed_list()
+            rows.append(self.plain_row(_("Privacy level: {0}").format(privacy_name(item.privacy))))
+            for capability in item.capabilities:
+                rows.append(self.plain_row(capability_text(capability)))
+            box.append(rows)
+            self.note(box, _("Signed by Uwe Bruckhaus (key {0}). Asterism checks the signature and every file "
+                             "before anything of it runs.").format("SHA256:e5cC634Ke3Our5LAeSc88qs22NKZEHTncBW5Ig3amWQ"))
+        buttons = Gtk.Box(spacing=8, margin_top=6)
+        back = Gtk.Button(label=_("All add-ons"))
+        back.connect("clicked", lambda *_a: self.addons_stack.set_visible_child_name("list"))
+        buttons.append(back)
+        actions = []
+        if item.update:
+            actions.append((_("Update"), self.update_addon, True))
+        actions += {"suggested": [(_("Get add-on"), self.install_addon, True)],
+                    "available": [(_("Install"), self.install_addon, True)],
+                    "off": [(_("Switch on"), self.switch_addon_on, False)],
+                    "on": [(_("Switch off"), self.switch_addon_off, False)]}.get(item.state, [])
+        for label, run, suggested in actions:
+            button = Gtk.Button(label=label)
+            if suggested:
+                button.add_css_class("suggested-action")
+            button.connect("clicked", lambda *_a, r=run: r(item))
+            buttons.append(button)
+        if item.state in ("on", "off", "failed") and item.addon is not None:
+            remove = Gtk.Button(label=_("Remove"))
+            remove.add_css_class("destructive-action")
+            remove.connect("clicked", lambda *_a: self.remove_addon(item))
+            buttons.append(remove)
+        box.append(buttons)
+        self.addons_stack.set_visible_child_name("detail")
+
+    # --- actions ---
+    def addon_confirm(self, item: Item, heading: str, ok_label: str, on_ok):
+        """Before switching an add-on on: what it reads, sends and may do."""
+        lines = [privacy_name(item.privacy)] + [capability_text(c) for c in item.capabilities]
+        body = _("{0} reads: {1}").format(item.name, "; ".join(item.reads) or _("nothing beyond what Asterism shows")) \
+            + "\n\n" + _("It sends: {0}").format("; ".join(item.sends) or _("nothing")) + "\n\n" + " · ".join(lines)
+        dialog = Adw.AlertDialog(heading=heading, body=body)
+        dialog.add_response("cancel", _("Cancel"))
+        dialog.add_response("ok", ok_label)
+        dialog.set_response_appearance("ok", Adw.ResponseAppearance.SUGGESTED)
+        dialog.set_default_response("cancel")
+        dialog.connect("response", lambda _d, response: response == "ok" and on_ok())
+        dialog.present(self.window)
+
+    def addons_changed(self, message: str = "", select: str = ""):
+        self.reload_addons()
+        if message:
+            self.toast(message, 4)
+        self.addons_select = select
+        self.refresh_addons()
+
+    def install_addon(self, item: Item):
+        if item.entry is None:
+            return
+
+        def go():
+            self.toast(_("Installing {0}…").format(item.name), 3)
+
+            def work():
+                try:
+                    addon_store.install(item.entry)
+                    addon_store.set_enabled(item.id, True)
+                    return ""
+                except addon_store.InstallError as error:
+                    return str(error)
+
+            def done(error):
+                if error:
+                    self.toast(_("{0} was not installed: {1}").format(item.name, error), 8)
+                else:
+                    self.addons_changed(_("{0} is installed and on.").format(item.name), item.id)
+                return False
+            threading.Thread(target=lambda: GLib.idle_add(done, work()), daemon=True).start()
+        self.addon_confirm(item, _("Install {0}?").format(item.name), _("Install and switch on"), go)
+
+    def update_addon(self, item: Item):
+        if item.entry is None:
+            return
+
+        def work():
+            try:
+                addon_store.install(item.entry)
+                return ""
+            except addon_store.InstallError as error:
+                return str(error)
+
+        def done(error):
+            if error:
+                self.toast(_("{0} was not updated: {1}").format(item.name, error), 8)
+            else:
+                self.addons_changed(_("{0} is updated to {1}.").format(item.name, item.entry.version), item.id)
+            return False
+        self.toast(_("Updating {0}…").format(item.name), 3)
+        threading.Thread(target=lambda: GLib.idle_add(done, work()), daemon=True).start()
+
+    def switch_addon_on(self, item: Item):
+        def go():
+            addon_store.set_enabled(item.id, True)
+            self.addons_changed(_("{0} is on.").format(item.name), item.id)
+        self.addon_confirm(item, _("Switch on {0}?").format(item.name), _("Switch on"), go)
+
+    def switch_addon_off(self, item: Item):
+        addon_store.set_enabled(item.id, False)
+        self.addons_changed(_("{0} is off.").format(item.name), item.id)
+
+    def remove_addon(self, item: Item):
+        dialog = Adw.AlertDialog(heading=_("Remove {0}?").format(item.name),
+                                 body=_("It goes to the trash; you can install it again any time."))
+        dialog.add_response("cancel", _("Cancel"))
+        dialog.add_response("remove", _("Remove"))
+        dialog.set_response_appearance("remove", Adw.ResponseAppearance.DESTRUCTIVE)
+        dialog.set_default_response("cancel")
+
+        def answered(_d, response):
+            if response != "remove":
+                return
+            if addon_store.remove(item.id):
+                self.addons_changed(_("{0} is removed (in the trash).").format(item.name))
+            else:
+                self.toast(_("{0} is installed for every user; remove its package instead.").format(item.name), 8)
+        dialog.connect("response", answered)
+        dialog.present(self.window)
+
+    def addon_from_file(self):
+        dialog = Gtk.FileDialog(title=_("Install an add-on from a file"))
+        zips = Gtk.FileFilter(name=_("Add-on (.zip)"))
+        zips.add_pattern("*.zip")
+        filters = Gio.ListStore.new(Gtk.FileFilter)
+        filters.append(zips)
+        dialog.set_filters(filters)
+
+        def chosen(_dialog, result):
+            try:
+                file = dialog.open_finish(result)
+            except GLib.Error:
+                return
+            path = file.get_path() if file is not None else None
+            if not path:
+                return
+            try:
+                addon = addon_store.install_file(Path(path))
+            except addon_store.InstallError as error:
+                self.toast(_("Not installed: {0}").format(error), 8)
+                return
+            self.addons_changed(_("{0} is installed; switch it on on its card.").format(addon.name), addon.id)
+        dialog.open(self.window, None, chosen)
