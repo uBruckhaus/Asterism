@@ -10,6 +10,8 @@ from pathlib import Path
 
 from gi.repository import Adw, Gio, GLib, Gtk, Pango
 
+import json
+
 import ai_core
 import app_entry
 import corners
@@ -304,7 +306,41 @@ class SettingsPages:
                                 self.open_setup)
         for addon_id, builder in self.addon_hooks("settings"):
             addon_api.call(addon_id, builder, addon_api.UI(self, addon_id), right)
+        group = self.preference_group(right, _("About"))
+        self.button_row(group, _("About {0}").format(desktop.app_name()),
+                        _("Version, author, license and the project on GitHub."), _("About"), self.show_about)
         self.settings_ready = True
+
+    # --- About: name, version, author, license and the GitHub project ------------------------------
+
+    ASTERISM_URL = "https://github.com/uBruckhaus/asterism"
+    PLUGIN_URL = "https://github.com/uBruckhaus/omarchy-ai-agents-map"
+
+    @classmethod
+    def about_facts(cls) -> tuple[str, str]:
+        """(version, project page): the plugin's manifest.json when the app runs as the Omarchy
+        plugin (it lies next to this file there), else Asterism's own version."""
+        try:
+            manifest = json.loads((Path(__file__).resolve().parent / "manifest.json").read_text())
+            return str(manifest.get("version", "")), cls.PLUGIN_URL
+        except (OSError, ValueError):
+            pass
+        try:
+            import addons            # Asterism only
+            return addons.ASTERISM_VERSION, cls.ASTERISM_URL
+        except ImportError:
+            return "", cls.ASTERISM_URL
+
+    def show_about(self):
+        version, url = self.about_facts()
+        about = Adw.AboutDialog(
+            application_name=desktop.app_name(), application_icon=desktop.app_id(), version=version,
+            developer_name="Uwe Bruckhaus", copyright="© 2026 Uwe Bruckhaus", license_type=Gtk.License.MIT_X11,
+            comments=_("Your AI setup as cards or a tree and a map: coding agents, local LLMs, MCP servers "
+                       "and skills, and how they are connected."),
+            issue_url=url + "/issues")
+        about.add_link(_("GitHub project page"), url)
+        about.present(self.window)
 
     def preference_group(self, box, title: str) -> Adw.PreferencesGroup:
         group = Adw.PreferencesGroup(title=GLib.markup_escape_text(title))

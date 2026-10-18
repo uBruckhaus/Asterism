@@ -814,6 +814,7 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, AddonsPage, Adw.Applicat
         dismiss.connect("clicked", lambda *_: self.dismiss_health_line())
         self.health_bar.append(dismiss)
         self.health_dismissed = False
+        self.map_empty = False
         page.append(self.health_bar)
         self.health_report = None
         self.health_running = False
@@ -1342,8 +1343,10 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, AddonsPage, Adw.Applicat
         servers = [m for m in inv.mcp if f"mcp:{m.name}" not in hidden]
         skill_sets = [s for s in inv.skill_sets if f"skills:{s.path}" not in hidden]
         self.tree_list = None
-        if not harnesses.all_harnesses() and not providers.all_providers() and hasattr(self, "adapter_addons") \
-                and self.adapter_addons():
+        self.map_empty = not harnesses.all_harnesses() and not providers.all_providers() \
+            and hasattr(self, "adapter_addons") and bool(self.adapter_addons())
+        self.update_health_line()
+        if self.map_empty:
             # An empty Asterism: nothing switched on yet.
             empty = self.empty_state("application-x-addon-symbolic", _("Nothing on the map yet"),
                                      _("Asterism shows the agents and local LLMs you switch on. Set up switches on "
@@ -7229,8 +7232,15 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, AddonsPage, Adw.Applicat
 
     def set_health_line(self, on: bool):
         self.save_setting(health_line=on)
+        self.update_health_line()
+
+    def update_health_line(self):
+        """The health line shows only when something needs fixing, and never on an empty map
+        (a clean Asterism with nothing switched on yet: there is nothing to check)."""
         report = self.health_report
-        self.health_bar.set_visible(on and report is not None and report.level == "warn" and not self.health_dismissed)
+        self.health_bar.set_visible(report is not None and report.level == "warn" and not self.health_dismissed
+                                    and not self.map_empty
+                                    and ai_core.load_settings().get("health_line", True) is not False)
 
     def dismiss_health_line(self):
         self.health_dismissed = True
@@ -7310,8 +7320,7 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, AddonsPage, Adw.Applicat
                 self.health_mark.remove_css_class(f"am-health-{level}")
             self.health_mark.add_css_class(f"am-health-{report.level}")
             self.health_text.set_label(report.summary())
-            self.health_bar.set_visible(report.level == "warn" and not self.health_dismissed
-                                        and ai_core.load_settings().get("health_line", True) is not False)
+            self.update_health_line()
             if self.page_name() == "health":
                 self.fill_health(report)
             return False

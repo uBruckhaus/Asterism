@@ -1673,5 +1673,19 @@
   "Skill {1} może wymagać aktualizacji: strona serwera MCP › Zaktualizuj skill…",
   "{0} skille mogą wymagać aktualizacji ({1}): strona serwera MCP › Zaktualizuj skill…",
   "{0} skilli może wymagać aktualizacji ({1}): strona serwera MCP › Zaktualizuj skill…"
- ]
+ ],
+ "About": "O programie",
+ "About {0}": "O programie {0}",
+ "Version, author, license and the project on GitHub.": "Wersja, autor, licencja i projekt na GitHubie.",
+ "GitHub project page": "Strona projektu na GitHubie",
+ "Your AI setup as cards or a tree and a map: coding agents, local LLMs, MCP servers and skills, and how they are connected.": "Twoja konfiguracja AI jako karty lub drzewo i mapa: agenci programistyczni, lokalne LLM, serwery MCP i skille oraz to, jak są połączone.",
+ "Welcome to {0}": "Witaj w {0}",
+ "Pick the AI agents and local LLMs you use. The ones found on this PC are already ticked: one click on Switch on puts them on your map.": "Wybierz agentów AI i lokalne LLM, których używasz. Te znalezione na tym PC są już zaznaczone: jedno kliknięcie Włącz umieszcza je na mapie.",
+ "No agent or local LLM was found on this PC yet. Pick what you want to use: after Switch on, Asterism shows you how to install it.": "Na tym PC nie znaleziono jeszcze żadnego agenta ani lokalnego LLM. Wybierz, czego chcesz używać: po Włącz Asterism pokaże, jak to zainstalować.",
+ "AI agents": "Agenci AI",
+ "The coding agents you work with in a terminal.": "Agenci programistyczni, z którymi pracujesz w terminalu.",
+ "Programs that run language models on this PC.": "Programy uruchamiające modele językowe na tym PC.",
+ "The models your agents use on the web.": "Modele, których twoi agenci używają w sieci.",
+ "Ticked but not installed: after Switch on, Asterism shows you how to install it.": "Zaznaczone, ale niezainstalowane: po Włącz Asterism pokaże, jak to zainstalować.",
+ "Click a card to tick it or untick it.": "Kliknij kartę, aby ją zaznaczyć lub odznaczyć."
 }

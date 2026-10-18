@@ -1623,5 +1623,19 @@
  "\u0004The skill {1} may need an update: MCP server page › Update skill…": [
   "Lo skill {1} potrebbe richiedere un aggiornamento: pagina del server MCP › Aggiorna skill…",
   "{0} skill potrebbero richiedere un aggiornamento ({1}): pagina del server MCP › Aggiorna skill…"
- ]
+ ],
+ "About": "Informazioni",
+ "About {0}": "Informazioni su {0}",
+ "Version, author, license and the project on GitHub.": "Versione, autore, licenza e il progetto su GitHub.",
+ "GitHub project page": "Pagina del progetto su GitHub",
+ "Your AI setup as cards or a tree and a map: coding agents, local LLMs, MCP servers and skills, and how they are connected.": "La tua configurazione IA come schede o albero e come mappa: agenti di programmazione, LLM locali, server MCP e skill, e come sono collegati.",
+ "Welcome to {0}": "Benvenuto in {0}",
+ "Pick the AI agents and local LLMs you use. The ones found on this PC are already ticked: one click on Switch on puts them on your map.": "Scegli gli agenti IA e gli LLM locali che usi. Quelli trovati su questo PC sono già spuntati: un clic su Attiva li mette sulla tua mappa.",
+ "No agent or local LLM was found on this PC yet. Pick what you want to use: after Switch on, Asterism shows you how to install it.": "Su questo PC non è ancora stato trovato nessun agente né LLM locale. Scegli cosa vuoi usare: dopo Attiva, Asterism ti mostra come installarlo.",
+ "AI agents": "Agenti IA",
+ "The coding agents you work with in a terminal.": "Gli agenti di programmazione con cui lavori in un terminale.",
+ "Programs that run language models on this PC.": "Programmi che eseguono modelli linguistici su questo PC.",
+ "The models your agents use on the web.": "I modelli che i tuoi agenti usano sul web.",
+ "Ticked but not installed: after Switch on, Asterism shows you how to install it.": "Spuntato ma non installato: dopo Attiva, Asterism ti mostra come installarlo.",
+ "Click a card to tick it or untick it.": "Fai clic su una scheda per spuntarla o togliere la spunta."
 }

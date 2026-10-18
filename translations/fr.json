@@ -1623,5 +1623,19 @@
  "\u0004The skill {1} may need an update: MCP server page › Update skill…": [
   "Le skill {1} a peut-être besoin d’une mise à jour : page du serveur MCP › Mettre à jour le skill…",
   "{0} skills ont peut-être besoin d’une mise à jour ({1}) : page du serveur MCP › Mettre à jour le skill…"
- ]
+ ],
+ "About": "À propos",
+ "About {0}": "À propos de {0}",
+ "Version, author, license and the project on GitHub.": "Version, auteur, licence et le projet sur GitHub.",
+ "GitHub project page": "Page du projet sur GitHub",
+ "Your AI setup as cards or a tree and a map: coding agents, local LLMs, MCP servers and skills, and how they are connected.": "Ta configuration IA en cartes ou en arbre et en carte : agents de code, LLM locaux, serveurs MCP et skills, et comment ils sont reliés.",
+ "Welcome to {0}": "Bienvenue dans {0}",
+ "Pick the AI agents and local LLMs you use. The ones found on this PC are already ticked: one click on Switch on puts them on your map.": "Choisis les agents IA et les LLM locaux que tu utilises. Ceux trouvés sur ce PC sont déjà cochés : un clic sur Activer les met sur ta carte.",
+ "No agent or local LLM was found on this PC yet. Pick what you want to use: after Switch on, Asterism shows you how to install it.": "Aucun agent ni LLM local n'a encore été trouvé sur ce PC. Choisis ce que tu veux utiliser : après Activer, Asterism te montre comment l'installer.",
+ "AI agents": "Agents IA",
+ "The coding agents you work with in a terminal.": "Les agents de code avec lesquels tu travailles dans un terminal.",
+ "Programs that run language models on this PC.": "Des programmes qui font tourner des modèles de langage sur ce PC.",
+ "The models your agents use on the web.": "Les modèles que tes agents utilisent sur le web.",
+ "Ticked but not installed: after Switch on, Asterism shows you how to install it.": "Coché mais pas installé : après Activer, Asterism te montre comment l'installer.",
+ "Click a card to tick it or untick it.": "Clique sur une carte pour la cocher ou la décocher."
 }

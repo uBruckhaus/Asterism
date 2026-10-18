@@ -178,6 +178,18 @@ class ThemeCss:
         .am-addon-off {{ color: {fg_hex}; background: alpha({fg_hex}, 0.12); }}
         .am-addon-failed {{ color: {red_hex}; background: alpha({red_hex}, 0.16); }}
         .am-addon-available {{ color: {accent_hex}; border: 1px solid alpha({accent_hex}, 0.5); }}
+        .am-setup-tile {{ background: alpha({fg_hex}, 0.04); border: 1px solid alpha({fg_hex}, 0.10);
+            border-radius: {radius}px; padding: 12px 14px; color: {fg_hex}; }}
+        .am-setup-absent:not(:checked) .am-setup-glyph {{ color: {dim_hex}; }}
+        .am-agent-detail.am-setup-here {{ color: {green_hex}; }}
+        .am-setup-tile:hover {{ background: alpha({fg_hex}, 0.08); }}
+        .am-setup-tile:checked {{ background: alpha({accent_hex}, 0.14); border: 2px solid {accent_hex};
+            padding: 11px 13px; color: {fg_hex}; }}
+        .am-setup-tile:checked:hover {{ background: alpha({accent_hex}, 0.20); }}
+        .am-agent-icon.am-setup-glyph {{ font-size: 30px; min-width: 36px; }}
+        .am-setup-check {{ color: {bg_hex}; background: {accent_hex}; border-radius: 999px; min-width: 20px;
+            min-height: 20px; font-size: 11px; font-weight: 700; }}
+        .am-setup-title {{ font-size: 22px; font-weight: 700; }}
         .am-addon-privacy {{ font-size: 10px; color: {dim_hex}; }}
         .am-addon-chip {{ font-size: 11px; min-height: 0; padding: 2px 12px; border-radius: 999px; }}
         .am-addon-chip:checked {{ background: {accent_hex}; color: {bg_hex}; }}
