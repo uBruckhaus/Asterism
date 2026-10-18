@@ -1584,5 +1584,7 @@
  "Drop an add-on (.zip from a folder, or a link from the web) anywhere on the window to add it.": "Zieh ein Add-on (.zip aus einem Ordner oder einen Link aus dem Web) irgendwo auf das Fenster, um es hinzuzufügen.",
  "Done. You can close this tab (Back).": "Fertig. Du kannst diesen Tab schließen (Zurück).",
  "Run installs in the window's terminal": "Installationen im Terminal des Fensters ausführen",
- "On: installs and removals run in a terminal tab here (sudo asks for your password in it). Off: in a terminal window of its own.": "An: Installationen und Entfernungen laufen hier in einem Terminal-Tab (sudo fragt darin nach deinem Passwort). Aus: in einem eigenen Terminalfenster."
+ "On: installs and removals run in a terminal tab here (sudo asks for your password in it). Off: in a terminal window of its own.": "An: Installationen und Entfernungen laufen hier in einem Terminal-Tab (sudo fragt darin nach deinem Passwort). Aus: in einem eigenen Terminalfenster.",
+ "Shows the command first": "Zeigt zuerst den Befehl",
+ "Opens the install page": "Öffnet die Installationsseite"
 }

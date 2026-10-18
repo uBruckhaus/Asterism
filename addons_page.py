@@ -19,6 +19,7 @@ import addon_api
 import addon_store
 import addons
 import harnesses
+import install_recipes
 import providers
 from i18n import _
 
@@ -336,9 +337,12 @@ class AddonsPage:
             bottom.append(chip)
         else:
             bottom.append(Gtk.Box(hexpand=True))
-        action = self.addon_action(item)
-        if action is not None:
-            bottom.append(action)
+        if item.state == "builtin" and item.target:
+            bottom.append(self.program_buttons(item))
+        else:
+            action = self.addon_action(item)
+            if action is not None:
+                bottom.append(action)
         card.append(bottom)
         click = Gtk.GestureClick()
         click.connect("released", lambda *_a: self.show_addon(item))
@@ -352,8 +356,6 @@ class AddonsPage:
                       "failed": (_("Remove"), self.remove_addon)}.get(item.state, (None, None))
         if item.update:
             label, run = _("Update"), self.update_addon
-        if item.state == "builtin" and item.target and item.installed is False:
-            label, run = _("Install"), lambda i: self.offer_install(i.target, i.id)
         if label is None:
             return None
         button = Gtk.Button(label=label, valign=Gtk.Align.CENTER)
@@ -362,6 +364,34 @@ class AddonsPage:
             button.add_css_class("suggested-action")
         button.connect("clicked", lambda *_a: run(item))
         return button
+
+    def program_buttons(self, item: Item, small: bool = True) -> Gtk.Widget:
+        """Install and Uninstall for the program itself, always both; the one that does not apply now
+        (or that has no way on this PC) is greyed out, with why in its tooltip."""
+        box = Gtk.Box(spacing=6, valign=Gtk.Align.CENTER)
+        subject = self.install_subject(item.target, item.id)
+        installed = bool(subject and subject[1])
+        for action, label in (("install", _("Install")), ("uninstall", _("Uninstall"))):
+            button = Gtk.Button(label=label if small else label + "…")
+            if small:
+                button.add_css_class("am-small-btn")
+            step = install_recipes.choose(subject[3], action, subject[2]) if subject else None
+            if action == "install" and installed:
+                why = _("{0} is installed.").format(item.name)
+            elif action == "uninstall" and not installed:
+                why = _("{0} is not installed on this PC.").format(item.name)
+            elif step is None:
+                why = _("Asterism knows no way to change {0} here.").format(item.name)
+            else:
+                why = ""
+            button.set_sensitive(not why)
+            button.set_tooltip_text(why or (_("Shows the command first") if not step.installer else
+                                            _("Opens the install page")))
+            if not why and action == "install":
+                button.add_css_class("suggested-action")
+            button.connect("clicked", lambda *_a, a=action: self.offer_install(item.target, item.id, a))
+            box.append(button)
+        return box
 
     # --- details ---
     def show_addon(self, item: Item):
@@ -431,12 +461,7 @@ class AddonsPage:
             button.connect("clicked", lambda *_a, r=run: r(item))
             buttons.append(button)
         if item.state == "builtin" and item.target:
-            button = Gtk.Button(label=_("Uninstall…") if item.installed else _("Install…"))
-            if not item.installed:
-                button.add_css_class("suggested-action")
-            button.connect("clicked", lambda *_a: self.offer_install(item.target, item.id,
-                                                                      "uninstall" if item.installed else "install"))
-            buttons.append(button)
+            buttons.append(self.program_buttons(item, small=False))
         if item.state == "on":
             # An add-on that brings an agent or a provider: install the program itself too.
             for command in (item.entry.harnesses if item.entry else []):

@@ -1584,5 +1584,7 @@
  "Drop an add-on (.zip from a folder, or a link from the web) anywhere on the window to add it.": "Largue um complemento (.zip de uma pasta ou uma ligação da web) em qualquer parte da janela para o adicionar.",
  "Done. You can close this tab (Back).": "Concluído. Pode fechar este separador (Voltar).",
  "Run installs in the window's terminal": "Executar as instalações no terminal da janela",
- "On: installs and removals run in a terminal tab here (sudo asks for your password in it). Off: in a terminal window of its own.": "Ligado: instalações e remoções correm aqui num separador de terminal (o sudo pede a palavra-passe nele). Desligado: numa janela de terminal própria."
+ "On: installs and removals run in a terminal tab here (sudo asks for your password in it). Off: in a terminal window of its own.": "Ligado: instalações e remoções correm aqui num separador de terminal (o sudo pede a palavra-passe nele). Desligado: numa janela de terminal própria.",
+ "Shows the command first": "Mostra primeiro o comando",
+ "Opens the install page": "Abre a página de instalação"
 }

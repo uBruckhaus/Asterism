@@ -1633,5 +1633,7 @@
  "Drop an add-on (.zip from a folder, or a link from the web) anywhere on the window to add it.": "Upuść dodatek (.zip z folderu lub link z sieci) w dowolnym miejscu okna, aby go dodać.",
  "Done. You can close this tab (Back).": "Gotowe. Możesz zamknąć tę kartę (Wstecz).",
  "Run installs in the window's terminal": "Uruchamiaj instalacje w terminalu okna",
- "On: installs and removals run in a terminal tab here (sudo asks for your password in it). Off: in a terminal window of its own.": "Włączone: instalacje i usuwanie działają tu w karcie terminala (sudo pyta w niej o hasło). Wyłączone: w osobnym oknie terminala."
+ "On: installs and removals run in a terminal tab here (sudo asks for your password in it). Off: in a terminal window of its own.": "Włączone: instalacje i usuwanie działają tu w karcie terminala (sudo pyta w niej o hasło). Wyłączone: w osobnym oknie terminala.",
+ "Shows the command first": "Najpierw pokazuje polecenie",
+ "Opens the install page": "Otwiera stronę instalacji"
 }
