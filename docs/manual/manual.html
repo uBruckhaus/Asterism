@@ -1,0 +1,660 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Asterism &amp; AI Agents Map — User Manual</title>
+<link rel="stylesheet" href="manual.css">
+</head>
+<body>
+<!--
+  The source of the user manual. Edit this file, then run  python3 docs/manual/build.py
+  (see docs/manual/README.md). Rules:
+  - every chapter is <section class="chapter" id="…"> with one <h1>; sections inside are <h2 id="…">;
+    the contents page, the PDF bookmarks and the running headers are made from these;
+  - {{ASTERISM_VERSION}}, {{PLUGIN_VERSION}} and {{DATE}} are filled in by the build;
+  - button and menu names in <b>, paths and commands in <code>, keys in <kbd>.
+-->
+
+<!-- ============================== Cover ============================== -->
+<section class="cover">
+  <img class="cover-icon" src="images/icon.svg" alt="Asterism app icon">
+  <p class="cover-kicker">User Manual</p>
+  <h1 class="cover-title">Asterism<br><span>&amp; AI Agents Map</span></h1>
+  <p class="cover-sub">Your AI agents, local models, MCP servers and skills on one map</p>
+  <div class="cover-meta">
+    <p>Asterism {{ASTERISM_VERSION}} · AI Agents Map {{PLUGIN_VERSION}}</p>
+    <p>{{DATE}}</p>
+  </div>
+</section>
+
+<!-- ============================== About ============================== -->
+<section class="front" id="about">
+  <h2 class="front-title">About this manual</h2>
+  <p>This manual describes one application that comes in two editions:</p>
+  <table class="editions">
+    <thead><tr><th scope="col">Edition</th><th>Asterism</th><th>AI Agents Map</th></tr></thead>
+    <tbody>
+      <tr><th>What it is</th><td>A stand-alone GTK&nbsp;4 / libadwaita app for any Linux desktop</td>
+          <td>A plugin for the Omarchy desktop, opened from a button in the bar</td></tr>
+      <tr><th>Install from</th><td>AUR, AppImage or source</td><td>The Omarchy Plugin Marketplace</td></tr>
+      <tr><th>Look</th><td>Follows the system's light/dark mode and accent colour</td>
+          <td>Omarchy theme colours, or GNOME's Adwaita look</td></tr>
+      <tr><th>Settings folder</th><td><code>~/.config/asterism/</code></td><td><code>~/.config/omarchy/ai-agents-map/</code></td></tr>
+    </tbody>
+  </table>
+  <p>Everything else — the cards, the map, connecting by drawing, local LLMs, models, MCP servers
+  and skills — is the same in both. Where something applies to only one edition, it is marked
+  <span class="badge">Asterism</span> or <span class="badge omarchy">Omarchy</span>.</p>
+
+  <h3>Conventions</h3>
+  <table class="conventions">
+    <tbody>
+      <tr><th scope="row"><b>Add</b></th><td>A button, tab or menu item in the window.</td></tr>
+      <tr><th scope="row">Settings › <b>Look</b></th><td>A path through the interface: open Settings, then <b>Look</b>.</td></tr>
+      <tr><th scope="row"><code>~/.agents/skills</code></th><td>A file, folder or command. <code>~</code> is your home folder.</td></tr>
+      <tr><th scope="row"><kbd>Ctrl</kbd>+<kbd>B</kbd></th><td>A keyboard shortcut.</td></tr>
+    </tbody>
+  </table>
+  <div class="note"><p><b>Note</b> Notes add useful background.</p></div>
+  <div class="tip"><p><b>Tip</b> Tips show a quicker way or a good habit.</p></div>
+  <div class="warn"><p><b>Caution</b> Cautions point out something that is hard to undo.</p></div>
+</section>
+
+<!-- ============================== Contents (filled by the build) ============================== -->
+<section class="front toc" id="contents">
+  <h2 class="front-title">Contents</h2>
+  <!-- TOC -->
+</section>
+
+<!-- ============================== 1 Introduction ============================== -->
+<section class="chapter" id="introduction">
+  <h1>Introduction</h1>
+  <p class="lead">Asterism shows the AI setup on your computer as cards and as a map: which coding
+  agents are installed, which language models they use — cloud services and local runtimes — the
+  models those serve, and which MCP servers and skills each agent has. And it lets you change that
+  setup by drawing lines.</p>
+
+  <div class="figure wide">
+    <img src="images/main-window.jpg" alt="The main window: cards on the left, the map on the right, the legend open">
+    <p class="caption">The main window with the cards on the left, the map on the right and the legend open.</p>
+  </div>
+
+  <h2 id="what-it-does">What it does</h2>
+  <ul>
+    <li><b>Coding agents</b> — Claude Code, Codex, GitHub Copilot, Cursor CLI, Gemini, OpenCode, Pi,
+      Hermes and more: their version, plan, limits and usage, and what each one still needs, with
+      the command that fixes it.</li>
+    <li><b>Local LLMs</b> — llama.cpp, Ollama, LM Studio, vLLM, Jan and KoboldCpp: install them,
+      download models, set the context size that fits your graphics card, and start them together
+      with the agents that use them.</li>
+    <li><b>MCP servers and skills</b> — found on your computer or on the web, with recommended
+      servers and a search of the official MCP registry.</li>
+    <li><b>A health check</b> — what works, what to fix and what your setup is good for.</li>
+  </ul>
+
+  <h2 id="key-ideas">Key ideas</h2>
+  <dl>
+    <dt>Agent</dt><dd>A program you talk to that writes code or does tasks, such as Claude Code.</dd>
+    <dt>LLM provider</dt><dd>Where an agent's model runs: a cloud service (Anthropic, OpenAI, …)
+      or a local LLM runtime on this computer (llama.cpp, Ollama, …).</dd>
+    <dt>Model</dt><dd>The language model itself. Local models are files, usually in GGUF format.</dd>
+    <dt>MCP server</dt><dd>A small program or web service that gives agents extra tools — reading
+      files, searching the web, controlling a browser. MCP is the Model Context Protocol.</dd>
+    <dt>Skill</dt><dd>A folder with instructions (a <code>SKILL.md</code>) and sometimes scripts that
+      teach an agent how to do a particular job.</dd>
+  </dl>
+
+  <h2 id="safety-promise">Nothing changes without a preview</h2>
+  <p>Every change to an agent's settings is shown first, line by line, before anything is written.
+  The old file is kept as a backup, and the bar that appears after the change has <b>Undo</b>. The
+  app never asks for administrator rights.</p>
+</section>
+
+<!-- ============================== 2 Installation ============================== -->
+<section class="chapter" id="installation">
+  <h1>Installation</h1>
+
+  <h2 id="install-asterism">Asterism <span class="badge">Asterism</span></h2>
+  <p>Choose one of these ways:</p>
+  <ul>
+    <li><b>Arch Linux (AUR):</b> install the package <code>asterism</code> with your AUR helper.</li>
+    <li><b>AppImage:</b> download <code>Asterism-&lt;version&gt;-x86_64.AppImage</code> from the
+      releases page at <code>github.com/uBruckhaus/asterism</code>, make it executable and run it.
+      The AppImage uses your distribution's Python 3 with PyGObject, GTK&nbsp;4 and libadwaita:
+      <table class="compact">
+        <tbody>
+          <tr><th scope="row">Fedora</th><td><code>sudo dnf install python3-gobject gtk4 libadwaita</code></td></tr>
+          <tr><th scope="row">Ubuntu / Debian</th><td><code>sudo apt install python3-gi gir1.2-gtk-4.0 gir1.2-adw-1</code></td></tr>
+          <tr><th scope="row">Arch</th><td><code>sudo pacman -S python-gobject gtk4 libadwaita</code></td></tr>
+        </tbody>
+      </table></li>
+    <li><b>From source:</b> run <code>bin/asterism</code> in a checkout of the repository.</li>
+  </ul>
+  <p>Agent icons need a Nerd Font (Symbols Nerd Font). To run agents inside the window, also
+  install VTE for GTK&nbsp;4 (<code>vte4</code>).</p>
+
+  <h2 id="install-plugin">AI Agents Map on Omarchy <span class="badge omarchy">Omarchy</span></h2>
+  <p>Install the plugin from the Omarchy Plugin Marketplace, or from a terminal:</p>
+  <pre>omarchy plugin add https://github.com/uBruckhaus/omarchy-ai-agents-map.git --enable</pre>
+  <p>A robot button appears in the bar. Everything else it needs comes with a standard Omarchy
+  install. To run agents inside the window, install VTE: <code>sudo pacman -S vte4</code>.</p>
+
+  <h2 id="first-start">First start</h2>
+  <p>On the first open, the app asks whether to add itself to the app launcher. Nothing is written
+  there unless you say yes; you can change it later in Settings › <b>In the app launcher</b>.</p>
+  <p>The window is a normal app window: it can be tiled, floated, moved to another workspace and
+  reached with <kbd>Alt</kbd>+<kbd>Tab</kbd>. <span class="badge omarchy">Omarchy</span> The bar
+  button opens the window, brings it to the front, or hides it when it is already in front.
+  Closing the window hides it; the program keeps running in the background so it opens again at
+  once.</p>
+  <div class="note"><p><b>Note</b> While an agent runs inside the window, closing it asks first:
+  <b>Stop and close</b> (the agent's local LLM then stops too and frees the graphics card's memory)
+  or <b>Keep running</b>.</p></div>
+
+  <h2 id="remove">Removing the app</h2>
+  <p><span class="badge omarchy">Omarchy</span> <code>omarchy plugin remove ubruckhaus.ai-agents-map</code>.
+  <span class="badge">Asterism</span> Remove the package or delete the AppImage.</p>
+  <p>Before removing, switch off Settings › <b>Start local LLMs with their agents</b> so the
+  background watcher is removed too, and Settings › <b>In the app launcher</b> to delete the
+  launcher entry. Changes you made with the app stay: agents' settings, MCP servers, skills and
+  installed local LLMs. Uninstall a local LLM first (right-click › <b>Uninstall…</b>) if you want it
+  gone. To delete the app's own state as well:</p>
+  <pre>rm -rf ~/.config/omarchy/ai-agents-map ~/.config/asterism \
+       ~/.local/state/ai-agents-map ~/.cache/ai-agents-map</pre>
+</section>
+
+<!-- ============================== 3 The window ============================== -->
+<section class="chapter" id="window">
+  <h1>The window at a glance</h1>
+
+  <div class="figure wide annotated">
+    <div class="shot">
+      <img src="images/main-window.jpg" alt="The main window with numbered areas">
+      <span class="pin" style="left:1.5%;top:2.8%">1</span>
+      <span class="pin" style="left:74.6%;top:2.8%">2</span>
+      <span class="pin" style="left:93.6%;top:7.0%">3</span>
+      <span class="pin" style="left:1.9%;top:9.3%">4</span>
+      <span class="pin" style="left:1.2%;top:17.3%">5</span>
+      <span class="pin" style="left:20.2%;top:12.6%">6</span>
+      <span class="pin" style="left:20.2%;top:22.6%">7</span>
+      <span class="pin" style="left:20.2%;top:27.9%">8</span>
+      <span class="pin" style="left:78.6%;top:7.6%">9</span>
+    </div>
+    <p class="caption">The main window. The numbers match the list below.</p>
+  </div>
+
+  <ol class="legend-list">
+    <li><b>Sidebar button</b> — hides or shows the cards (<kbd>Ctrl</kbd>+<kbd>B</kbd>).</li>
+    <li><b>My setup · + Available</b> and <b>All · Online · Local LLMs</b> — what to show (see below).</li>
+    <li><b>ⓘ</b> legend, <b>?</b> Help (<kbd>F1</kbd>) and the gear for Settings (<kbd>Ctrl</kbd>+<kbd>,</kbd>).</li>
+    <li><b>Health check</b> — a one-line summary; <b>Open ›</b> lists the details.</li>
+    <li><b>Cards</b> — Agents, Local LLMs, MCP servers, Skills, each with its <b>Show ▾</b> list.
+      The buttons beside <b>Show ▾</b> switch between cards and a compact tree.</li>
+    <li><b>GPU memory</b> and <b>GPU activity</b> — how the graphics card is used right now.</li>
+    <li><b>Show</b> toggles — shorten the map to the categories you are working on.</li>
+    <li><b>The map</b> — MCP servers and skills ← agents → LLM providers → models.</li>
+    <li><b>The legend</b> — what every dot, line and mark on the map means.</li>
+  </ol>
+
+  <h2 id="views">Choosing what to show</h2>
+  <table class="first-nowrap">
+    <thead><tr><th>Switch</th><th>Shows</th></tr></thead>
+    <tbody>
+      <tr><td><b>My setup</b></td><td>Only what is yours: installed agents and local LLMs, and MCP servers an agent uses. This is the default.</td></tr>
+      <tr><td><b>+ Available</b></td><td>Adds what you could set up: agents and local LLMs that are not installed, MCP servers no agent uses, and anything you have hidden.</td></tr>
+      <tr><td><b>All</b></td><td>Everything.</td></tr>
+      <tr><td><b>Online</b></td><td>Online providers only; no local LLMs, their models or the GPU meters.</td></tr>
+      <tr><td><b>Local LLMs</b></td><td>Only local LLMs and the agents that can use them.</td></tr>
+    </tbody>
+  </table>
+  <p>Settings › <b>Start with</b> picks the view the app opens with. Every column heading on the map
+  (<b>AGENTS ▾</b>, <b>MODELS ▾</b>, …) opens a list where you can untick single boxes or whole
+  groups; the heading then shows how many are shown, for example <i>(5/8)</i>.</p>
+
+  <h2 id="map">Working with the map</h2>
+  <ul>
+    <li><b>Hover</b> a box to light it up together with everything it is joined to.</li>
+    <li><b>Click</b> a box or a card to select it (✓); <kbd>Shift</kbd>+click adds more.
+      <kbd>Esc</kbd> or <b>Clear selection</b> clears it.</li>
+    <li>The <b>pin</b> at a box's top-right corner keeps its connections lit while you look elsewhere.</li>
+    <li><b>Right-click</b> a box for everything its card offers: start or stop, details, install,
+      models, <b>Hide</b>, and more.</li>
+    <li>Each agent's active path — agent → provider in use → its model — is drawn bold. While an
+      agent is working, light runs along that line.</li>
+    <li>When a program that is not on the map uses a local LLM, the line from that LLM to the model
+      turns bold in a colour of its own (purple or cyan, whichever stands out from the theme's other
+      colours), and light runs along it. See <a href="#outside-use">Used by other apps</a>.</li>
+    <li>Zoom with <b>− 100&nbsp;% +</b>, <kbd>Ctrl</kbd>+scroll or <kbd>Ctrl</kbd>+<kbd>+</kbd> / <kbd>−</kbd> / <kbd>0</kbd>.</li>
+    <li>Drag the line between the cards and the map to make the cards wider; double-click it to go
+      back to the default width.</li>
+  </ul>
+  <div class="tip"><p><b>Tip</b> In a narrow window (below about 1300 pixels, such as half the
+  screen) only the cards are shown and pages open over them. Maximize the window to see the map.</p></div>
+
+  <h2 id="health">Health check</h2>
+  <p>The <b>Health check</b> line above the cards sums up how well the setup works, for example
+  <i>1 thing to fix · 3 tips</i>. <b>Open ›</b> lists by area — this PC, agents, local LLMs and
+  models, tools — what is fine, what are tips and what to fix, each with what to do and, where
+  possible, a button that does it. It also tells you what the setup is good for (everyday help,
+  coding, images, voice, research and writing) and the next step. The health check only reads;
+  it never changes, starts or sends anything.</p>
+
+  <h2 id="hints">Hints and updates</h2>
+  <p>Below the cards, a hint area appears when there is something to say: new programs or skills
+  found on this PC, updates for installed agents and local LLMs, and how many more things you could
+  set up. Updates are checked in the background when the window opens, at most every six hours.
+  Nothing is installed by the check itself; an update starts only when you click <b>Update</b>.</p>
+</section>
+
+<!-- ============================== 4 Agents ============================== -->
+<section class="chapter" id="agents">
+  <h1>Agents</h1>
+
+  <h2 id="agent-cards">Agent cards and details</h2>
+  <p>Every coding agent is listed, installed ones first with their version; the default agent is
+  marked. Click <b>ⓘ Details</b> on a card to see:</p>
+  <ul>
+    <li>whether the agent is ready (and if not, why), whether it is running now or when it was last used;</li>
+    <li>today's and the last seven days' tokens and sessions, the plan, a chart of tokens per day,
+      rate limits with reset times and tokens by model;</li>
+    <li><b>Setup</b>: every check with a ✓, or what to do next — sign in with which command, which
+      subscription or API key it needs, install or start its local LLM, download a model, add MCP
+      servers or skills;</li>
+    <li><b>Configuration</b>: the agent's settings, MCP servers, skills and settings folder.</li>
+  </ul>
+  <p>Claude Code's details also show the last 30 days per project folder: working time, sessions,
+  tokens, lines changed and what the tokens would cost at API prices.</p>
+  <p><span class="badge">Asterism</span> Claude Code's details also list <b>Topics</b>, the titles
+  Claude Code gave its sessions, and offer <b>Summarize with Claude…</b>. Before anything is sent,
+  you see exactly what will be sent: the titles and numbers, never the conversations.</p>
+
+  <h2 id="running-agents">Starting and stopping agents</h2>
+  <ul>
+    <li><b>Start here</b> runs the agent in a terminal inside the window, beside the cards. This needs VTE (<code>vte4</code>).</li>
+    <li><b>Start in terminal</b> opens it in a terminal window of its own.</li>
+    <li>While it runs inside the window: <b>Show terminal</b> and <b>Stop</b>. Stop ends the agent and
+      everything it started, such as its MCP servers.</li>
+  </ul>
+  <p>When agents have terminals in the window, a tab line above the map shows one tab per terminal
+  with a dot for <i>working</i>, <i>running</i> or <i>ended</i>. Click a tab to show that terminal;
+  <b>×</b> closes an ended one.</p>
+  <p>An agent with an open instance anywhere on the computer gets a green dot and <i>running</i>,
+  and the model box it runs with says <i>in use · &lt;agent&gt;</i>.</p>
+
+  <h2 id="hide">Hiding agents and providers</h2>
+  <p><b>Hide</b> (on a card, in the tree, or in a box's right-click menu) leaves an agent or a
+  provider out of <b>My setup</b>, with Undo. Hidden ones are listed under
+  <b>+ Available › Hidden</b> with <b>Show again</b>. A provider can only be hidden while no shown
+  agent uses one of its models.</p>
+
+  <h2 id="agent-updates">Updating agents</h2>
+  <p>When a newer version of an installed agent is out, the hint area names it. <b>Update</b> runs
+  the update the same way the agent was installed — for example <code>mise upgrade &lt;tool&gt;</code>
+  or <code>claude update</code> — in a terminal window of its own, so you can follow it.</p>
+
+  <h2 id="installed-agents">Agents the app can install</h2>
+  <p>Three agents can be installed, updated and uninstalled from the map (right-click the agent ›
+  <b>Install…</b>):</p>
+  <ul>
+    <li><b>DeepSeek Harness</b> (<code>dsh</code>, developer preview), from npm. It can use local LLMs.</li>
+    <li><b>Antigravity CLI</b> (<code>agy</code>, Google), from Google's release manifest; the
+      download is checked against its SHA-512.</li>
+    <li><b>LM Studio Bionic</b> cannot be installed from here (no published checksum); get it from
+      lmstudio.ai. It always uses LM Studio's engine and models.</li>
+  </ul>
+
+  <h2 id="new-agents">New agents</h2>
+  <p>When an agent turns up that the app does not know yet, it asks an installed agent (Claude Code,
+  else Codex) once to find out on the web where that agent keeps its skills and MCP servers. The
+  answer is checked before use, and nothing in it is ever run. Settings › <b>Look up new agents</b>
+  switches this off.</p>
+</section>
+
+<!-- ============================== 5 Local LLMs ============================== -->
+<section class="chapter" id="local-llms">
+  <h1>Local LLMs</h1>
+  <p class="lead">A local LLM runtime runs language models on your own graphics card, so prompts
+  never leave the computer. The app installs, starts and stops them for you.</p>
+
+  <h2 id="install-runtime">Installing a local LLM</h2>
+  <p>Right-click a grey (not installed) local LLM on the map › <b>Install…</b>. You choose the
+  program folder, the model folder (the one your other local LLMs use is suggested) and whether it
+  starts at login. It is installed for your user only, with a user service, so no password is
+  needed. Every download must match the SHA-256 checksum its release publishes before it is unpacked
+  or run.</p>
+  <table>
+    <thead><tr><th>Runtime</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td><b>Ollama</b></td><td>The official release (with ROCm for AMD cards).</td></tr>
+      <tr><td><b>llama.cpp</b></td><td>The build of your choice (Vulkan, ROCm, CUDA, CPU), run as a model router: every GGUF in the model folder, one loaded at a time.</td></tr>
+      <tr><td><b>LM Studio</b></td><td>Not installed from here (no published checksum); get it from lmstudio.ai. Shown and managed once installed.</td></tr>
+      <tr><td><b>vLLM</b></td><td>For NVIDIA cards, in its own Python environment.</td></tr>
+      <tr><td><b>Jan</b></td><td>Its AppImage, unpacked, with Jan's engine as a background service for agents.</td></tr>
+      <tr><td><b>KoboldCpp</b></td><td>The official single-file build, run as a model router.</td></tr>
+    </tbody>
+  </table>
+  <p>Installed this way, a local LLM also offers <b>Update…</b> (the previous version is kept as a
+  fallback), <b>Model folder…</b> and <b>Uninstall…</b>, which removes the program, command, service
+  and settings but never the models. Local LLMs you installed yourself are shown, but never changed.</p>
+
+  <h2 id="start-with-agents">Starting and stopping with agents</h2>
+  <p>Connect an agent to a local LLM once, then just start the agent — even with the app closed or
+  after a reboot. Its local LLM starts with it, and when the last agent using it closes, the LLM
+  stops about five seconds later, so its graphics memory is free again.</p>
+  <p>A small background service, <code>ai-agents-map-providers.service</code>, does this. It is set up
+  with the first connection to a local LLM and removed when the last one goes, or when you switch off
+  Settings › <b>Start local LLMs with their agents</b>.</p>
+  <div class="note"><p><b>Note</b> KoboldCpp takes a few seconds to start, longer than some agents
+  wait. So it starts at login, and when the last agent closes only its model is unloaded.</p></div>
+
+  <h2 id="gpu">GPU memory and Free GPU memory</h2>
+  <p>Above the map, <b>GPU memory</b> shows how much is in use, split into local LLMs, desktop and
+  apps, and free; <b>GPU activity</b> shows load, temperature and power. Each local LLM's box shows
+  how much memory it holds, and loaded models get a green dot.</p>
+  <p>Right-click a local LLM for <b>Start</b>, <b>Stop</b>, start at login, and <b>Free GPU memory</b>:
+  its models are unloaded, it keeps running and loads one again when asked.</p>
+
+  <h2 id="outside-use">Used by other apps</h2>
+  <p>Local LLMs are not only used by agents. A plugin such as Video Trans, a chat app or your own
+  script can send requests to them too. The app notices this and shows it:</p>
+  <div class="figure wide">
+    <img src="images/outside-use.jpg" alt="The map: a purple line with light from llama.cpp to the model gemma-4-E2B-it-Q4_K_M, whose box says in use · curl; Claude Code's orange line to opus beside it">
+    <p class="caption">A program that is not on the map (here <code>curl</code>) generating with llama.cpp: the purple line and box. Claude Code's own path to opus stays in the accent colour.</p>
+  </div>
+  <ul>
+    <li><b>On the map</b>, the line from the local LLM to the model it is generating with turns bold in
+      its own colour, light runs along it, and the model box gets a frame and dot in that colour and
+      says who is using it, for example <i>in use · Video Trans</i>.</li>
+    <li><b>The local LLM's right-click menu</b> and its <b>ⓘ Details</b> page say
+      <i>In use by Video Trans · now</i>, or how many seconds ago it was last used.</li>
+    <li>The <b>ⓘ</b> legend shows both marks.</li>
+  </ul>
+  <p>The app looks at which of your own programs have a connection open to the local LLM. It never
+  reads what they send. A plugin is named by its own name, an agent by its name, anything else by its
+  program name. The app itself and LLM Monitor, which only read the status, are not counted.</p>
+  <div class="note"><p><b>Note</b> The light shows only while the program is generating, and fades
+  about ten seconds after its last request. A program that is open but idle — Video Trans with no
+  speech to translate — shows nothing. A program stays listed in the menu for half a minute after its
+  last request.</p></div>
+</section>
+
+<!-- ============================== 6 Models ============================== -->
+<section class="chapter" id="models">
+  <h1>Models</h1>
+  <p class="lead">Right-click an installed local LLM › <b>Models…</b>, or click a folder's dashed
+  <b>+ Model</b> box on the map. The page has a list on the left and the chosen model on the right,
+  in three tabs.</p>
+
+  <div class="figure wide">
+    <img src="images/models-download.jpg" alt="The models page: search results and download options">
+    <p class="caption">Get from Hugging Face: what a model can do, and which size fits your graphics card.</p>
+  </div>
+
+  <h2 id="get-models">Get from Hugging Face</h2>
+  <p>Browse the trending GGUF chat models or search. Each result shows its author, size, downloads,
+  likes, age and what it can do: <b>Vision</b>, <b>Tools</b>, <b>Reasoning</b>, <b>MTP</b>. The model's
+  page shows its parameters, architecture, context, license and model card. <b>What the name
+  means</b> explains the parts of the name, such as <i>35B-A3B</i> or <i>Q4_K_M</i>.</p>
+  <p><b>Download options</b> lists every size with how it fits: in the graphics card, partly in
+  system memory (works, but slower), or likely too large. The best fit is chosen for you;
+  <b>Download</b> gets it into the model folder.</p>
+  <p>Downloads run in the background and show in a strip at the top of the main page. A broken
+  connection is retried and the download resumes. If the app was closed during a download, it is
+  listed as interrupted, with <b>Continue</b> or <b>Discard</b>.</p>
+
+  <h2 id="installed-models">Installed</h2>
+  <div class="figure wide">
+    <img src="images/models-installed.jpg" alt="The Installed tab with a model's context sizes and name explained">
+    <p class="caption">Installed: context now, best for your card and trained for; what the name means; Remove.</p>
+  </div>
+  <p>Each model shows its size, file and context — <i>now</i>, <i>best for your card</i> and
+  <i>trained for</i>. <b>Remove</b> asks first and moves the files to the trash, where you can restore
+  them. A model that is only a link loses only the link.</p>
+
+  <h2 id="context">Context size</h2>
+  <p>The context is how much text the model can keep in mind at once. The app calculates the
+  largest context that fits your graphics card from the model file itself. <b>Set context</b> writes
+  it to the local LLM's settings, with a backup and Undo. Agents need a fairly large context; when you
+  connect an agent to an LM Studio model without a context set, the best one is set in the same step.</p>
+
+  <h2 id="on-this-pc">On this PC</h2>
+  <p>Lists GGUF files the local LLM does not read yet — in its models folder, the other local LLMs'
+  folders, <code>~/Downloads</code> and <code>~/Models</code>. <b>Add</b> makes one its model without a
+  second copy (a link), except for Ollama, which imports its own copy.</p>
+
+  <h2 id="move-models">Moving and deleting models</h2>
+  <p>Right-click a model of llama.cpp, KoboldCpp or LM Studio › <b>Move to…</b>, or drag the model
+  box onto another local LLM's folder. First you see how much moves and which agent uses the model.
+  Undo moves the files back. <b>Delete…</b> asks first and moves the files to the trash.</p>
+
+  <h2 id="reorganize">One models folder</h2>
+  <p>Settings › <b>Models folder</b> sets one folder for every local LLM's models.
+  <b>Reorganize models…</b> previews how the files would be sorted
+  (<code>&lt;folder&gt;/&lt;publisher&gt;/&lt;model&gt;/</code>), and nothing changes until you press
+  <b>Reorganize</b>. With <b>Keep old paths working</b> (on by default), a link stays at every old
+  place. <b>Undo the last reorganize</b> puts everything back.</p>
+  <div class="warn"><p><b>Caution</b> Moving models to another disk copies them first and removes
+  the originals only when the copy is complete. Make sure the target disk has enough free space; the
+  app refuses the move if it has not.</p></div>
+</section>
+
+<!-- ============================== 7 Connecting ============================== -->
+<section class="chapter" id="connecting">
+  <h1>Connecting by drawing</h1>
+  <p class="lead">Press on a box on the map and drag to another to connect them. Every change shows
+  exactly which lines of which file change before anything is written, keeps a backup, and can be
+  undone from the bar that follows.</p>
+
+  <h2 id="connect-llm">Agent ↔ local LLM</h2>
+  <p>Drag from an agent to a local LLM, or back. Choose the model and whether the agent uses it right
+  away. To change a connection, click the line to select it, then drag its end to another local LLM
+  — or onto empty space to remove it. With an agent selected, clicking a model of a connected local
+  LLM makes that model the agent's model.</p>
+  <p>Supported agents: Hermes, Pi, OpenCode and DeepSeek Harness.</p>
+
+  <h2 id="connect-mcp">Agent ↔ MCP server</h2>
+  <p>Drag from an agent to an MCP server. The server's settings are copied into that agent's own
+  format. Supported: Claude Code, Codex, Copilot, Crush, Cursor, Gemini, Grok, Hermes, Muse,
+  Oh My Pi, OpenClaw, OpenCode and Pi. Settings files that may hold keys are always written so that
+  only you can read them.</p>
+
+  <h2 id="connect-skills">Agent ↔ skill folder</h2>
+  <p>Drag from an agent to a skill folder. Pi and Hermes get the folder in their settings; every
+  other agent gets one link per skill in its own skills folder. A folder an agent reads by itself
+  (most read <code>~/.agents/skills</code>) cannot be taken away from just that agent.</p>
+
+  <h2 id="failed">When a connection fails</h2>
+  <p>Right after a connection is written, the app checks whether it will work: whether a local LLM
+  is installed and offers the model, whether an MCP server answers, whether the skill links are
+  intact. A connection that fails stays on the map as a <span class="red">dotted red line</span>
+  with a <b>!</b>; one with only warnings is <span class="yellow">dotted yellow</span>. Click the line
+  or its <b>!</b> for hints:</p>
+  <ul>
+    <li><b>Test again</b> checks once more; when it passes, the line becomes normal.</li>
+    <li><b>Try again…</b> opens the connect page for a connection that was never written.</li>
+    <li><b>Remove connection</b> removes it.</li>
+  </ul>
+</section>
+
+<!-- ============================== 8 MCP servers ============================== -->
+<section class="chapter" id="mcp">
+  <h1>MCP servers</h1>
+  <p class="lead">MCP servers give agents extra tools. <b>+ MCP server</b> on the map or under the
+  cards opens the page for adding one: a list on the left, the chosen server's page on the right.</p>
+
+  <h2 id="mcp-sources">Where servers come from</h2>
+  <table>
+    <thead><tr><th>Tab</th><th>Contents</th></tr></thead>
+    <tbody>
+      <tr><td><b>Recommended</b></td><td>The MCP project's reference servers (Filesystem, Fetch, Git, Memory, Sequential Thinking, Time, Everything) and official servers of well-known makers (GitHub, Playwright, Chrome DevTools, Brave Search, Context7), grouped by purpose and pinned to their newest version.</td></tr>
+      <tr><td><b>MCP registry</b></td><td>A search of the official MCP registry. Each result names its publisher as the registry checked it. The search can take ten seconds or more.</td></tr>
+      <tr><td><b>On this PC</b></td><td>Programs on this computer that offer an MCP server, found by reading their files — nothing is started. AppImages are only looked into when you click <b>Look inside…</b>.</td></tr>
+      <tr><td><b>By hand</b></td><td>A command line, or a web address with headers.</td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="mcp-setup">Setting a server up</h2>
+  <p>The server's page says who made it and how well that is checked, what it does (with things to
+  ask an agent once it has it), how it runs — a program through <code>npx</code>, <code>uvx</code> or
+  Docker, or a web service — and what it needs, such as a folder or an API key with a link to where
+  you get one. Below it, <b>Set it up</b>:</p>
+  <ol>
+    <li>Fill in the fields the server needs.</li>
+    <li>Tick the agents that should get it.</li>
+    <li>Click <b>Test</b> to ask the server for its tools.</li>
+    <li>Click <b>Add</b>: all ticked agents are written at once, with one preview and one Undo.</li>
+  </ol>
+  <div class="note"><p><b>Note</b> Secret values such as API keys are passed in the environment or
+  in headers, never on a command line where other users of the computer could read them. A server
+  that would need a secret on its command line has to be set up by hand.</p></div>
+
+  <h2 id="mcp-manage">Managing servers</h2>
+  <p><b>ⓘ Details</b> on an MCP server card shows each agent's settings file, the command or
+  address, and on request the server's tools; values of keys are never shown. <b>Remove</b> takes the
+  server from every agent. Servers stay in the list when no agent uses them any more, so a line can
+  connect them again.</p>
+  <p>When a newer version of an app that provides an MCP server turns up in
+  <code>~/Applications</code>, a note names it. <b>Update…</b> unpacks the new version, points every
+  agent at it and keeps the old one as a backup for seven days.</p>
+</section>
+
+<!-- ============================== 9 Skills ============================== -->
+<section class="chapter" id="skills">
+  <h1>Skills</h1>
+  <p class="lead">A skill is a folder with instructions that teach an agent a particular job.
+  <b>+ Skills</b> opens a page laid out like the MCP page.</p>
+
+  <h2 id="skills-sources">Finding skills</h2>
+  <ul>
+    <li><b>On this PC</b>: skill folders that apps brought along and no agent reads yet.</li>
+    <li><b>From the web</b>: a search of the skills.sh directory, another site with the same API, or
+      a GitHub repository with skills. A skill is fetched from its GitHub repository into a folder of
+      your choice, by default <code>~/.agents/skills</code>.</li>
+  </ul>
+  <div class="warn"><p><b>Caution</b> Skills can contain scripts that an agent may run later. The page
+  shows the repository and lists the scripts before anything is fetched — check them.</p></div>
+
+  <h2 id="skills-details">Skill folders</h2>
+  <p>Each skill folder card shows its skills and the agents that read it. A folder that is shared
+  through links shows up once, where it really lives. <b>ⓘ Details</b> lists every skill with its
+  description and how each agent gets the folder.</p>
+</section>
+
+<!-- ============================== 10 Settings ============================== -->
+<section class="chapter" id="settings">
+  <h1>Settings and Help</h1>
+
+  <h2 id="settings-list">Settings</h2>
+  <p>The gear (<kbd>Ctrl</kbd>+<kbd>,</kbd>) opens the settings. <kbd>Backspace</kbd> or <kbd>Esc</kbd> goes back.</p>
+  <table>
+    <thead><tr><th>Setting</th><th>What it does</th></tr></thead>
+    <tbody>
+      <tr><td><b>Language</b></td><td>The system language, or English, Deutsch, Français, Español, Italiano, Português, Nederlands, Polski.</td></tr>
+      <tr><td><b>Look</b> <span class="badge omarchy">Omarchy</span></td><td>The Omarchy theme colours, or GNOME's Adwaita look with the system's light/dark mode and accent colour.</td></tr>
+      <tr><td><b>Start with</b></td><td>Open with <b>My setup</b> or <b>+ Available</b>.</td></tr>
+      <tr><td><b>Sidebar</b></td><td>Cards or a compact tree.</td></tr>
+      <tr><td><b>Animate active lines</b></td><td>Light runs along the line of a working agent.</td></tr>
+      <tr><td><b>Terminal tabs above the map</b></td><td>One tab per agent terminal in the window.</td></tr>
+      <tr><td><b>Corners</b></td><td>Like windows, rounded or square.</td></tr>
+      <tr><td><b>Look up new agents</b></td><td>Ask an installed agent where an unknown agent keeps its settings.</td></tr>
+      <tr><td><b>Show what you could set up</b></td><td>The "N more you could set up" hint below the cards.</td></tr>
+      <tr><td><b>Start local LLMs with their agents</b></td><td>The background watcher described in <a href="#start-with-agents">Starting and stopping with agents</a>.</td></tr>
+      <tr><td><b>Too narrow for the map</b> <span class="badge omarchy">Omarchy</span></td><td>What "Maximize to see the map" does: move to a free workspace, maximize in place, or show no hint.</td></tr>
+      <tr><td><b>In the app launcher</b></td><td>The launcher entry; off removes it.</td></tr>
+      <tr><td><b>Agents start in</b></td><td>The folder agents start in.</td></tr>
+      <tr><td><b>Models folder</b></td><td>One folder for all models, with <b>Reorganize models…</b>.</td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="help">Help</h2>
+  <p><b>?</b> (<kbd>F1</kbd>) opens Help: an animation of setting up by drawing, and LLM Monitor, a
+  companion bar plugin that shows what a local LLM is doing. The <b>ⓘ</b> legend in the header
+  explains every dot, line and mark of the map.</p>
+</section>
+
+<!-- ============================== 11 Privacy ============================== -->
+<section class="chapter" id="privacy">
+  <h1>Privacy and safety</h1>
+  <ul>
+    <li><b>No administrator rights.</b> The app never asks for root.</li>
+    <li><b>No credentials read.</b> It reads the agents' settings, but never their credential files.
+      Whether an agent is signed in is judged from whether such a file exists. Values of keys and
+      headers are never shown.</li>
+    <li><b>No conversations read.</b> Usage figures are read as numbers and times only.</li>
+    <li><b>Network only when asked</b> — searching models, MCP servers or skills, installing, testing
+      a server — plus an update check every few hours.</li>
+    <li><b>Checked downloads.</b> Programs are installed only when the download matches the checksum
+      its release publishes.</li>
+    <li><b>Previews and Undo.</b> Every change to another program's settings is previewed, backed up
+      and can be undone. Settings that may hold keys are written readable only by you.</li>
+    <li><b>Bounded.</b> Every program runs without a shell, and every answer is read with a size and
+      time limit.</li>
+  </ul>
+  <p>The README in each repository lists in full what is read, started and written.</p>
+</section>
+
+<!-- ============================== 12 Troubleshooting ============================== -->
+<section class="chapter" id="troubleshooting">
+  <h1>Troubleshooting</h1>
+  <table class="faq">
+    <thead><tr><th>Problem</th><th>What to do</th></tr></thead>
+    <tbody>
+      <tr><td>The map is missing; only cards are shown.</td><td>The window is narrower than about 1300 pixels. Maximize it, or press <kbd>Ctrl</kbd>+<kbd>B</kbd> to hide the cards.</td></tr>
+      <tr><td>A box I expect is not on the map.</td><td>Check <b>My setup</b> vs <b>+ Available</b>, the <b>All · Online · Local LLMs</b> switch, the <b>Show</b> toggles and the column heading's list (a heading like <i>(5/8)</i> means some are hidden). Hidden agents are under <b>+ Available › Hidden</b>.</td></tr>
+      <tr><td><b>Start here</b> is missing or does nothing.</td><td>Install VTE for GTK&nbsp;4 (<code>vte4</code>), or use <b>Start in terminal</b>.</td></tr>
+      <tr><td>Agent icons are boxes.</td><td>Install a Nerd Font (Symbols Nerd Font).</td></tr>
+      <tr><td>A line is dotted red.</td><td>Click it for hints, fix what it says, then <b>Test again</b>. See <a href="#failed">When a connection fails</a>.</td></tr>
+      <tr><td>The local LLM does not start with the agent.</td><td>Check Settings › <b>Start local LLMs with their agents</b>, and that the agent is connected on the map. <code>systemctl --user status ai-agents-map-providers</code> shows the watcher.</td></tr>
+      <tr><td>The coloured light from a local LLM to its model does not show.</td><td>It shows only while a program that is not on the map is generating with that LLM, and fades about ten seconds after its last request. Check the map is visible (a wide window) and that the program is actually sending something.</td></tr>
+      <tr><td>The agent answers badly or cuts off with a local model.</td><td>The context may be too small. Open the model under <b>Models… › Installed</b> and use <b>Set context</b> with the best value for your card.</td></tr>
+      <tr><td>A download stopped.</td><td>It resumes by itself after a broken connection. After a restart, use <b>Continue</b> in the strip at the top.</td></tr>
+      <tr><td>I want to undo a change from earlier.</td><td>Backups are kept in <code>~/.local/state/ai-agents-map/backups/</code>.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============================== Appendix ============================== -->
+<section class="chapter appendix" id="reference">
+  <h1>Reference</h1>
+
+  <h2 id="shortcuts">Keyboard shortcuts</h2>
+  <table class="keys">
+    <tbody>
+      <tr><th scope="row"><kbd>F1</kbd></th><td>Help</td></tr>
+      <tr><th scope="row"><kbd>Ctrl</kbd>+<kbd>,</kbd></th><td>Settings</td></tr>
+      <tr><th scope="row"><kbd>Ctrl</kbd>+<kbd>B</kbd></th><td>Show or hide the cards</td></tr>
+      <tr><th scope="row"><kbd>Ctrl</kbd>+<kbd>+</kbd> / <kbd>Ctrl</kbd>+<kbd>−</kbd> / <kbd>Ctrl</kbd>+<kbd>0</kbd></th><td>Zoom the map in, out, back to 100&nbsp;%</td></tr>
+      <tr><th scope="row"><kbd>Ctrl</kbd>+scroll</th><td>Zoom the map</td></tr>
+      <tr><th scope="row"><kbd>Shift</kbd>+click</th><td>Add to or remove from the selection</td></tr>
+      <tr><th scope="row"><kbd>Esc</kbd></th><td>Clear the selection; go back from a page</td></tr>
+      <tr><th scope="row"><kbd>Backspace</kbd></th><td>Go back from a page</td></tr>
+      <tr><th scope="row">Arrow keys</th><td>Move, open and close entries in the tree</td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="files">Files and folders</h2>
+  <table>
+    <thead><tr><th>Path</th><th>Contents</th></tr></thead>
+    <tbody>
+      <tr><td><code>~/.config/asterism/</code> <span class="badge">Asterism</span><br><code>~/.config/omarchy/ai-agents-map/</code> <span class="badge omarchy">Omarchy</span></td><td>Settings, the MCP server list, looked-up agents, failed connections.</td></tr>
+      <tr><td><code>~/.local/state/ai-agents-map/backups/</code></td><td>Backups of every file the app changed.</td></tr>
+      <tr><td><code>~/.local/state/ai-agents-map/jobs.json</code></td><td>Interrupted downloads and installs.</td></tr>
+      <tr><td><code>~/.local/state/ai-agents-map/reorganize.json</code></td><td>The journal of the last reorganize, for Undo.</td></tr>
+      <tr><td><code>~/.cache/ai-agents-map/</code></td><td>Scan results, tool lists, update checks.</td></tr>
+      <tr><td><code>~/.config/systemd/user/ai-agents-map-providers.service</code></td><td>The watcher that starts local LLMs with their agents.</td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="glossary">Glossary</h2>
+  <dl>
+    <dt>Context</dt><dd>How many tokens of text a model can keep in mind at once.</dd>
+    <dt>GGUF</dt><dd>The file format for models used by llama.cpp, LM Studio, Ollama and KoboldCpp.</dd>
+    <dt>Quantization</dt><dd>Storing a model with fewer bits per weight (for example <i>Q4_K_M</i>, about 4.8 bits) so it is smaller, with a small loss of quality.</dd>
+    <dt>Mixture of experts</dt><dd>A model where only part of the parameters work for each token (<i>35B-A3B</i>: 35 billion in all, 3 billion active), which makes it fast for its size.</dd>
+    <dt>Token</dt><dd>A piece of text, roughly three quarters of a word, that models read and write.</dd>
+    <dt>User service</dt><dd>A background program started by systemd for your user only, without administrator rights.</dd>
+  </dl>
+</section>
+
+</body>
+</html>
