@@ -1601,5 +1601,11 @@
  "{0} is updated to {1}.": "{0} zaktualizowano do {1}.",
  "{0} reads: {1}": "{0} odczytuje: {1}",
  "{0} was not installed: {1}": "{0} nie został zainstalowany: {1}",
- "{0} was not updated: {1}": "{0} nie został zaktualizowany: {1}"
+ "{0} was not updated: {1}": "{0} nie został zaktualizowany: {1}",
+ "add-on off": "dodatek wyłączony",
+ "add-on available": "dostępny dodatek",
+ "{0} is on this PC; its add-on is off": "{0} jest na tym komputerze; jego dodatek jest wyłączony",
+ "{0} is on this PC; an add-on shows it here": "{0} jest na tym komputerze; dodatek pokaże go tutaj",
+ "No add-on for {0} yet: Asterism only shows that it is installed (no sessions, security settings, MCP servers or skills).": "Brak jeszcze dodatku dla {0}: Asterism pokazuje tylko, że jest zainstalowany (bez sesji, ustawień bezpieczeństwa, serwerów MCP i umiejętności).",
+ "Ask for an add-on": "Poproś o dodatek"
 }

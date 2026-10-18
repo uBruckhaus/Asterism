@@ -195,6 +195,17 @@ class GraphTest(unittest.TestCase):
         self.assertEqual(graph.split_model("opus"), ("opus", ""))
 
 
+class AddonSuggestionTest(unittest.TestCase):
+    def test_dashed_box_per_suggestion(self):
+        import graph as g
+        import inventory as inv
+        built = g.build([], {}, inv.Inventory(), suggestions=[("kilo", "Kilo Code", "add-on available", "agent"),
+                                                               ("demo-llm", "Demo LLM", "add-on off", "provider")])
+        boxes = {n.id: n for n in built.nodes if n.kind == "add-addon"}
+        self.assertEqual((boxes["add:addon:kilo"].column, boxes["add:addon:kilo"].detail), (1, "add-on available"))
+        self.assertEqual(boxes["add:addon:demo-llm"].column, 2)
+        self.assertEqual(g.LAYER_OF["add-addon"], "agents")
+
 if __name__ == "__main__":
     unittest.main()
 

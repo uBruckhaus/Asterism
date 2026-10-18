@@ -337,6 +337,43 @@ class AgentsMap(SettingsPages, ThemeCss, AddonsPage, Adw.Application):
         self.collect()
         self.refresh_overview()
         self.refresh_map()
+        self.look_for_addons()          # what is still missing (from the cached catalog)
+
+    def look_for_addons(self):
+        """In the background: the signed add-on catalog (cached, read again every few hours) and its
+        detect hints (read-only) → add-ons whose agent or provider is on this PC but not shown yet:
+        a hint line, a dashed map box, "Suggested for this PC" on the Add-ons page."""
+        if addons is None or getattr(self, "addons_looking", False):
+            return
+        self.addons_looking = True
+        import addon_store
+
+        def work():
+            try:
+                entries = addon_store.catalog(addon_store.online())
+                return entries, {e.id for e in entries if e.kind in ("agent", "provider") and addon_store.present(e)}
+            except Exception:
+                return [], set()
+
+        def done(found):
+            entries, present = found
+            self.addons_looking = False
+            installed = {a.id: a for a in self.addons}
+            suggestions = []
+            for entry in entries:
+                addon = installed.get(entry.id)
+                if entry.id in present and (addon is None or addon.state == "verified"):
+                    suggestions.append((entry, "off" if addon is not None else "new"))
+            changed = [(e.id, s) for e, s in suggestions] != [(e.id, s) for e, s in
+                                                              getattr(self, "addon_suggestions", [])]
+            self.addon_suggestions = suggestions
+            self.addons_entries = entries
+            if changed:
+                self.refresh_overview()
+                self.refresh_map()
+            return False
+
+        threading.Thread(target=lambda: GLib.idle_add(done, work()), daemon=True).start()
 
     def addon_hooks(self, kind: str) -> list:
         return list(getattr(addon_api.HOOKS, kind)) if addon_api is not None else []
@@ -1392,6 +1429,13 @@ class AgentsMap(SettingsPages, ThemeCss, AddonsPage, Adw.Application):
                       ([(_("Add skills…"), self.open_add_skills)] if new_skills else [])
             self.hint_line(_("New on this PC: {0}").format(
                 listed([c.name for c in new_mcp] + [s.origin for s in new_skills], 5)), buttons)
+        for entry, state in getattr(self, "addon_suggestions", []):
+            if state == "off":
+                self.hint_line(_("{0} is on this PC; its add-on is off").format(entry.name),
+                               [(_("Switch on"), lambda e=entry: self.open_addons(select=e.id))])
+            else:
+                self.hint_line(_("{0} is on this PC; an add-on shows it here").format(entry.name),
+                               [(_("Get add-on"), lambda e=entry: self.open_addons(select=e.id))])
         versions = getattr(self, "new_versions", [])
         if versions:
             self.hint_line(_("New version found: {0} · + MCP server › Look inside… to use it").format(
@@ -2611,6 +2655,14 @@ class AgentsMap(SettingsPages, ThemeCss, AddonsPage, Adw.Application):
         harness = harnesses.get(agent.command)
         if sessions and harness is not None and harness.sessions is not None:
             self.fill_session_projects(body, sessions, harness)
+        if harness is None and hasattr(self, "open_addons"):
+            # No adapter, built in or from an add-on: say so, and where to ask for one.
+            self.note(body, _("No add-on for {0} yet: Asterism only shows that it is installed (no sessions, "
+                              "security settings, MCP servers or skills).").format(agent.name))
+            import urllib.parse
+            title = urllib.parse.quote(f"Add-on for {agent.name} ({agent.command})")
+            body.append(Gtk.LinkButton(uri=f"https://github.com/uBruckhaus/asterism-addons/issues/new?title={title}",
+                                       label=_("Ask for an add-on"), halign=Gtk.Align.START))
 
         body.append(self.health_security_card(agent, checks, security))
         self.settings_heading(body, _("Configuration"))
@@ -4979,6 +5031,8 @@ class AgentsMap(SettingsPages, ThemeCss, AddonsPage, Adw.Application):
         elif kind == "folders":
             self.folders_open = not getattr(self, "folders_open", False)
             self.refresh_map()
+        elif kind == "addon" and hasattr(self, "open_addons"):
+            self.open_addons(select=node.id.split(":", 2)[2])
         elif kind == "model":
             runtimes = {f"runtime:{rt.key}": rt for rt in self.inventory.runtimes if rt.installed}
             owners = [runtimes[o] for o in node.owners if o in runtimes]
@@ -5177,7 +5231,11 @@ class AgentsMap(SettingsPages, ThemeCss, AddonsPage, Adw.Application):
         labels["add_model"] = _("+ Model")
         labels["folders"] = (lambda n: _("− Fold unused folders")) if getattr(self, "folders_open", False) else \
             (lambda n: ngettext("+ 1 folder with unused models", "+ {0} folders with unused models", n).format(n))
-        built = graph.build(self.agent_list, details, self.inventory, labels, link_hints.load(), self.running)
+        # Dashed boxes show one line: the name and what is missing.
+        suggested = [(entry.id, f"{entry.name} · " + (_("add-on off") if state == "off" else _("add-on available")),
+                      "", entry.kind) for entry, state in getattr(self, "addon_suggestions", [])]
+        built = graph.build(self.agent_list, details, self.inventory, labels, link_hints.load(), self.running,
+                            suggested)
         headers = [_("MCP servers · skills"), _("Agents"), _("LLM providers"), _("Models")]
         hidden = set(ai_core.hidden_nodes())
         for view in (self.side_map,):
@@ -8409,6 +8467,7 @@ class AgentsMap(SettingsPages, ThemeCss, AddonsPage, Adw.Application):
         self.start_gpu_poll()
         self.research_new_agents()
         self.check_new_apps()
+        self.look_for_addons()
         self.run_health()
         self.launcher_entry_on_open()
         # Restarted after a language change: back on the settings page.

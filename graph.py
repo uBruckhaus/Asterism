@@ -32,7 +32,7 @@ MAX_MODELS_PER_PROVIDER = 10
 LAYERS = ("agents", "online", "local", "models", "mcp", "skills")
 LAYER_OF = {"agent": "agents", "cloud": "online", "runtime": "local", "model": "models", "more": "models",
             "mcp": "mcp", "add-mcp": "mcp", "skills": "skills", "add-skills": "skills", "add-model": "models",
-            "add-folders": "models"}
+            "add-folders": "models", "add-addon": "agents"}
 REQUIRES = {"models": ("online", "local"), "mcp": ("agents",), "skills": ("agents",)}   # any one of them
 
 
@@ -180,7 +180,7 @@ def split_model(model: str) -> tuple[str, str]:
 
 
 def build(agent_list, details: dict, inventory, labels: dict | None = None, failures: dict | None = None,
-          running: dict | None = None) -> Graph:
+          running: dict | None = None, suggestions=()) -> Graph:
     """agent_list: agents.Agent (installed ones are drawn); details: command ->
     agent_details.Details; labels: functions n -> translated text ("skills", "more");
     running: command -> the model of each open instance ("" = its settings')."""
@@ -298,6 +298,12 @@ def build(agent_list, details: dict, inventory, labels: dict | None = None, fail
     for server in inventory.mcp:
         if not server.agents:
             graph.add(Node(f"mcp:{server.name}", 0, server.name, labels.get("unused", "not used"), "mcp", dim=True))
+
+    # Add-ons whose harness is on this PC but not on the map yet (Asterism): a dashed box each, in the
+    # agents' or the providers' column, that opens its card on the Add-ons page.
+    # suggestions: (add-on id, name, detail, "agent" | "provider").
+    for addon_id, name, detail, kind in suggestions:
+        graph.add(Node(f"add:addon:{addon_id}", 1 if kind == "agent" else 2, name, detail, "add-addon", dim=True))
 
     # A box to add a new MCP server (on the map: opens the add page).
     graph.add(Node("add:mcp", 0, labels["add_mcp"], "", "add-mcp", dim=True))
