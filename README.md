@@ -2,7 +2,7 @@
 
 Your AI agents, models and tools on one map: a GTK 4 / libadwaita app.
 
-![An agent is connected to a local LLM, a model, an MCP server and a skill folder by drawing lines; then its pin and right-click menu](docs/setup-by-drawing.gif)
+![An agent is connected to a local LLM, a model, an MCP server and a skill folder by drawing lines; then its pin and right-click menu](docs/drawing-demo.gif)
 
 Asterism shows the AI setup on your computer as cards and a map:
 
