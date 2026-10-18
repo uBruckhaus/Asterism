@@ -13,7 +13,7 @@ import threading
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from gi.repository import Adw, Gio, GLib, Gtk
+from gi.repository import Adw, Gdk, Gio, GLib, GObject, Gtk
 
 import addon_api
 import addon_store
@@ -174,6 +174,10 @@ class AddonsPage:
             chips.append(chip)
             self.addons_chips[key] = chip
         page.append(chips)
+        drop = Gtk.Label(label=_("Drop an add-on (.zip from a folder, or a link from the web) anywhere on the "
+                                 "window to add it."), xalign=0, wrap=True)
+        drop.add_css_class("am-agent-detail")
+        page.append(drop)
         self.addons_status = Gtk.Label(xalign=0, wrap=True)
         self.addons_status.add_css_class("am-agent-detail")
         page.append(self.addons_status)
@@ -533,6 +537,48 @@ class AddonsPage:
                 self.toast(_("{0} is installed for every user; remove its package instead.").format(item.name), 8)
         dialog.connect("response", answered)
         dialog.present(self.window)
+
+    # --- drag & drop: an add-on zip from a folder, or a link from the web, anywhere on the window ---
+    def setup_addon_drop(self, window):
+        target = Gtk.DropTarget.new(GObject.TYPE_NONE, Gdk.DragAction.COPY | Gdk.DragAction.MOVE)
+        target.set_gtypes([Gdk.FileList, GObject.TYPE_STRING])
+        target.connect("drop", self.on_addon_drop)
+        window.add_controller(target)
+
+    def on_addon_drop(self, _target, value, _x, _y) -> bool:
+        path = url = None
+        if isinstance(value, Gdk.FileList):
+            files = value.get_files()
+            if files and files[0].get_path() and files[0].get_path().endswith(".zip"):
+                path = files[0].get_path()
+        elif isinstance(value, str):
+            line = next((l.strip() for l in value.splitlines() if l.strip() and not l.startswith("#")), "")
+            if line.startswith("file://") and line.endswith(".zip"):
+                path = Gio.File.new_for_uri(line).get_path()
+            elif line.startswith("https://") and line.endswith(".zip"):
+                url = line
+        if not path and not url:
+            return False                      # not an add-on: let others handle it
+        self.toast(_("Adding the add-on…"), 3)
+
+        def work():
+            try:
+                addon = addon_store.install_file(Path(path)) if path else addon_store.install_url(url)
+                return addon, ""
+            except addon_store.InstallError as error:
+                return None, str(error)
+
+        def done(found):
+            addon, error = found
+            if addon is None:
+                self.toast(_("Not installed: {0}").format(error), 8)
+            else:
+                self.reload_addons()
+                self.open_addons(select=addon.id)
+                self.toast(_("{0} is installed; switch it on on its card.").format(addon.name), 6)
+            return False
+        threading.Thread(target=lambda: GLib.idle_add(done, work()), daemon=True).start()
+        return True
 
     def addon_from_file(self):
         dialog = Gtk.FileDialog(title=_("Install an add-on from a file"))

@@ -1579,5 +1579,7 @@
  "{0} is installed.": "{0} is geïnstalleerd.",
  "{0} is not installed on this PC.": "{0} is niet op deze pc geïnstalleerd.",
  "{0} is removed.": "{0} is verwijderd.",
- "{0}: running in a terminal. Asterism looks again when it is done.": "{0}: draait in een terminal. Asterism kijkt opnieuw als het klaar is."
+ "{0}: running in a terminal. Asterism looks again when it is done.": "{0}: draait in een terminal. Asterism kijkt opnieuw als het klaar is.",
+ "Adding the add-on…": "Add-on wordt toegevoegd…",
+ "Drop an add-on (.zip from a folder, or a link from the web) anywhere on the window to add it.": "Sleep een add-on (.zip uit een map of een link van het web) ergens op het venster om het toe te voegen."
 }

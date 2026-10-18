@@ -1579,5 +1579,7 @@
  "{0} is installed.": "{0} está instalado.",
  "{0} is not installed on this PC.": "{0} não está instalado neste PC.",
  "{0} is removed.": "{0} foi removido.",
- "{0}: running in a terminal. Asterism looks again when it is done.": "{0}: a executar num terminal. O Asterism volta a verificar quando terminar."
+ "{0}: running in a terminal. Asterism looks again when it is done.": "{0}: a executar num terminal. O Asterism volta a verificar quando terminar.",
+ "Adding the add-on…": "A adicionar o complemento…",
+ "Drop an add-on (.zip from a folder, or a link from the web) anywhere on the window to add it.": "Largue um complemento (.zip de uma pasta ou uma ligação da web) em qualquer parte da janela para o adicionar."
 }
