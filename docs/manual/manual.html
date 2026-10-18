@@ -719,6 +719,64 @@
 </section>
 
 <!-- ============================== 12 Privacy ============================== -->
+<!-- ============================== Add-ons ============================== -->
+<section class="chapter" id="addons">
+  <h1>Add-ons <span class="badge">Asterism</span></h1>
+  <p>Everything Asterism understands about an agent or an LLM provider is an <b>adapter</b>: how it
+  is found and installed, its sessions, security settings, MCP servers and skills. Many are built
+  in; <b>add-ons</b> bring more — new agents, new providers, and features beyond the numbers, such as
+  <b>Insights</b> (session topics and a summary by Claude). The AI Agents Map plugin has no add-ons.</p>
+
+  <h2 id="addons-page">The Add-ons page</h2>
+  <p>Open it with the puzzle button in the header, from Settings › <b>Add-ons</b>, or from any
+  "add-on available" hint. It shows, as cards:</p>
+  <ul>
+    <li><b>Suggested for this PC</b> — an add-on whose agent or provider is installed here but not
+      shown yet;</li>
+    <li><b>Installed add-ons</b> — on, off, or <i>not loaded</i> with the reason (for example a changed file);</li>
+    <li><b>Available</b> — the other add-ons of the catalog;</li>
+    <li><b>Built into Asterism</b> — the agents, local LLMs and online providers that need no add-on,
+      each with what Asterism knows about it.</li>
+  </ul>
+  <p>Search finds names, descriptions and what an add-on reads; the chips above narrow the list to
+  agents, providers, features, the installed ones or those with an update. Click a card for its
+  details: what it reads, what it sends, what it may do, and its privacy level.</p>
+
+  <h2 id="addons-install">Installing, switching on and off, updating, removing</h2>
+  <p><b>Install</b> (or <b>Get add-on</b>) first shows what the add-on reads, sends and may do; only
+  after your OK is it downloaded, checked and switched on. <b>Switch off</b> and <b>Switch on</b>
+  work at once, without a restart: its agents, providers, sections and cards appear or disappear
+  everywhere. <b>Update</b> replaces it with the newer version from the catalog, after the new one
+  was checked; <b>Remove</b> moves it to the trash. <b>Install from file…</b> takes an add-on zip
+  you downloaded yourself; the same checks apply.</p>
+
+  <div class="tip"><p><b>Only from the author.</b> Asterism loads only add-ons signed by Uwe
+  Bruckhaus (key fingerprint <code>SHA256:e5cC634Ke3Our5LAeSc88qs22NKZEHTncBW5Ig3amWQ</code>). Before
+  anything of an add-on runs, the signature is checked with OpenSSH's <code>ssh-keygen</code>, every
+  file is compared with its SHA-256, and no file may have been added. A download must also match the
+  SHA-256 in the signed catalog.</p></div>
+
+  <h2 id="addons-privacy">Privacy levels</h2>
+  <table class="first-nowrap">
+    <thead><tr><th>Level</th><th>What the add-on may read or send</th></tr></thead>
+    <tbody>
+      <tr><td><b>Numbers only</b></td><td>Counts, times, tokens, lines changed, cost — what Asterism shows without add-ons.</td></tr>
+      <tr><td><b>Session titles</b></td><td>The titles an agent gave its sessions itself (never the conversations).</td></tr>
+      <tr><td><b>Titles and a summary by Claude</b></td><td>Those titles and numbers, sent to your own Claude Code — only on a click, after a preview of exactly what is sent.</td></tr>
+    </tbody>
+  </table>
+  <p>An add-on can never do more than its level allows. Adding an agent or a provider, or installing a
+  program, are separate permissions that the card names.</p>
+
+  <h2 id="addons-new-harness">A new agent on your computer</h2>
+  <p>When you install an agent Asterism does not know yet, it looks in the catalog (Settings ›
+  <b>Look for add-ons online</b>, on by default: the list is read from GitHub every few hours, nothing
+  is sent but the request). If an add-on knows that agent, you see a line at the bottom of the cards
+  (<i>"Kilo Code is on this PC; an add-on shows it here"</i>), a dashed box in the map's agents column
+  and a card under <b>Suggested for this PC</b>; one click installs it. If no add-on exists yet, the
+  agent's details say so, with a link to ask for one.</p>
+</section>
+
 <section class="chapter" id="privacy">
   <h1>Privacy and safety</h1>
   <ul>
