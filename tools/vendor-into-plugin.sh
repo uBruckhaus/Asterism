@@ -7,8 +7,9 @@ root=$(cd "$(dirname "$0")/.." && pwd)
 plugin=${1:?usage: vendor-into-plugin.sh <plugin checkout>}
 [ -f "$plugin/manifest.json" ] && [ -f "$plugin/BarWidget.qml" ] || { echo "not the plugin: $plugin" >&2; exit 1; }
 [ -z "$(git -C "$root" status --porcelain)" ] || { echo "commit Asterism first" >&2; exit 1; }
-# Asterism-only modules (and their tests) stay out of the plugin: session titles and the Claude
-# summary are not part of what the marketplace reviewed (ai_popup works without them).
+# Asterism-only modules (and their tests) stay out of the plugin: everything above edition.NUMBERS
+# (session titles and the Claude summary) is not part of what the marketplace reviewed, and its
+# absence is what limits the plugin to numbers (edition.maximum(); ai_popup works without it).
 ASTERISM_ONLY="session_topics.py"
 for file in "$root"/*.py; do
     case " $ASTERISM_ONLY " in *" $(basename "$file") "*) continue ;; esac

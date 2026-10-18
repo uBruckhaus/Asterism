@@ -58,5 +58,35 @@ class TopicsTest(unittest.TestCase):
         self.assertNotIn("\x00", answer)
 
 
+
+class DatabaseTitlesTest(unittest.TestCase):
+    """OpenCode's and Hermes's own titles: top-level sessions only, as plain text."""
+
+    def setUp(self):
+        import sqlite3
+        import test_harnesses as th
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.opencode, self.hermes = Path(tmp.name) / "opencode.db", Path(tmp.name) / "state.db"
+        th.opencode_db(self.opencode)
+        th.hermes_db(self.hermes)
+        db = sqlite3.connect(self.opencode)
+        db.execute("UPDATE session_v2 SET title = ? WHERE id = 'c'", ("bad\x1b[31m title",))
+        db.commit()
+        db.close()
+
+    def test_titles(self):
+        self.assertEqual(st.opencode_titles(self.opencode), {"a": "Fix the parser", "c": "bad [31m title"})
+        self.assertEqual(st.hermes_titles(self.hermes), {"h1": "Deploy"})
+        self.assertEqual(st.opencode_titles(self.opencode.with_name("none.db")), {})
+
+    def test_summary_names_the_harness(self):
+        import harness_hermes
+        sessions = harness_hermes.collect(self.hermes)
+        text = st.summary_text(sessions, st.hermes_titles(self.hermes), 0, "Hermes")
+        self.assertIn("my Hermes sessions", text)
+        self.assertIn("Deploy", text)
+
+
 if __name__ == "__main__":
     unittest.main()

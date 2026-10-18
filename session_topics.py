@@ -1,15 +1,16 @@
-"""Asterism only (not in the AI Agents Map plugin): Claude Code's sessions under their own titles,
-and a written summary of the last 30 days by Claude itself.
+"""Asterism only (not in the AI Agents Map plugin): a harness's sessions under their own titles,
+and a written summary of the last 30 days by Claude itself (edition.TITLES and edition.SUMMARY).
 
-- Titles: Claude Code names each session itself ("type":"ai-title" lines in its session files).
-  Only those lines are parsed (bounded and incremental, like claude_sessions); the titles are cached
-  owner-only and shown as plain text.
+- Titles: the titles each harness gave its sessions itself, read by TITLES[command]:
+  Claude Code's "type":"ai-title" lines in its session files (only those lines are parsed, bounded
+  and incremental like claude_sessions, cached owner-only); OpenCode's and Hermes's title column
+  (read-only, the id and title columns only). Shown as plain text.
 - Summarize: on a click, the titles and numbers (never the conversations) go to the user's own
   `claude -p`, after a preview of exactly that text. Claude runs in plan mode (no changes, no
   commands), without MCP servers, without saving a session, in an empty temporary folder, with the
   text on stdin and a bounded answer.
 
-ai_popup calls fill(app, body, sessions_by_id, since) when this module can be imported.
+ai_popup calls fill(app, body, harness, sessions_by_id, since) when this module can be imported.
 """
 
 import json
@@ -29,6 +30,9 @@ from gi.repository import Adw, GLib, Gtk  # noqa: E402
 
 import ai_core  # noqa: E402
 import claude_sessions  # noqa: E402
+import harness_hermes  # noqa: E402
+import harness_opencode  # noqa: E402
+import harnesses  # noqa: E402
 import inventory  # noqa: E402
 from i18n import _, ngettext  # noqa: E402
 
@@ -128,11 +132,38 @@ def collect_titles(root: Path = claude_sessions.ROOT, cache: Path = CACHE) -> di
             if isinstance(sid, str) and clean_title(t)}
 
 
-def summary_text(sessions: dict, titles: dict, since: float) -> str:
+def _db_titles(db_path: Path, sql: str) -> dict:
+    db = harnesses.connect(db_path)
+    if db is None:
+        return {}
+    try:
+        rows = db.execute(sql, (harnesses.MAX_SESSIONS,)).fetchall()
+    except Exception:
+        return {}
+    finally:
+        db.close()
+    return {str(sid): clean_title(title) for sid, title in rows if clean_title(title)}
+
+
+def opencode_titles(db_path: Path = harness_opencode.DB) -> dict:
+    return _db_titles(db_path, "SELECT id, title FROM session_v2 WHERE parent_id IS NULL AND title IS NOT NULL"
+                               " ORDER BY time_created DESC LIMIT ?")
+
+
+def hermes_titles(db_path: Path = harness_hermes.DB) -> dict:
+    return _db_titles(db_path, "SELECT id, title FROM sessions WHERE parent_session_id IS NULL"
+                               " AND title IS NOT NULL ORDER BY started_at DESC LIMIT ?")
+
+
+TITLES = {"claude": lambda: collect_titles(), "opencode": lambda: opencode_titles(),
+          "hermes": lambda: hermes_titles()}
+
+
+def summary_text(sessions: dict, titles: dict, since: float, name: str = "Claude Code") -> str:
     """What Summarize sends: per project, its sessions' titles with time and tokens. No conversation."""
     from datetime import datetime
-    lines = ["Below are my Claude Code sessions of the last 30 days: project folder, then each session's "
-             "title (as Claude Code named it), date, working time and tokens. Summarize in a few short "
+    lines = [f"Below are my {name} sessions of the last 30 days: project folder, then each session's "
+             f"title (as {name} named it), date, working time and tokens. Summarize in a few short "
              "paragraphs what I mainly worked on, which topics took the most time and tokens, and anything "
              "worth noticing. Plain text, no headings."]
     by_project: dict[str, list] = {}
@@ -174,14 +205,17 @@ def short_number(n: int) -> str:
     return str(n)
 
 
-def fill(app, body, sessions: dict, since: float):
+def fill(app, body, harness, sessions: dict, since: float):
     """Under the projects: each project's sessions by title, and Summarize."""
+    reader = TITLES.get(harness.command)
+    if reader is None:
+        return
     titles_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
     body.append(titles_box)
 
     def work():
         try:
-            titles = collect_titles()
+            titles = reader()
         except Exception:
             titles = {}
         GLib.idle_add(done, titles)
@@ -189,13 +223,13 @@ def fill(app, body, sessions: dict, since: float):
     def done(titles):
         if titles_box.get_parent() is None:
             return False                    # the page was left
-        show(titles_box, app, sessions, titles, since)
+        show(titles_box, app, sessions, titles, since, harness.name)
         return False
 
     threading.Thread(target=work, daemon=True).start()
 
 
-def show(box, app, sessions: dict, titles: dict, since: float):
+def show(box, app, sessions: dict, titles: dict, since: float, name: str = "Claude Code"):
     recent = {sid: s for sid, s in sessions.items() if s.last >= since}
     if not recent:
         return
@@ -217,13 +251,15 @@ def show(box, app, sessions: dict, titles: dict, since: float):
         listbox.append(expander)
     box.append(listbox)
 
+    if shutil.which("claude") is None:
+        return                              # Summarize runs the user's own Claude Code
     result = Gtk.Label(xalign=0, wrap=True, selectable=True, visible=False)
     result.add_css_class("card")
     result.add_css_class("am-summary")
     summarize = Gtk.Button(label=_("Summarize with Claude…"), halign=Gtk.Align.START)
     summarize.set_tooltip_text(_("Sends the titles and numbers above (no conversations) to Claude Code and "
                                  "shows what it writes. Uses some tokens."))
-    summarize.connect("clicked", lambda *_a: ask(app, summarize, result, summary_text(recent, titles, since)))
+    summarize.connect("clicked", lambda *_a: ask(app, summarize, result, summary_text(recent, titles, since, name)))
     box.append(summarize)
     box.append(result)
 
