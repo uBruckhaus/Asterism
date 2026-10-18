@@ -1,6 +1,6 @@
 """GitHub Copilot CLI."""
 
-from harnesses import Harness, Mcp, Skills
+from harnesses import Harness, Mcp, Skills, Way
 from i18n import _
 
 
@@ -36,4 +36,6 @@ def _security(report):
 HARNESS = Harness("copilot", "GitHub Copilot", label="Copilot", full_name="GitHub Copilot", icon="\uf4b8",
                   security=_security, access=_access,
                   skills=Skills(("~/.copilot/skills", "~/.agents/skills"), "~/.copilot/skills"),
-                  mcp=Mcp("~/.copilot/mcp-config.json", shape="copilot"))
+                  mcp=Mcp("~/.copilot/mcp-config.json", shape="copilot"),
+                  install=(Way("mise", spec="copilot"),),
+                  data=("~/.copilot",))

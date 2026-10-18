@@ -1,6 +1,6 @@
 """Antigravity CLI (installed by this app: install_ctl.Agy)."""
 
-from harnesses import Harness
+from harnesses import Harness, Way
 
 
 def _installer():
@@ -9,4 +9,5 @@ def _installer():
 
 
 HARNESS = Harness("agy", "Antigravity CLI", label="Antigravity CLI", icon="\U000f02ad", installer=_installer,
-                  offered=False)
+                  offered=False,
+                  install=(Way("installer"),))

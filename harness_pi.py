@@ -1,6 +1,6 @@
 """Pi."""
 
-from harnesses import Harness, LocalLlm, Mcp, Skills, ref
+from harnesses import Harness, LocalLlm, Mcp, Skills, Way, ref
 from i18n import _
 
 
@@ -109,4 +109,6 @@ HARNESS = Harness("pi", "Pi", label="Pi", full_name="Pi", icon="\ue901", icon_fo
                   skills=Skills(("~/.pi/agent/skills", "~/.agents/skills"), "~/.pi/agent/skills",
                                 settings_list=True, listed=_skills_listed,
                                 settings_file="~/.pi/agent/settings.json", write=_skills_text),
-                  mcp=Mcp("~/.pi/agent/mcp.json"))
+                  mcp=Mcp("~/.pi/agent/mcp.json"),
+                  install=(Way("mise", spec="pi"),),
+                  data=("~/.pi",))

@@ -31,6 +31,8 @@ class Provider:
     connect_label: str = ""           # its display name there ("llama.cpp (local)")
     stays_up: bool = False            # the watcher unloads its model instead of stopping it
     unload: tuple | None = None       # (path, JSON body) of its unload request
+    install: tuple = ()               # ways to install / remove it (harnesses.Way), best first
+    data: tuple = ()                  # "~/…" folders with its models and settings: never removed by us
     # online providers
     ids: tuple = ()                   # names used in agent settings ("anthropic", "openai-codex")
     agents: tuple = field(default=())  # agents that come with this provider ("claude")

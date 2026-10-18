@@ -1,5 +1,6 @@
 """vLLM: a vLLM server for one model."""
 
+from harnesses import Way
 from providers import Provider
 
 
@@ -14,4 +15,5 @@ def _installer():
 
 
 PROVIDER = Provider("vllm", "vLLM", "local", detect=_detect, installer=_installer,
-                    connect_key="vllm-local", connect_label="vLLM (local)")
+                    connect_key="vllm-local", connect_label="vLLM (local)",
+                    install=(Way("installer"),))

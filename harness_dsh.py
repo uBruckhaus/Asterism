@@ -1,6 +1,6 @@
 """DeepSeek Harness (installed by this app: install_ctl.Dsh)."""
 
-from harnesses import Harness, LocalLlm, Mcp, Skills, ref
+from harnesses import Harness, LocalLlm, Mcp, Skills, Way, ref
 from i18n import _
 
 
@@ -39,4 +39,6 @@ HARNESS = Harness("dsh", "DeepSeek Harness", label="DeepSeek Harness", icon="\U0
                   skills=Skills(("~/.dsh/skills", "~/.agents/skills"), "~/.dsh/skills"),
                   mcp=Mcp("~/.dsh/profiles/web/cordis.patch.yml", format="yaml", key="",
                           read=ref("dsh_ctl", "mcp_servers"), write=ref("dsh_ctl", "mcp_text"),
-                          native=ref("dsh_ctl", "mcp_config")))
+                          native=ref("dsh_ctl", "mcp_config")),
+                  install=(Way("installer"),),
+                  data=("~/.dsh",))

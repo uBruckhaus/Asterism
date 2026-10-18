@@ -10,7 +10,7 @@ import sqlite3
 from pathlib import Path
 
 import harnesses
-from harnesses import Harness, LocalLlm, Mcp, Session, Sessions, Skills, ref
+from harnesses import Harness, LocalLlm, Mcp, Session, Sessions, Skills, Way, ref
 from i18n import _
 
 DB = Path.home() / ".hermes/state.db"
@@ -228,4 +228,8 @@ HARNESS = Harness("hermes", "Hermes", sessions=Sessions(collect, _note), label="
                                 listed=_skills_listed, settings_file="~/.hermes/config.yaml",
                                 write=_skills_text),
                   mcp=Mcp("~/.hermes/config.yaml", format="yaml", key="mcp_servers"),
-                  short_model_flag=True)
+                  short_model_flag=True,
+                  install=(Way("command", argv=("omarchy-install-hermes-cli", "--now"), sudo=True),
+                           Way("package", packages=(("pacman", "hermes-desktop"),)),
+                           Way("manual", url="https://github.com/NousResearch/hermes-agent")),
+                  data=("~/.hermes",))

@@ -1,6 +1,6 @@
 """OpenClaw (the openclaw pacman package)."""
 
-from harnesses import Harness, Mcp, Skills
+from harnesses import Harness, Mcp, Skills, Way
 
 
 # --- skills (skills_ctl) --------------------------------------------------------------------------
@@ -43,4 +43,7 @@ HARNESS = Harness("openclaw", "OpenClaw", label="OpenClaw", icon="\ue90c", icon_
                   package="openclaw", package_only=True,
                   skills=Skills(("~/.openclaw/skills", "~/.agents/skills"), "~/.openclaw/skills",
                                 listed=_skills_listed),
-                  mcp=Mcp("~/.openclaw/openclaw.json", key="mcp.servers", shape="openclaw", write=_mcp_text))
+                  mcp=Mcp("~/.openclaw/openclaw.json", key="mcp.servers", shape="openclaw", write=_mcp_text),
+                  install=(Way("command", argv=("omarchy-install-openclaw-cli", "--now"), sudo=True),
+                           Way("package", packages=(("pacman", "openclaw"),))),
+                  data=("~/.openclaw",))

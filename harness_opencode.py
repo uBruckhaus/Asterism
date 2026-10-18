@@ -11,7 +11,7 @@ import sqlite3
 from pathlib import Path
 
 import harnesses
-from harnesses import Harness, LocalLlm, Mcp, Session, Sessions, Skills, ref
+from harnesses import Harness, LocalLlm, Mcp, Session, Sessions, Skills, Way, ref
 from i18n import _
 
 DB = Path.home() / ".local/share/opencode/opencode.db"
@@ -152,4 +152,6 @@ HARNESS = Harness("opencode", "OpenCode", sessions=Sessions(collect, _note), lab
                   skills=Skills(("~/.config/opencode/skills", "~/.claude/skills", "~/.agents/skills"),
                                 "~/.config/opencode/skills"),
                   mcp=Mcp("~/.config/opencode/opencode.json", key="mcp", shape="opencode"),
-                  short_model_flag=True)
+                  short_model_flag=True,
+                  install=(Way("mise", spec="opencode"),),
+                  data=("~/.local/share/opencode", "~/.config/opencode"))

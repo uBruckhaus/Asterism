@@ -60,6 +60,21 @@ class Mcp:
 
 
 @dataclass(frozen=True)
+class Way:
+    """One way to install (and remove) an agent or a local LLM; install_recipes picks the first that
+    works on this PC. The app runs a way itself only in a terminal window the user watches (sudo asks
+    for the password there), and always shows the exact command too."""
+    kind: str                         # installer | mise | tool | command | package | manual
+    spec: str = ""                    # mise: its tool spec; tool: the package name
+    tool: str = ""                    # tool: npm | pipx | uv
+    argv: tuple = ()                  # command: the desktop's own installer (e.g. Omarchy's), plain words
+    sudo: bool = False                # command: it asks for the password (in the terminal)
+    packages: tuple = ()              # package: ((manager, name), …), e.g. (("pacman", "hermes-desktop"),)
+    url: str = ""                     # manual: where to get it
+    note: str = ""                    # manual: one line of instruction (English)
+
+
+@dataclass(frozen=True)
 class LocalLlm:
     """How an agent is pointed at a local LLM (connect.plan): its settings files and three functions
     over their texts (in the order of `files`)."""
@@ -109,6 +124,8 @@ class Harness:
     mcp: Mcp | None = None
     short_model_flag: bool = False    # takes -m for its model (provider_watch)
     self_update: tuple = ()           # argv of its own updater for its own install (("claude", "update"))
+    install: tuple = ()               # ways to install / remove it (Way), best first
+    data: tuple = ()                  # "~/…" folders with its settings and sessions: never removed by us
     latest: Callable | None = None    # latest(channel) -> newest version for self_update
 
 

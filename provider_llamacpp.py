@@ -1,5 +1,6 @@
 """llama.cpp: llama-server with its models folder (router mode) or one model."""
 
+from harnesses import Way
 from providers import Provider
 
 
@@ -14,4 +15,5 @@ def _installer():
 
 
 PROVIDER = Provider("llamacpp", "llama.cpp", "local", detect=_detect, installer=_installer,
-                    connect_key="llama-local", connect_label="llama.cpp (local)")
+                    connect_key="llama-local", connect_label="llama.cpp (local)",
+                    install=(Way("installer"),))

@@ -1,6 +1,6 @@
 """Charm's Crush."""
 
-from harnesses import Harness, Mcp, Skills
+from harnesses import Harness, Mcp, Skills, Way
 from i18n import _
 
 
@@ -24,4 +24,6 @@ HARNESS = Harness("crush", "Crush", label="Crush", icon="\U000f02d1", access=_ac
                                  "~/.claude/skills"),
                                 "~/.config/crush/skills", listed=_skills_listed),
                   mcp=Mcp("~/.config/crush/crush.json", key="mcp", shape="crush"),
-                  short_model_flag=True)
+                  short_model_flag=True,
+                  install=(Way("mise", spec="crush"),),
+                  data=("~/.config/crush", "~/.local/share/crush"))

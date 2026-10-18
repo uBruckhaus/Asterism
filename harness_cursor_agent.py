@@ -1,6 +1,6 @@
 """Cursor CLI."""
 
-from harnesses import Harness, Mcp, Skills
+from harnesses import Harness, Mcp, Skills, Way
 from i18n import _
 
 
@@ -56,4 +56,6 @@ HARNESS = Harness("cursor-agent", "Cursor CLI", label="Cursor CLI", icon="\ue90d
                   login_status=(("cursor-agent", "status"), "not logged in", "logged in"),
                   skills=Skills(("~/.cursor/skills", "~/.agents/skills", "~/.claude/skills", "~/.codex/skills"),
                                 "~/.cursor/skills"),
-                  mcp=Mcp("~/.cursor/mcp.json"))
+                  mcp=Mcp("~/.cursor/mcp.json"),
+                  install=(Way("mise", spec="cursor-agent"),),
+                  data=("~/.cursor", "~/.config/cursor"))

@@ -2,7 +2,7 @@
 what it needs to sign in, skills, MCP servers (~/.claude.json) and its own updater."""
 
 import claude_sessions
-from harnesses import Harness, Mcp, Sessions, Skills, ref
+from harnesses import Harness, Mcp, Sessions, Skills, Way, ref
 from i18n import _
 
 
@@ -65,4 +65,6 @@ HARNESS = Harness("claude", "Claude Code", sessions=Sessions(claude_sessions.col
                   label="Claude", full_name="Claude Code", icon="\U000f06c4", security=_security,
                   access=_access, skills=Skills(("~/.claude/skills",), "~/.claude/skills"),
                   mcp=Mcp("~/.claude.json", format="claude", shape="claude"),
-                  self_update=("claude", "update"), latest=ref("agent_updates", "claude_channel_latest"))
+                  self_update=("claude", "update"), latest=ref("agent_updates", "claude_channel_latest"),
+                  install=(Way("mise", spec="claude"),),
+                  data=("~/.claude", "~/.claude.json"))

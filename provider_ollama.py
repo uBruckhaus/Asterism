@@ -1,5 +1,6 @@
 """Ollama: the ollama service and its model store."""
 
+from harnesses import Way
 from providers import Provider
 
 
@@ -14,4 +15,6 @@ def _installer():
 
 
 PROVIDER = Provider("ollama", "Ollama", "local", detect=_detect, installer=_installer,
-                    connect_key="ollama-local", connect_label="Ollama (local)")
+                    connect_key="ollama-local", connect_label="Ollama (local)",
+                    install=(Way("installer"), Way("package", packages=(("pacman", "ollama"),))),
+                    data=("~/.ollama",))

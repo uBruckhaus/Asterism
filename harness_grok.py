@@ -1,6 +1,6 @@
 """xAI's Grok CLI."""
 
-from harnesses import Harness, Mcp, Skills
+from harnesses import Harness, Mcp, Skills, Way
 from i18n import _
 
 
@@ -22,4 +22,6 @@ def _skills_listed():
 HARNESS = Harness("grok", "Grok", label="Grok", icon="\ue904", icon_font="omarchy",
                   spec="npm:@xai-official/grok", access=_access,
                   skills=Skills(("~/.grok/skills",), "~/.grok/skills", listed=_skills_listed),
-                  mcp=Mcp("~/.grok/config.toml", format="toml", key="mcp_servers"))
+                  mcp=Mcp("~/.grok/config.toml", format="toml", key="mcp_servers"),
+                  install=(Way("mise", spec="npm:@xai-official/grok"),),
+                  data=("~/.grok",))

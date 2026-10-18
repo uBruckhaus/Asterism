@@ -1,6 +1,6 @@
 """OpenAI's Codex CLI."""
 
-from harnesses import Harness, Mcp, Skills
+from harnesses import Harness, Mcp, Skills, Way
 from i18n import _
 
 
@@ -58,4 +58,6 @@ HARNESS = Harness("codex", "Codex", label="Codex", icon="\ue905", icon_font="oma
                   access=_access,
                   skills=Skills(("~/.agents/skills", "~/.codex/skills"), "~/.codex/skills"),
                   mcp=Mcp("~/.codex/config.toml", format="toml", key="mcp_servers", shape="codex"),
-                  short_model_flag=True)
+                  short_model_flag=True,
+                  install=(Way("mise", spec="codex"),),
+                  data=("~/.codex",))
