@@ -26,11 +26,22 @@ import harnesses
 
 HOME = Path.home()
 SHARED = "~/.agents/skills"
-# From the agent adapters (harnesses.py): the folders each agent reads by itself, its own folder
-# (where its links go) and the agents whose settings keep a folder list we write.
-NATIVE = {h.command: list(h.skills.dirs) for h in harnesses.all_harnesses() if h.skills is not None}
-OWN = {h.command: h.skills.own for h in harnesses.all_harnesses() if h.skills is not None}
-SETTINGS_LIST = tuple(h.command for h in harnesses.all_harnesses() if h.skills is not None and h.skills.settings_list)
+
+
+def _rebuild():
+    """Tables from the adapters (run again when add-ons add or remove some)."""
+    global NATIVE, OWN, SETTINGS_LIST
+    # The folders each agent reads by itself, its own folder (where its links go) and the agents whose
+    # settings keep a folder list we write (Harness.skills).
+    with_skills = [h for h in harnesses.all_harnesses() if h.skills is not None]
+    NATIVE = {h.command: list(h.skills.dirs) for h in with_skills}
+    OWN = {h.command: h.skills.own for h in with_skills}
+    SETTINGS_LIST = tuple(h.command for h in with_skills if h.skills.settings_list)
+
+
+_rebuild()
+harnesses.on_change(_rebuild)
+
 MAX_SKILLS = 200
 
 

@@ -284,9 +284,16 @@ def pi(today: dt.date | None = None, root: Path = HOME) -> Usage | None:
     return usage
 
 
-# Agents whose own session store the readers above know (from the agent adapters).
-READERS = {h.command: h.usage for h in harnesses.all_harnesses() if h.usage is not None}
+def _rebuild():
+    """Agents whose own session store can be read, and agents that tell their sign-in state
+    themselves (argv, text meaning "no", text meaning "yes"); run again when add-ons change agents."""
+    global READERS, STATUS_COMMANDS
+    READERS = {h.command: h.usage for h in harnesses.all_harnesses() if h.usage is not None}
+    STATUS_COMMANDS = {h.command: h.login_status for h in harnesses.all_harnesses() if h.login_status}
 
+
+_rebuild()
+harnesses.on_change(_rebuild)
 
 def usage_for(command: str, record: dict) -> Usage | None:
     """The best numbers there are for an agent: Omarchy's record, else its own store."""
@@ -315,10 +322,6 @@ def access_table() -> dict:
     """Per agent: what it needs to work (from the agent adapters; built on each call, so it follows
     the interface language)."""
     return {h.command: h.access() for h in harnesses.all_harnesses() if h.access is not None}
-
-
-# Agents that tell their sign-in state themselves: argv, text meaning "no", text meaning "yes".
-STATUS_COMMANDS = {h.command: h.login_status for h in harnesses.all_harnesses() if h.login_status}
 
 
 def login_state(command: str) -> bool | None:

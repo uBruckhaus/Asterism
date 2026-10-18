@@ -29,6 +29,8 @@ from pathlib import Path
 
 import addon_api
 import ai_core
+import harnesses
+import providers
 
 # Uwe Bruckhaus's add-on signing key (fingerprint SHA256:e5cC634Ke3Our5LAeSc88qs22NKZEHTncBW5Ig3amWQ).
 ALLOWED_SIGNERS = ('addons@asterism namespaces="asterism-addon" '
@@ -63,6 +65,7 @@ class Addon:
     harnesses: list = field(default_factory=list)
     reads: list = field(default_factory=list)
     sends: list = field(default_factory=list)
+    capabilities: list = field(default_factory=list)    # "agent", "provider", "installer"
     state: str = "refused"           # refused | verified | loaded | failed
     reason: str = ""
     files: dict = field(default_factory=dict, repr=False)    # path -> verified bytes
@@ -202,8 +205,12 @@ def verify(folder: Path, signers: str = ALLOWED_SIGNERS, uid: int | None = None)
         return _refuse(addon, "unknown privacy level")
     addon.name = " ".join(str(meta.get("name") or folder.name).split())[:80]
     addon.version, addon.api, addon.privacy = version, api, addon_api.PRIVACY[privacy]
+    capabilities = meta.get("capabilities", [])
+    if not isinstance(capabilities, list) or not all(c in addon_api.CAPABILITIES for c in capabilities):
+        return _refuse(addon, "unknown capabilities")
     addon.harnesses, addon.reads, addon.sends = (_texts(meta.get("harnesses")), _texts(meta.get("reads")),
                                                  _texts(meta.get("sends")))
+    addon.capabilities = sorted(set(capabilities))
     addon.files, addon.state, addon.reason = files, "verified", ""
     return addon
 
@@ -228,7 +235,7 @@ def load(addon: Addon, hooks: addon_api.Hooks = addon_api.HOOKS) -> Addon:
         return addon
     module = types.ModuleType(f"asterism_addon_{addon.id.replace('-', '_')}")
     module.__file__ = str(addon.folder / "addon.py")
-    api = addon_api.AddonAPI(addon.id, addon.privacy, strings(addon), hooks)
+    api = addon_api.AddonAPI(addon.id, addon.privacy, strings(addon), hooks, addon.capabilities)
     try:
         exec(compile(addon.files["addon.py"], module.__file__, "exec"), module.__dict__)
         register = getattr(module, "register", None)
@@ -242,6 +249,8 @@ def load(addon: Addon, hooks: addon_api.Hooks = addon_api.HOOKS) -> Addon:
             registry[:] = [entry for entry in registry if entry[0] != addon.id]
         for command in list(hooks.titles):
             hooks.titles[command] = [entry for entry in hooks.titles[command] if entry[0] != addon.id]
+        harnesses.remove_added(addon.id)
+        providers.remove_added(addon.id)
         return addon
     hooks.privacy[addon.id] = addon.privacy
     addon.state = "loaded"
@@ -264,12 +273,17 @@ def find(dirs=(USER_DIR, SYSTEM_DIR)) -> list:
 
 def load_all(enabled, dirs=(USER_DIR, SYSTEM_DIR), signers: str = ALLOWED_SIGNERS,
              hooks: addon_api.Hooks = addon_api.HOOKS) -> list:
-    """Verify every add-on found (to show its state) and load the ones switched on."""
+    """Verify every add-on found (to show its state) and load the ones switched on; then the
+    modules rebuild their tables, so the add-ons' agents and providers appear everywhere."""
     hooks.clear()
+    harnesses.remove_added()
+    providers.remove_added()
     result = []
     for folder in find(dirs):
         addon = verify(folder, signers)
         if addon.state == "verified" and addon.id in enabled:
             load(addon, hooks)
         result.append(addon)
+    harnesses.changed()
+    providers.changed()
     return result

@@ -34,18 +34,27 @@ _MENU_RE = re.compile(r'^\s*"setup\.default\.agent\.([a-z0-9-]{1,64})"\s*:\s*(\{
 _EXEC_RE = re.compile(r'^exec mise x "([^"\n]{1,512})" -- "([A-Za-z0-9._-]{1,64})" "\$@"$', re.MULTILINE)
 _SEMVERISH = re.compile(r"[0-9][0-9A-Za-z.+_-]{0,63}")
 
-# Built from the agent adapters (harnesses.py, one harness_<command>.py per agent):
-# Omarchy's list as of 4.0 (omarchy-default-agent), used when its menu file cannot be read
-# (icons: Nerd Font, or Omarchy's own "omarchy" font) ...
-FALLBACK = [(h.command, h.label, h.icon, h.icon_font) for h in harnesses.all_harnesses() if h.offered]
-# ... fuller names than the menu's short labels ...
-NAMES = {h.command: h.full_name for h in harnesses.all_harnesses() if h.full_name}
-# ... mise tool specs that differ from the command (omarchy-default-agent's agent_package) ...
-SPECS = {h.command: h.spec for h in harnesses.all_harnesses() if h.spec}
+
+def _rebuild():
+    """Tables from the agent adapters (harnesses.py); run again when add-ons add or remove agents."""
+    global FALLBACK, NAMES, SPECS, EXTRA
+    adapters = harnesses.all_harnesses()
+    # Omarchy's list as of 4.0 (omarchy-default-agent), used when its menu file cannot be read
+    # (icons: Nerd Font, or Omarchy's own "omarchy" font).
+    FALLBACK = [(h.command, h.label, h.icon, h.icon_font) for h in adapters if h.offered]
+    # Fuller names than the menu's short labels.
+    NAMES = {h.command: h.full_name for h in adapters if h.full_name}
+    # mise tool specs that differ from the command (omarchy-default-agent's agent_package).
+    SPECS = {h.command: h.spec for h in adapters if h.spec}
+    # Agents Omarchy's menu does not offer (yet): this app installs them itself
+    # (install_ctl.AGENT_INSTALLERS) into a version folder, the command in ~/.local/bin.
+    EXTRA = [(h.command, h.label, h.icon, h.icon_font) for h in adapters if not h.offered]
+
+
+_rebuild()
+harnesses.on_change(_rebuild)
+
 ROBOT = "\U000f06a9"
-# ... and agents Omarchy's menu does not offer (yet): AI Agents Map installs them itself
-# (install_ctl.AGENT_INSTALLERS) into a version folder, the command in ~/.local/bin.
-EXTRA = [(h.command, h.label, h.icon, h.icon_font) for h in harnesses.all_harnesses() if not h.offered]
 
 
 @dataclass
@@ -178,6 +187,12 @@ def detect(command: str, bin_dir: Path = BIN_DIR, mise_dir: Path = MISE_DIR,
            db: Path = PACMAN_DB) -> tuple[bool, str, str]:
     """(installed, version, source) for one agent."""
     h = harnesses.get(command)
+    if h is not None and h.detect is not None:              # it knows best (an add-on's agent)
+        try:
+            installed, version, source = h.detect()
+            return bool(installed), str(version or "")[:64], str(source or "own")[:16]
+        except Exception:
+            return False, "", ""
     if h is not None and h.installer is not None:          # the app installs it itself
         import install_ctl
         inst = install_ctl.AGENT_INSTALLERS.get(command)

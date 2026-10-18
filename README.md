@@ -87,7 +87,13 @@ switched on in Settings and **signed with the author's key** (checked with OpenS
 file must match the signed list, nothing may be added, and nothing of it runs before those checks.
 Each add-on states in plain words what it reads and sends, and its privacy level (numbers, titles
 or summary) is the most it can do. Add-ons build on a small, versioned API (`addon_api.py`), so a
-new add-on needs no new Asterism. The AI Agents Map plugin has no add-ons.
+new add-on needs no new Asterism. An add-on can also bring a **new agent or LLM provider**: every
+agent and provider is an adapter (`harness_<command>.py`, `provider_<key>.py`, registered in
+`harnesses.py` / `providers.py`), and an add-on that declares the capability ("agent", "provider",
+and "installer" for one that installs something) adds its own; it then appears on the map, in the
+cards and on its details page like the built-in ones. A built-in agent or provider cannot be
+replaced, and an add-on's agent cannot bring an updater of its own. The AI Agents Map plugin has no
+add-ons.
 
 ## Development
 

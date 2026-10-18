@@ -215,9 +215,14 @@ def _strs(value) -> list:
     return [str(v)[:200] for v in value][:200] if isinstance(value, list) else []
 
 
-# Which agent's settings each reader above knows: from the agent adapters (harnesses.py).
-READERS = {h.command: h.security for h in harnesses.all_harnesses() if h.security is not None}
+def _rebuild():
+    """Which agent's settings can be read (Harness.security); run again when add-ons change agents."""
+    global READERS
+    READERS = {h.command: h.security for h in harnesses.all_harnesses() if h.security is not None}
 
+
+_rebuild()
+harnesses.on_change(_rebuild)
 
 def known(agent: str) -> bool:
     return agent in READERS

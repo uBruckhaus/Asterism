@@ -34,13 +34,24 @@ import providers
 
 HOME = Path.home()
 BACKUP_ROOT = HOME / ".local/state/ai-agents-map/backups"
-# The provider id and label agents get for each local LLM (providers.py: one place per provider).
-KEYS = providers.connect_keys()
-LABELS = providers.connect_labels()
-# Agents that can be pointed at a local LLM, and agents tied to one (nothing to set up, nothing else
-# possible): from the agent adapters (harnesses.py).
-SUPPORTED = tuple(h.command for h in harnesses.all_harnesses() if h.local_llm)
-FIXED = {h.command: h.fixed_provider for h in harnesses.all_harnesses() if h.fixed_provider}
+
+
+def _rebuild():
+    """Tables from the adapters (run again when add-ons add or remove some)."""
+    global KEYS, LABELS, SUPPORTED, FIXED
+    # The provider id and label agents get for each local LLM (providers.py).
+    KEYS = providers.connect_keys()
+    LABELS = providers.connect_labels()
+    # Agents that can be pointed at a local LLM, and agents tied to one (nothing to set up, nothing
+    # else possible) (harnesses.py).
+    SUPPORTED = tuple(h.command for h in harnesses.all_harnesses() if h.local_llm)
+    FIXED = {h.command: h.fixed_provider for h in harnesses.all_harnesses() if h.fixed_provider}
+
+
+_rebuild()
+providers.on_change(_rebuild)
+harnesses.on_change(_rebuild)
+
 MAX_BYTES = 2 * 1024 * 1024
 RETIRED_DAYS = 7          # an app's old version, moved into a backup on update, is deleted after this
 

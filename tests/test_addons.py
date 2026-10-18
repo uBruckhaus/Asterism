@@ -185,6 +185,89 @@ class AddonsTest(unittest.TestCase):
             self.assertEqual(edition.maximum(), edition.TITLES)
 
 
+    # --- add-ons that bring agents and providers ---
+
+    AGENT_AND_LLM = """
+def register(api):
+    api.add_harness(api.Harness("demo-agent", "Demo agent", label="Demo agent", icon="D", offered=False,
+                                detect=lambda: (True, "0.1", "own")))
+
+    def detect(processes):
+        return api.Runtime("demo-llm", "Demo LLM", installed=True, address="127.0.0.1:9999")
+    api.add_provider(api.Provider("demo-llm", "Demo LLM", "local", detect=detect, connect_key="demo-local",
+                                  connect_label="Demo LLM (local)"))
+"""
+
+    def registries_reset(self):
+        import harnesses
+        import providers
+        self.addCleanup(lambda: (harnesses.remove_added(), providers.remove_added(), harnesses.changed(),
+                                 providers.changed(), addon_api.HOOKS.clear()))
+
+    def test_addon_brings_an_agent_and_a_local_llm(self):
+        import agents
+        import connect
+        import graph
+        import harnesses
+        import inventory
+        import providers
+        self.registries_reset()
+        self.build(code=self.AGENT_AND_LLM, meta={"privacy": "numbers", "capabilities": ["agent", "provider"]})
+        found = addons.load_all({"insights"}, dirs=(self.root,), signers=self.signers)
+        self.assertEqual([a.state for a in found], ["loaded"])
+        self.assertEqual(harnesses.get("demo-agent").name, "Demo agent")
+        self.assertIn("demo-agent", [c for c, *_r in agents.EXTRA])
+        self.assertEqual(agents.detect("demo-agent"), (True, "0.1", "own"))
+        self.assertEqual(connect.KEYS["demo-llm"], "demo-local")
+        with mock.patch.object(inventory, "own_processes", return_value=[]):
+            inv = inventory.collect([])
+        self.assertIn("demo-llm", [rt.key for rt in inv.runtimes])
+        nodes = graph.build([], {}, inv).nodes
+        self.assertIn("Demo LLM", [n.label for n in nodes])
+        # Switched off: gone everywhere.
+        addons.load_all(set(), dirs=(self.root,), signers=self.signers)
+        self.assertIsNone(harnesses.get("demo-agent"))
+        self.assertNotIn("demo-agent", [c for c, *_r in agents.EXTRA])
+        self.assertNotIn("demo-llm", connect.KEYS)
+        self.assertIsNone(providers.get("demo-llm"))
+
+    def test_agents_need_the_capability(self):
+        import harnesses
+        self.registries_reset()
+        self.build(code=self.AGENT_AND_LLM, meta={"privacy": "numbers", "capabilities": ["provider"]})
+        found = addons.load_all({"insights"}, dirs=(self.root,), signers=self.signers)
+        self.assertEqual(found[0].state, "failed")
+        self.assertIn('"agent"', found[0].reason)
+        self.assertIsNone(harnesses.get("demo-agent"))
+
+    def test_built_in_ids_cannot_be_replaced(self):
+        import providers
+        self.registries_reset()
+        code = """
+def register(api):
+    api.add_provider(api.Provider("ollama", "Fake Ollama", "local"))
+"""
+        self.build(code=code, meta={"privacy": "numbers", "capabilities": ["provider"]})
+        found = addons.load_all({"insights"}, dirs=(self.root,), signers=self.signers)
+        self.assertEqual(found[0].state, "failed")
+        self.assertIn("exists already", found[0].reason)
+        self.assertEqual(providers.get("ollama").name, "Ollama")
+
+    def test_no_updater_and_no_unknown_capabilities(self):
+        self.registries_reset()
+        code = """
+def register(api):
+    api.add_harness(api.Harness("upd", "Upd", self_update=("upd", "update"), latest=lambda c: "9"))
+"""
+        self.build(code=code, meta={"privacy": "numbers", "capabilities": ["agent"]})
+        found = addons.load_all({"insights"}, dirs=(self.root,), signers=self.signers)
+        self.assertIn("updater", found[0].reason)
+        import agent_updates
+        self.assertEqual(agent_updates.SELF_UPDATES, (["claude", "update"],))
+        self.assertEqual(self.verify(self.build(addon_id="other", meta={"id": "other", "capabilities": ["root"]})).reason,
+                         "unknown capabilities")
+
+
 class HookCallTest(unittest.TestCase):
     def test_failing_callback_is_noted_not_raised(self):
         hooks = addon_api.Hooks()

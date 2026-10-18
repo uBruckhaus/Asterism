@@ -9,6 +9,12 @@ Hook points (the only places an add-on appears):
     api.add_details_section(builder, privacy)     builder(ui, box, harness, sessions, since)
     api.add_help_card(builder)                    builder(ui, box)
     api.add_settings_group(builder)               builder(ui, box)
+    api.add_harness(api.Harness(...))             a new agent: cards, map, details     ("agent")
+    api.add_provider(api.Provider(...))           a new local LLM or online provider    ("provider")
+
+Agents and providers need the capability in quotes declared in addon.json ("capabilities"), and
+one that brings an installer also "installer". A built-in id cannot be replaced, and an add-on's
+agent cannot bring an updater of its own (agent_updates only runs built-in updaters).
 
 An add-on may never do more than the privacy level its addon.json declares (edition.NUMBERS,
 TITLES or SUMMARY); registering a hook above it raises AddonError. Callbacks run inside try/except:
@@ -26,6 +32,7 @@ import harnesses
 
 API_VERSION = 1
 PRIVACY = {"numbers": _edition.NUMBERS, "titles": _edition.TITLES, "summary": _edition.SUMMARY}
+CAPABILITIES = ("agent", "provider", "installer")
 
 
 class AddonError(Exception):
@@ -72,9 +79,11 @@ class AddonAPI:
 
     version = API_VERSION
 
-    def __init__(self, addon_id: str, privacy: int, strings: dict | None = None, hooks: Hooks = HOOKS):
+    def __init__(self, addon_id: str, privacy: int, strings: dict | None = None, hooks: Hooks = HOOKS,
+                 capabilities=()):
         self.addon_id = addon_id
         self.privacy = privacy
+        self.capabilities = frozenset(capabilities)
         self._strings = strings or {}       # language -> {English text: translation}
         self._hooks = hooks
 
@@ -119,6 +128,38 @@ class AddonAPI:
 
     def add_settings_group(self, builder):
         self._hooks.settings.append((self.addon_id, builder))
+
+    # --- new agents and providers ---
+    from harnesses import Harness, LocalLlm, Mcp, Sessions, Skills   # noqa: E402  (classes for add-ons)
+    from providers import Provider                                 # noqa: E402
+
+    @staticmethod
+    def ref(module: str, name: str):
+        """harnesses.ref: a function of another module, imported when first called."""
+        return harnesses.ref(module, name)
+
+    @property
+    def Runtime(self):
+        """inventory.Runtime: what a local provider's detect(processes) returns."""
+        import inventory
+        return inventory.Runtime
+
+    def _need(self, capability: str, what: str):
+        if capability not in self.capabilities:
+            raise AddonError(f"{what} needs \"{capability}\" in {self.addon_id}'s capabilities")
+
+    def add_harness(self, harness):
+        self._need("agent", "add_harness")
+        if harness.installer is not None:
+            self._need("installer", "an agent with an installer")
+        harnesses.add(harness, self.addon_id)
+
+    def add_provider(self, provider):
+        self._need("provider", "add_provider")
+        if provider.installer is not None:
+            self._need("installer", "a provider with an installer")
+        import providers
+        providers.add(provider, self.addon_id)
 
 
 class UI:

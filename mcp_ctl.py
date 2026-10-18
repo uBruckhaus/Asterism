@@ -23,10 +23,20 @@ import connect
 import harnesses
 
 HOME = Path.home()
-# Where each agent keeps its MCP servers and how an entry looks there: from the agent adapters
-# (harnesses.py, Harness.mcp). Agents whose servers are set up only in their own app are IN_APP.
-SUPPORTED = tuple(h.command for h in harnesses.all_harnesses() if h.mcp is not None and not h.mcp.in_app)
-IN_APP = {h.command: h.mcp.in_app for h in harnesses.all_harnesses() if h.mcp is not None and h.mcp.in_app}
+
+
+def _rebuild():
+    """Tables from the adapters (run again when add-ons add or remove some)."""
+    global SUPPORTED, IN_APP
+    # Where each agent keeps its MCP servers and how an entry looks there (Harness.mcp); agents whose
+    # servers are set up only in their own app are IN_APP.
+    SUPPORTED = tuple(h.command for h in harnesses.all_harnesses() if h.mcp is not None and not h.mcp.in_app)
+    IN_APP = {h.command: h.mcp.in_app for h in harnesses.all_harnesses() if h.mcp is not None and h.mcp.in_app}
+
+
+_rebuild()
+harnesses.on_change(_rebuild)
+
 LMSTUDIO_FILE = HOME / ".lmstudio/mcp.json"     # LM Studio (a local LLM) keeps MCP servers too
 NAME_RE = re.compile(r"^[A-Za-z0-9_.-]{1,64}$")
 

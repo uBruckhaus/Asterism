@@ -1086,8 +1086,6 @@ Terminal=false
         self.desktop.unlink(missing_ok=True)
 
 
-# One installer per local LLM, from its adapter (providers.py).
-INSTALLERS = {p.key: p.installer() for p in providers.local() if p.installer is not None}
 class Dsh(Installer):
     """DeepSeek Harness from npm into a version folder (npm install --prefix,
     install scripts off: no package code runs while installing), `dsh` in
@@ -1163,8 +1161,17 @@ class Agy(Installer):
         return Release(f"v{version}", [(name, url, 0)], {name: sha512})
 
 
-# Agents installed the same way (not local LLMs), from their adapters (harnesses.py).
-AGENT_INSTALLERS = {h.command: h.installer() for h in harnesses.all_harnesses() if h.installer is not None}
+def _rebuild():
+    """One installer per local LLM (providers.py) and per agent this app installs itself
+    (harnesses.py); run again when add-ons add or remove some."""
+    global INSTALLERS, AGENT_INSTALLERS
+    INSTALLERS = {p.key: p.installer() for p in providers.local() if p.installer is not None}
+    AGENT_INSTALLERS = {h.command: h.installer() for h in harnesses.all_harnesses() if h.installer is not None}
+
+
+_rebuild()
+providers.on_change(_rebuild)
+harnesses.on_change(_rebuild)
 
 
 def installer(key: str):

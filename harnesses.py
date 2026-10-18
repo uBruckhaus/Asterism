@@ -94,6 +94,7 @@ class Harness:
     package_only: bool = False        # installed only as that package (OpenClaw)
     own_install_counts: bool = True   # a file of the user's own at ~/.local/bin/<command> counts (not Hermes)
     installer: Callable | None = None  # installer() -> install_ctl.Installer: the app installs it itself
+    detect: Callable | None = None    # detect() -> (installed, version, source) when none of the above fits
     short_version: bool = False       # show the version up to its first "-" (LM Studio Bionic)
     offered: bool = True              # in Omarchy's agent menu (False: only this app offers it)
     # capabilities (the feature modules build their tables from these)
@@ -190,9 +191,43 @@ _MODULES = ("claude", "codex", "copilot", "crush", "cursor_agent", "gemini", "gr
             "openclaw", "opencode", "pi", "dsh", "bionic", "agy")     # Omarchy's menu order, then the app's own
 
 
-def _all() -> tuple:
+def _built_in() -> tuple:
     import importlib
     return tuple(importlib.import_module(f"harness_{name}").HARNESS for name in _MODULES)
+
+
+_ADDED: list = []          # [(addon id, Harness)] registered by loaded add-ons (addon_api.add_harness)
+_LISTENERS: list = []      # rebuild functions of modules that keep tables made from this registry
+
+
+def _all() -> tuple:
+    return _built_in() + tuple(h for _owner, h in _ADDED)
+
+
+def on_change(listener) -> None:
+    """listener() runs after add-ons added or removed agents (a module rebuilding its tables)."""
+    _LISTENERS.append(listener)
+
+
+def changed() -> None:
+    for listener in list(_LISTENERS):
+        listener()
+
+
+def add(harness: Harness, owner: str) -> None:
+    """An add-on's agent; refused when the command is taken (a built-in or another add-on's)."""
+    if not isinstance(harness, Harness) or not harness.command:
+        raise ValueError("not a Harness")
+    if any(h.command == harness.command for h in _all()):
+        raise ValueError(f"the agent {harness.command} exists already")
+    if harness.self_update or harness.latest is not None:
+        raise ValueError("an add-on's agent cannot bring an updater of its own")
+    _ADDED.append((owner, harness))
+
+
+def remove_added(owner: str | None = None) -> None:
+    """Forget the agents of one add-on (or of all add-ons)."""
+    _ADDED[:] = [(o, h) for o, h in _ADDED if owner is not None and o != owner]
 
 
 def all_harnesses() -> tuple:

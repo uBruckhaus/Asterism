@@ -36,7 +36,7 @@ class Provider:
     agents: tuple = field(default=())  # agents that come with this provider ("claude")
 
 
-def _local() -> tuple:
+def _built_in_local() -> tuple:
     import provider_jan
     import provider_koboldcpp
     import provider_llamacpp
@@ -48,13 +48,45 @@ def _local() -> tuple:
             provider_vllm.PROVIDER, provider_jan.PROVIDER, provider_koboldcpp.PROVIDER)
 
 
+def _built_in_online() -> tuple:
+    import provider_online
+    return tuple(provider_online.ONLINE)
+
+
+_ADDED: list = []          # [(addon id, Provider)] registered by loaded add-ons (addon_api.add_provider)
+_LISTENERS: list = []
+
+
 def local() -> tuple:
-    return _local()
+    return _built_in_local() + tuple(p for _o, p in _ADDED if p.kind == "local")
 
 
 def online() -> tuple:
-    import provider_online
-    return tuple(provider_online.ONLINE)
+    return _built_in_online() + tuple(p for _o, p in _ADDED if p.kind == "online")
+
+
+def on_change(listener) -> None:
+    """listener() runs after add-ons added or removed providers."""
+    _LISTENERS.append(listener)
+
+
+def changed() -> None:
+    for listener in list(_LISTENERS):
+        listener()
+
+
+def add(provider: Provider, owner: str) -> None:
+    """An add-on's provider; refused when the key or one of its settings ids is taken."""
+    if not isinstance(provider, Provider) or not provider.key or provider.kind not in ("local", "online"):
+        raise ValueError("not a Provider")
+    taken_ids = {pid for p in online() for pid in p.ids}
+    if any(p.key == provider.key for p in all_providers()) or taken_ids & set(provider.ids):
+        raise ValueError(f"the provider {provider.key} exists already")
+    _ADDED.append((owner, provider))
+
+
+def remove_added(owner: str | None = None) -> None:
+    _ADDED[:] = [(o, p) for o, p in _ADDED if owner is not None and o != owner]
 
 
 def all_providers() -> tuple:

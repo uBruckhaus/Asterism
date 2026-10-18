@@ -12,11 +12,20 @@ from dataclasses import dataclass, field
 
 import providers
 
-# The cloud service behind each agent unless its settings point elsewhere.
-# Agents that come with an online provider, and provider ids in agent settings ("anthropic/claude-…",
-# pi's defaultProvider, Hermes's provider), from providers.py (provider_online.py).
-CLOUD = providers.cloud_of_agent()
-PROVIDER_NAMES = providers.online_names()
+
+def _rebuild():
+    """Tables from the adapters (run again when add-ons add or remove some)."""
+    global CLOUD, PROVIDER_NAMES
+    # The online provider behind each agent unless its settings point elsewhere, and provider ids in
+    # agent settings ("anthropic/claude-…", pi's defaultProvider, Hermes's provider): provider_online.py.
+    CLOUD = providers.cloud_of_agent()
+    PROVIDER_NAMES = providers.online_names()
+
+
+_rebuild()
+providers.on_change(_rebuild)
+
+
 MAX_MODELS_PER_PROVIDER = 10
 
 # Categories the map can show or hide, in toolbar order, and what each needs.
