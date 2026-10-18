@@ -187,7 +187,7 @@ class ThemeCss:
             padding: 11px 13px; color: {fg_hex}; }}
         .am-setup-tile:checked:hover {{ background: alpha({accent_hex}, 0.20); }}
         .am-agent-icon.am-setup-glyph {{ font-size: 30px; min-width: 36px; }}
-        .am-setup-check {{ color: {bg_hex}; background: {accent_hex}; border-radius: 999px; min-width: 20px;
+        .am-setup-check {{ color: {bg_hex}; background: {accent_hex}; border-radius: {pill}px; min-width: 20px;
             min-height: 20px; font-size: 11px; font-weight: 700; }}
         .am-setup-title {{ font-size: 22px; font-weight: 700; }}
         list.am-pick-cards {{ background: transparent; }}
