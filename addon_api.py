@@ -78,6 +78,7 @@ class AddonAPI:
     """What register(api) gets: one per add-on, knowing its id, privacy and translations."""
 
     version = API_VERSION
+    NUMBERS, TITLES, SUMMARY = _edition.NUMBERS, _edition.TITLES, _edition.SUMMARY
 
     def __init__(self, addon_id: str, privacy: int, strings: dict | None = None, hooks: Hooks = HOOKS,
                  capabilities=()):
@@ -108,7 +109,49 @@ class AddonAPI:
     def tr(self, text: str) -> str:
         """The add-on's own translation of `text` in the app's language (English when missing)."""
         import i18n
-        return self._strings.get(i18n.current(), {}).get(text, text)
+        found = self._strings.get(i18n.current(), {}).get(text, text)
+        return found if isinstance(found, str) else text
+
+    def trn(self, one: str, other: str, n: int) -> str:
+        """Plural, as the app's ngettext: the forms under "\\x04" + `one` in the add-on's tables."""
+        import i18n
+        lang = i18n.current()
+        return i18n.pick_plural(lang, self._strings.get(lang, {}).get(i18n.PLURAL_PREFIX + one), n, one, other)
+
+    # --- helpers an add-on may use (bounded, owner-only, read-only where it reads) ---
+    @staticmethod
+    def run_bounded(argv: list, max_bytes: int = 64 * 1024, timeout: float = 5.0, stdin: bytes | None = None,
+                    cwd: str | None = None) -> tuple:
+        """(output bytes, ok): no shell, output capped, one deadline (ai_core.read_bounded_output)."""
+        import ai_core
+        return ai_core.read_bounded_output(list(argv), max_bytes=max_bytes, timeout=timeout, stdin=stdin, cwd=cwd)
+
+    @staticmethod
+    def atomic_write(path, text: str) -> None:
+        """Write a file owner-only in one step (ai_core.atomic_write)."""
+        import ai_core
+        ai_core.atomic_write(path, text)
+
+    @staticmethod
+    def open_readonly(path):
+        """A harness's SQLite database read-only (never created or changed), or None."""
+        from pathlib import Path
+        return harnesses.connect(Path(path))
+
+    def cache_dir(self):
+        """The add-on's own cache folder (owner-only), created on first use."""
+        import os
+        from pathlib import Path
+        folder = Path.home() / ".cache/asterism/addons" / self.addon_id
+        folder.mkdir(parents=True, exist_ok=True, mode=0o700)
+        os.chmod(folder, 0o700)
+        return folder
+
+    @property
+    def claude_projects(self):
+        """Where Claude Code keeps its session files (~/.claude/projects, or CLAUDE_CONFIG_DIR's)."""
+        import claude_sessions
+        return claude_sessions.ROOT
 
     # --- hook points ---
     def _allow(self, level: int, what: str):
@@ -175,6 +218,12 @@ class UI:
     def boxed_list(self):
         return self._app.boxed_list()
 
+    @staticmethod
+    def box(spacing: int = 8):
+        """A vertical box to put widgets in (e.g. a section filled once its data is read)."""
+        from gi.repository import Gtk
+        return Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=spacing)
+
     def plain_row(self, title: str, subtitle: str = ""):
         return self._app.plain_row(title, subtitle)
 
@@ -185,9 +234,14 @@ class UI:
     def note(self, box, text: str):
         self._app.note(box, text)
 
-    def label(self, text: str = "", selectable: bool = True):
+    def label(self, text: str = "", selectable: bool = True, card: bool = False):
+        """Plain text (never markup); card=True: in a framed box, as a written answer."""
         from gi.repository import Gtk
-        return Gtk.Label(label=text, xalign=0, wrap=True, selectable=selectable)
+        label = Gtk.Label(label=text, xalign=0, wrap=True, selectable=selectable)
+        if card:
+            label.add_css_class("card")
+            label.add_css_class("am-summary")
+        return label
 
     def button(self, label: str, on_click, tooltip: str = ""):
         from gi.repository import Gtk

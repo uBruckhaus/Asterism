@@ -39,10 +39,6 @@ try:
     import addons
 except ImportError:
     addon_api = addons = None
-try:
-    import session_topics       # Asterism only: session titles and a written summary (not in the Omarchy plugin)
-except ImportError:
-    session_topics = None
 import desktop
 import agent_updates
 import agent_profiles
@@ -2728,8 +2724,6 @@ class AgentsMap(SettingsPages, ThemeCss, Adw.Application):
         if peak is not None:
             self.note(body, _("Most active: {0}, around {1}:00").format(_(self.WEEKDAYS[peak[0]]), peak[1]))
         self.note(body, harness.sessions.note())
-        if session_topics is not None and edition.allows(edition.TITLES):
-            session_topics.fill(self, body, harness, sessions, since)
         for addon_id, builder, privacy in self.addon_hooks("details"):
             if edition.allows(privacy):
                 addon_api.call(addon_id, builder, addon_api.UI(self, addon_id), body, harness, sessions, since)

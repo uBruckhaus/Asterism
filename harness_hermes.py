@@ -2,7 +2,7 @@
 
 Sessions come from ~/.hermes/state.db (read-only). Only these columns are read: of sessions the id,
 parent id, folder, times, model, tokens and cost; of messages the session id and time. Never titles,
-prompts or message content (titles are Asterism-only, in session_topics.py).
+prompts or message content (titles: the Insights add-on).
 """
 
 import re

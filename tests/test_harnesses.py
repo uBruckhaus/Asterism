@@ -225,22 +225,20 @@ class CapabilityTablesTest(unittest.TestCase):
 
 
 class EditionTest(unittest.TestCase):
-    def setUp(self):
-        edition._built_in = None
-        self.addCleanup(setattr, edition, "_built_in", None)
-
-    def test_without_session_topics_numbers_only(self):
-        with mock.patch.dict(sys.modules, {"session_topics": None, "addon_api": None}):
+    def test_without_add_ons_numbers_only(self):
+        with mock.patch.dict(sys.modules, {"addon_api": None}):          # the plugin: no add-on loader
             self.assertEqual(edition.maximum(), edition.NUMBERS)
-            self.assertTrue(edition.allows(edition.NUMBERS))
             self.assertFalse(edition.allows(edition.TITLES))
 
-    def test_asterism_allows_titles_and_summary(self):
+    def test_follows_loaded_add_ons(self):
         try:
-            import session_topics  # noqa: F401
+            import addon_api
         except ImportError:
-            self.skipTest("the AI Agents Map plugin ships without session_topics.py")
-        self.assertTrue(edition.allows(edition.SUMMARY))
+            self.skipTest("the AI Agents Map plugin has no add-ons")
+        with mock.patch.object(addon_api, "loaded_privacy", return_value=edition.SUMMARY):
+            self.assertTrue(edition.allows(edition.SUMMARY))
+        with mock.patch.object(addon_api, "loaded_privacy", return_value=0):
+            self.assertEqual(edition.maximum(), edition.NUMBERS)
 
 
 if __name__ == "__main__":

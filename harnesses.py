@@ -6,7 +6,7 @@ Each module defines HARNESS = Harness(...). Its capabilities are optional (None:
 - sessions: the harness's sessions as claude_sessions.Session objects (numbers only: folder, times,
   working time, tokens per model, lines changed, cost, subagent runs), so the details page shows the
   same "Projects, last 30 days" for every harness. Session titles and summaries are not here: they
-  are read by session_topics.py, which only ships in Asterism (see edition.py).
+  come from add-ons (Insights), which only Asterism loads (see edition.py).
 
 The database readers open the harness's own store read-only and take only the numeric and folder
 columns they name, never message text.

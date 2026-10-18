@@ -225,7 +225,8 @@ def strings(addon: Addon) -> dict:
             except ValueError:
                 continue
             if isinstance(table, dict):
-                found[name[13:15]] = {k: v for k, v in table.items() if isinstance(k, str) and isinstance(v, str)}
+                found[name[13:15]] = {k: v for k, v in table.items() if isinstance(k, str) and (
+                    isinstance(v, str) or isinstance(v, list) and all(isinstance(f, str) for f in v[:3]))}
     return found
 
 

@@ -69,14 +69,14 @@ file sizes (`lstat`, links not followed, bounded); nothing is opened or deleted.
   runs): Claude Code from its session files (`~/.claude/projects`, its replies and cost summaries,
   bounded and incremental); OpenCode and Hermes from their own databases, opened read-only, only the
   folder, time, token and cost columns and the message times; no message text;
-- **Topics:** the title each harness gave its sessions itself (Claude Code's `ai-title` lines,
-  cached owner-only in `~/.cache`; OpenCode's and Hermes's title column);
-- **Summarize with Claude…** (only on a click, after showing exactly what is sent): those titles and
+- with the **Insights** add-on: **Topics**, the title each harness gave its sessions itself (Claude
+  Code's `ai-title` lines, cached owner-only; OpenCode's and Hermes's title column), and
+  **Summarize with Claude…** (only on a click, after showing exactly what is sent): those titles and
   numbers, never the conversations, go to your own `claude -p`, which runs in plan mode without
   MCP servers or a saved session, in an empty folder.
 
-(The AI Agents Map plugin shows only the numbers; titles and the summary are Asterism's: `edition.py`
-derives this from `session_topics.py`, which is not in the plugin.)
+(Without add-ons, and always in the AI Agents Map plugin, only the numbers: `edition.py` takes the
+level from the loaded add-ons.)
 
 ## Add-ons
 

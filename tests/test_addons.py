@@ -179,10 +179,9 @@ class AddonsTest(unittest.TestCase):
     def test_edition_follows_loaded_addons(self):
         self.addCleanup(addon_api.HOOKS.clear)
         addon_api.HOOKS.clear()
-        with mock.patch.object(edition, "_built_in_level", return_value=edition.NUMBERS):
-            self.assertEqual(edition.maximum(), edition.NUMBERS)
-            addons.load(self.verify(self.build()))
-            self.assertEqual(edition.maximum(), edition.TITLES)
+        self.assertEqual(edition.maximum(), edition.NUMBERS)
+        addons.load(self.verify(self.build()))
+        self.assertEqual(edition.maximum(), edition.TITLES)
 
 
     # --- add-ons that bring agents and providers ---
