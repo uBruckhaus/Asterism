@@ -43,7 +43,9 @@ PRINCIPAL = "addons@asterism"
 NAMESPACE = "asterism-addon"
 
 USER_DIR = Path(os.environ.get("XDG_DATA_HOME") or Path.home() / ".local/share") / "asterism/addons"
-SYSTEM_DIR = Path("/usr/lib/asterism/addons")
+# The add-ons that come with the app (signed like any other), next to its own files: /usr/lib/asterism/
+# addons from the package, inside the AppImage; a newer copy in USER_DIR (from the catalog) wins.
+SYSTEM_DIR = Path(__file__).resolve().parent / "addons"
 
 ASTERISM_VERSION = "0.7.0"       # an add-on whose "needs" names a newer Asterism is refused
 KINDS = ("feature", "agent", "provider")

@@ -10,8 +10,13 @@ depends=('python' 'python-gobject' 'gtk4' 'libadwaita' 'curl' 'ttf-nerd-fonts-sy
 optdepends=('vte4: agents in a terminal inside the window'
             'xdg-terminal-exec: start agents in your own terminal'
             'mise: updates for agents installed with mise')
-source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/v$pkgver.tar.gz")
-sha256sums=('dda63c1eabe2a2c93c2939883cf1484b920e1ff4b5c3a6d2f006af78f5315e58')
+# The signed agent and provider add-ons (switched off until the first start's Set up).
+_addons=https://github.com/uBruckhaus/asterism-addons/releases/download
+source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/v$pkgver.tar.gz"
+        "adapters-$pkgver.zip::$_addons/adapters-$pkgver/adapters-$pkgver.zip")
+noextract=("adapters-$pkgver.zip")
+sha256sums=('dda63c1eabe2a2c93c2939883cf1484b920e1ff4b5c3a6d2f006af78f5315e58'
+            'SKIP-UNTIL-RELEASE')
 
 package() {
     cd "$pkgname-$pkgver"
@@ -19,6 +24,7 @@ package() {
     install -m644 ./*.py "$pkgdir/usr/lib/asterism/"
     install -Dm644 translations/*.json -t "$pkgdir/usr/lib/asterism/translations/"
     install -Dm644 data/user-manual.pdf -t "$pkgdir/usr/lib/asterism/data/"
+    python packaging/unpack-adapters.py "$srcdir/adapters-$pkgver.zip" "$pkgdir/usr/lib/asterism/addons"
     install -Dm755 bin/asterism "$pkgdir/usr/bin/asterism"
     install -Dm644 data/io.github.ubruckhaus.Asterism.desktop -t "$pkgdir/usr/share/applications/"
     install -Dm644 data/io.github.ubruckhaus.Asterism.metainfo.xml -t "$pkgdir/usr/share/metainfo/"
