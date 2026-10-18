@@ -25,6 +25,17 @@
   <url type="bugtracker">https://github.com/uBruckhaus/asterism/issues</url>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.7.0" date="2026-10-18">
+      <description>
+        <p>Add-ons: every agent and local LLM Asterism understands is now a signed add-on, and a new
+        Set up page switches on the ones installed on this PC with one click. The Add-ons page lists
+        them with search, details and a homepage button, installs more from the signed catalog, takes
+        a dropped .zip or link, and suggests an add-on when a new agent appears. Agents and local LLMs
+        can be installed and removed from their cards, in a terminal inside the window (sudo asks for
+        your password there). Session numbers per project for OpenCode and Hermes too; session titles
+        and the summary by Claude are now the Insights add-on.</p>
+      </description>
+    </release>
     <release version="0.6.0" date="2026-10-18">
       <description>
         <p>Check for updates (Add MCP › On this PC) moves every app that provides an MCP server to its

@@ -1,6 +1,6 @@
 # Maintainer: Uwe Bruckhaus
 pkgname=asterism
-pkgver=0.6.0
+pkgver=0.7.0
 pkgrel=1
 pkgdesc="Your AI agents, models and tools on one map (GTK4/libadwaita)"
 arch=('any')
@@ -16,7 +16,7 @@ source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/v$pkgver.tar.gz"
         "adapters-$pkgver.zip::$_addons/adapters-$pkgver/adapters-$pkgver.zip")
 noextract=("adapters-$pkgver.zip")
 sha256sums=('dda63c1eabe2a2c93c2939883cf1484b920e1ff4b5c3a6d2f006af78f5315e58'
-            'SKIP-UNTIL-RELEASE')
+            '71d011fc6a2dfd6e67f79099cab694d0cd5a1c39910f719062893c5dbae1f752')
 
 package() {
     cd "$pkgname-$pkgver"
