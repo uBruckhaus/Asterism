@@ -143,8 +143,19 @@ class InstallDialog:
                 return True
             self.right_stack.remove(old)
         subject = types.SimpleNamespace(name=title, command=tab)
-        pane = terminal_pane.TerminalPane(subject, str(Path.home()), self.theme.colors,
-                                          on_back=lambda: self.show_view("main", save=False),
+        # Back goes where it was started: the Add-ons page (with the card, now up to date), else the map.
+        from_addons = self.page_name() == "addons"
+
+        def back():
+            if from_addons and hasattr(self, "open_addons"):
+                # Not open_addons(): its Back must still lead where it led before, not to this tab.
+                self.addons_stack.set_visible_child_name("list")
+                self.show_page("addons")
+                self.addons_select = key
+                self.refresh_addons()
+            else:
+                self.show_view("main", save=False)
+        pane = terminal_pane.TerminalPane(subject, str(Path.home()), self.theme.colors, on_back=back,
                                           on_state=lambda _p: GLib.idle_add(self.terminal_changed),
                                           argv=["bash", "-c", script])
         self.sessions[tab] = pane
