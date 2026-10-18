@@ -127,8 +127,8 @@ dd { margin: 0; }
 .red { color: #c0392b; font-weight: 600; }
 .yellow { color: #b07d00; font-weight: 600; }
 table.first-nowrap td:first-child { white-space: nowrap; width: 22%; }
-.toc .front-title { margin-bottom: 4mm; }
-.toc li { line-height: 1.2; }
-.toc .toc-chapter { margin-top: 1.1mm; }
+.toc .front-title { margin-bottom: 3mm; }
+.toc li { line-height: 1.1; }
+.toc .toc-chapter { margin-top: 0.8mm; }
 table.conventions tbody th, table.keys tbody th, table.compact tbody th { font-weight: 400; color: var(--text); }
 table.conventions tbody th { width: 38%; } table.keys tbody th { width: 38%; } table.compact tbody th { width: 28%; }

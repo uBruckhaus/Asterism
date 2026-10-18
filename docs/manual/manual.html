@@ -257,9 +257,10 @@
     <li>whether the agent is ready (and if not, why), whether it is running now or when it was last used;</li>
     <li>today's and the last seven days' tokens and sessions, the plan, a chart of tokens per day,
       rate limits with reset times and tokens by model;</li>
-    <li><b>Setup</b>: every check with a ✓, or what to do next — sign in with which command, which
-      subscription or API key it needs, install or start its local LLM, download a model, add MCP
-      servers or skills;</li>
+    <li><b>Healthy &amp; Security check</b>: every setup check with a ✓, or what to do next — sign in
+      with which command, which subscription or API key it needs, install or start its local LLM,
+      download a model, add MCP servers or skills — and what the agent may do without asking you, with
+      what lowers the risk (see <a href="#security">Healthy &amp; Security check</a>);</li>
     <li><b>Configuration</b>: the agent's settings, MCP servers, skills and settings folder.</li>
   </ul>
   <p>Claude Code's details also show the last 30 days per project folder: working time, sessions,
@@ -568,12 +569,149 @@
 
   <h2 id="help">Help</h2>
   <p><b>?</b> (<kbd>F1</kbd>) opens Help: <b>Open user manual</b> opens this manual (the copy that
-  came with your version) in your PDF viewer; an animation of setting up by drawing; and LLM Monitor,
-  a companion bar plugin that shows what a local LLM is doing. The <b>ⓘ</b> legend in the header
-  explains every dot, line and mark of the map.</p>
+  came with your version) in your PDF viewer; <b>Disk space</b> (below); an animation of setting up by
+  drawing; and LLM Monitor, a companion bar plugin that shows what a local LLM is doing. The <b>ⓘ</b>
+  legend in the header explains every dot, line and mark of the map.</p>
+
+  <h2 id="disk-space">Disk space</h2>
+  <p><b>Disk space: agents, local LLMs and models</b> shows how much room your AI setup takes and where
+  it is. It is measured in the background each time Help opens (again after ten minutes, or with
+  <b>Measure again</b>), and only read — nothing is deleted from here. Its heading always shows the
+  totals in one line (<i>Agents · Local LLMs · Models · In all</i>); click it to fold the section away.
+  <b>Disks</b>, <b>Agents</b>, <b>Local LLMs</b> and <b>Models folders</b> inside start folded, each
+  showing its sum and largest entries; click one to open it.</p>
+  <div class="figure wide">
+    <img src="images/disk-space.jpg" alt="Disk space in Help: four tiles (in all, agents, local LLMs, models), a bar split into agent programs, agent data, local LLMs and models, and the disks with free space">
+    <p class="caption">The totals, the split, and the folded sections with their sums.</p>
+  </div>
+  <ul>
+    <li><b>Tiles and bar</b>: everything together, then agent programs, agent data (settings, sessions,
+      history), local LLMs (programs and their own data) and models. Hover over the bar for exact sizes.</li>
+    <li><b>Disks</b>: each disk with what the AI setup takes on it and how much is free.</li>
+    <li><b>Agents</b>, <b>Local LLMs</b>, <b>Models folders</b>: one row each, largest first. Open a row
+      to see every folder with its size and number of files, and open it in the file manager. A program
+      folder says how many versions are kept; for an agent with several old versions in mise, a tip
+      names <code>mise prune</code>, which removes the unused ones. A models folder says which local
+      LLMs use it, or that it holds only links to models in another folder.</li>
+  </ul>
+  <div class="tip"><p><b>Tip</b> Programs can be installed again and models downloaded again; the agents'
+  data holds your sessions and settings. When space runs out, look at old program versions and at
+  models you no longer use first.</p></div>
+  <p>Sizes are space on disk: a file kept in two places counts once, and links are not followed.</p>
 </section>
 
-<!-- ============================== 11 Privacy ============================== -->
+<!-- ============================== 11 Healthy & Security check ============================== -->
+<section class="chapter" id="security">
+  <h1>Healthy &amp; Security check</h1>
+  <p>A coding agent reads and writes files and runs commands on your computer. How much it may do
+  <i>without asking you</i> is set in the agent's own settings, with different words in every
+  agent. The <b>Healthy &amp; Security check</b> brings this together: on the details page of every
+  agent (<b>ⓘ Details</b> on its card) and of every local LLM, one card shows whether it works, what
+  it may do, what that means in plain words, and what lowers the risk.</p>
+
+  <div class="figure wide">
+    <img src="images/security-check.jpg" alt="The Healthy &amp; Security check of OpenCode: security settings with one setting opened and its three choices, then the risk management list with Lower it buttons">
+    <p class="caption">OpenCode's security settings, with <b>Run commands</b> opened, and the start of its risk management.</p>
+  </div>
+
+  <h2 id="security-card">Reading the card</h2>
+  <p>Two badges at the top sum it up: <b>Healthy</b>, <b>Needs a look</b> or <b>Not set up</b> for the
+  health, and <b>Low risk</b>, <b>Medium risk</b> or <b>High risk</b> for security. Below them come
+  four parts:</p>
+  <table>
+    <thead><tr><th>Part</th><th>What it shows</th></tr></thead>
+    <tbody>
+      <tr><td><b>Health</b></td><td>Every setup check with a ✓, or what to do next: installed, signed in, its model and local LLM, MCP servers and skills.</td></tr>
+      <tr><td><b>Security settings</b></td><td>The agent's settings that decide what it may do on its own, each with its value now and one sentence on what that means. The mark in front tells the risk: <b>✓</b> safe, <b>·</b> low, a yellow <b>!</b> medium, a red <b>!</b> high.</td></tr>
+      <tr><td><b>Risk management</b></td><td>What the settings mean together, most serious first, each with why it matters and <b>→</b> what lowers it. Protections that are in place are listed with a ✓.</td></tr>
+      <tr><td><b>What the words mean</b></td><td>Sandbox, approval, allow and deny rules and the other words the card uses, explained (see <a href="#security-words">The words explained</a>).</td></tr>
+    </tbody>
+  </table>
+  <p>Allow and deny rules and trusted folders the agent has (for example Claude Code's
+  <code>permissions.allow</code> list) are listed below the settings, one rule per line.</p>
+
+  <h2 id="security-change">Changing a setting</h2>
+  <ol>
+    <li>Click a setting to open it. You see what it controls and every choice, each with its risk; the one in use is marked <b>In use</b>, the safer default <b>recommended</b>.</li>
+    <li>Click <b>Use…</b> beside a choice, or <b>Lower it…</b> beside a risk. A page shows the change in words (old → new), the risk before and after, and <b>What changes</b>: the lines of the agent's settings file.</li>
+    <li>Click <b>Change</b>. The file is backed up and written; a message offers <b>Undo</b> for 30 seconds. The agent uses the new setting the next time it starts.</li>
+  </ol>
+  <div class="note"><p><b>Note</b> Only the one key changes; comments and everything else in the file stay
+  as they are. A setting that needs more than a line in a file — such as Hermes running its commands in
+  Docker — is shown and explained, with where to change it, but not changed from here.</p></div>
+
+  <h2 id="security-agents">What is checked for each agent</h2>
+  <table>
+    <thead><tr><th>Agent</th><th>Settings shown and changeable</th><th>File</th></tr></thead>
+    <tbody>
+      <tr><td><b>Claude Code</b></td><td>Permission mode (Ask first, Plan only, Only what is allowed, Edit without asking, Automatic review, Bypass all checks), sandbox for commands, block bypass mode; allow / ask / deny rules</td><td><code>~/.claude/settings.json</code></td></tr>
+      <tr><td><b>Codex</b></td><td>When Codex asks, sandbox (read only, project folder, none), network in the sandbox; trusted folders</td><td><code>~/.codex/config.toml</code></td></tr>
+      <tr><td><b>GitHub Copilot</b></td><td>Permission mode (Ask first, Automatic review, Allow everything); trusted folders, sites without asking</td><td><code>~/.copilot/settings.json</code></td></tr>
+      <tr><td><b>Cursor CLI</b></td><td>Approval, sandbox, network in the sandbox, web search without asking; allow / deny rules</td><td><code>~/.config/cursor/cli-config.json</code></td></tr>
+      <tr><td><b>Hermes</b></td><td>Dangerous commands (always ask, automatic review, never ask), hide secrets; where commands run (shown only)</td><td><code>~/.hermes/config.yaml</code></td></tr>
+      <tr><td><b>OpenCode</b></td><td>Ask, allow or never for editing files, running commands, fetching web pages and working outside the project</td><td><code>~/.config/opencode/opencode.json</code></td></tr>
+      <tr><td><b>Pi</b></td><td>Its tools: read, write and run commands, or read only. Pi never asks by design, so its tools are its permissions.</td><td><code>~/.pi/agent/settings.json</code></td></tr>
+    </tbody>
+  </table>
+  <p>For other agents the card shows their health and their MCP servers, and says where to look in the
+  agent's own settings. For a <b>local LLM</b> it shows who can reach it: only this PC
+  (<code>127.0.0.1</code>, as it should be) or every device on your network.</p>
+
+  <h2 id="security-risks">Managing the risk</h2>
+  <p>The risk level is the most serious point the card finds:</p>
+  <ul>
+    <li><b>High risk</b> — it can do serious things without asking: run any command, or work with no
+      sandbox and no questions. Fine in a throwaway container or virtual machine; on your own PC, let it ask first.</li>
+    <li><b>Medium risk</b> — some things happen without asking, such as editing files in the project,
+      or an automatic review decides for you.</li>
+    <li><b>Low risk</b> — it asks before anything that matters, or cannot do it at all.</li>
+  </ul>
+  <p>Good habits, whatever the settings:</p>
+  <ul>
+    <li><b>Ask first for commands</b> on your own computer; allow single, harmless commands (such as
+      <code>git status</code>) with an allow rule instead of allowing the whole shell.</li>
+    <li><b>Switch the sandbox on</b> where the agent has one (Claude Code, Codex, Cursor CLI), and leave
+      the network in it off unless a task needs it.</li>
+    <li><b>Start agents in the project folder</b>, not in your home folder, and keep keys and passwords out of it.</li>
+    <li><b>Keep MCP servers few</b>: only the ones you use and trust. Each runs with your rights.</li>
+    <li><b>Run unattended work</b> (bypass mode, “YOLO”, Pi with all tools) in a container or virtual machine.</li>
+    <li><b>Local LLMs on <code>127.0.0.1</code></b>: their servers have no password.</li>
+  </ul>
+  <div class="warn"><p><b>Caution</b> An automatic review (Claude Code's <i>auto</i> mode, Copilot's
+  <i>assisted</i>, Cursor's <i>auto-review</i>, Hermes's <i>smart</i>) is a second AI judging each step.
+  It saves questions, but it is a judgement, not a wall.</p></div>
+
+  <h2 id="security-words">The words explained</h2>
+  <div class="figure wide">
+    <img src="images/sandbox.svg" alt="Two boxes. Without a sandbox, the agent reaches the project folder, SSH keys and documents, browser data and the internet. With a sandbox, the agent reaches only the project folder; the rest is crossed out.">
+    <p class="caption">What a sandbox changes: commands reach only the project folder and what you allow.</p>
+  </div>
+  <dl>
+    <dt>Sandbox</dt><dd>A fenced-off area the agent's commands run in. Inside it a command can touch
+      only the project folder (and what you allow) — not the rest of your home folder, your SSH keys or
+      browser data, and often not the internet. Without one, a command the agent runs can do anything you can.</dd>
+    <dt>Approval (asking first)</dt><dd>Before the agent edits a file or runs a command, it shows what it
+      wants to do and waits for Yes or No. The less it may do without asking, the more control you keep,
+      and the more often you are asked.</dd>
+    <dt>Allow and deny rules</dt><dd>Lists of commands or tools the agent may use without asking (allow)
+      or never (deny). Deny wins over allow. A rule that allows every shell command switches approval off for the shell.</dd>
+    <dt>Trusted folder</dt><dd>A folder you said the agent may work in. There it also uses the folder's
+      own instructions and settings, which can come from someone else when you clone a project.</dd>
+    <dt>Network access</dt><dd>Whether commands may reach the internet. Code that reads your files and
+      can send data out could leak them; installing packages needs the network too.</dd>
+    <dt>Bypass (“YOLO”)</dt><dd>Everything without asking and without limits. Only for a throwaway virtual machine or container.</dd>
+    <dt>Automatic review</dt><dd>A second AI model lets harmless actions through and asks about the rest.</dd>
+    <dt>Prompt injection</dt><dd>Instructions hidden in a web page, file or tool answer that try to make the
+      agent do something you did not ask for. Asking first, a sandbox and no network stop it.</dd>
+    <dt>Secret redaction</dt><dd>Text that looks like a password, token or key is masked before the model sees it or it reaches a log.</dd>
+    <dt>Tools</dt><dd>What the agent can do at all: read, write, run commands, search the web. A tool it does not have cannot be misused.</dd>
+    <dt>MCP server</dt><dd>A small program that gives the agent extra tools. It runs as you, with your rights.</dd>
+    <dt>127.0.0.1 (localhost)</dt><dd>An address only programs on this PC can reach. A server on
+      <code>0.0.0.0</code> can be reached from every device on your network.</dd>
+  </dl>
+</section>
+
+<!-- ============================== 12 Privacy ============================== -->
 <section class="chapter" id="privacy">
   <h1>Privacy and safety</h1>
   <ul>
@@ -594,7 +732,7 @@
   <p>The README in each repository lists in full what is read, started and written.</p>
 </section>
 
-<!-- ============================== 12 Troubleshooting ============================== -->
+<!-- ============================== 13 Troubleshooting ============================== -->
 <section class="chapter" id="troubleshooting">
   <h1>Troubleshooting</h1>
   <table class="faq">
@@ -648,10 +786,13 @@
 
   <h2 id="glossary">Glossary</h2>
   <dl>
+    <dt>Approval</dt><dd>An agent asking before it changes a file or runs a command (see <a href="#security-words">The words explained</a>).</dd>
     <dt>Context</dt><dd>How many tokens of text a model can keep in mind at once.</dd>
     <dt>GGUF</dt><dd>The file format for models used by llama.cpp, LM Studio, Ollama and KoboldCpp.</dd>
+    <dt>Prompt injection</dt><dd>Hidden instructions in a page, file or tool answer that try to steer an agent.</dd>
     <dt>Quantization</dt><dd>Storing a model with fewer bits per weight (for example <i>Q4_K_M</i>, about 4.8 bits) so it is smaller, with a small loss of quality.</dd>
     <dt>Mixture of experts</dt><dd>A model where only part of the parameters work for each token (<i>35B-A3B</i>: 35 billion in all, 3 billion active), which makes it fast for its size.</dd>
+    <dt>Sandbox</dt><dd>A fenced-off area an agent's commands run in, reaching only the project folder and what you allow.</dd>
     <dt>Token</dt><dd>A piece of text, roughly three quarters of a word, that models read and write.</dd>
     <dt>User service</dt><dd>A background program started by systemd for your user only, without administrator rights.</dd>
   </dl>

@@ -1,6 +1,6 @@
 # Maintainer: Uwe Bruckhaus
 pkgname=asterism
-pkgver=0.4.0
+pkgver=0.5.0
 pkgrel=1
 pkgdesc="Your AI agents, models and tools on one map (GTK4/libadwaita)"
 arch=('any')

@@ -25,6 +25,16 @@
   <url type="bugtracker">https://github.com/uBruckhaus/asterism/issues</url>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.5.0" date="2026-10-18">
+      <description>
+        <p>A Healthy &amp; Security check on every agent's details page shows what the agent may do
+        without asking you, explains every setting and choice with its risk, changes them with a
+        preview and Undo, and lists what lowers each risk; local LLMs show whether only this PC can
+        reach them. Help shows the disk space of agents, local LLMs and models. Pin boxes on the map,
+        right-click menus with the cards' actions, move models between folders by dragging. The user
+        manual has a new chapter on security.</p>
+      </description>
+    </release>
     <release version="0.4.0" date="2026-10-17">
       <description>
         <p>An ⓘ legend in the header explains every dot, line and mark of the map. Hide puts away the

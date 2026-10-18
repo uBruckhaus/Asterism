@@ -28,6 +28,8 @@ import atexit
 
 import agent_activity
 import agent_details
+import agent_security
+import disk_usage
 import claude_sessions
 import herdr_state
 try:
@@ -58,6 +60,7 @@ import skills_scan
 import skills_web
 import runtime_ctl
 import install_ctl
+import model_move
 import models_ctl
 import side_tree
 import model_names
@@ -175,6 +178,49 @@ def monitor_height() -> int:
         for i in range(monitors.get_n_items()):
             heights.append(monitors.get_item(i).get_geometry().height)
     return min(heights) if heights else 1080
+
+
+class SpaceBar(Gtk.DrawingArea):
+    """One stacked bar: parts (label, bytes, colour name) side by side, as wide as their share.
+    Hovering a part tells its name and size."""
+
+    HEIGHT = 14
+
+    def __init__(self, color, parts):
+        super().__init__()
+        self.color = color          # (name, alpha) -> rgba, the map's palette
+        self.parts = [p for p in parts if p[1] > 0]
+        self.spans = []
+        self.set_content_height(self.HEIGHT)
+        self.set_hexpand(True)
+        self.set_has_tooltip(True)
+        self.connect("query-tooltip", self.on_tooltip)
+        self.set_draw_func(self.on_draw)
+
+    def on_draw(self, _area, cr, width, height):
+        total = sum(size for _l, size, _c in self.parts) or 1
+        MapView.rounded(cr, 0, 0, width, height, 4)
+        cr.set_source_rgba(*self.color("fg", 0.08))
+        cr.fill()
+        x, self.spans = 0.0, []
+        for label, size, name in self.parts:
+            w = max(2.0, width * size / total)
+            cr.save()
+            MapView.rounded(cr, 0, 0, width, height, 4)
+            cr.clip()
+            cr.rectangle(x, 0, w - (1 if x + w < width - 1 else 0), height)
+            cr.set_source_rgba(*self.color(name, 0.9))
+            cr.fill()
+            cr.restore()
+            self.spans.append((x, x + w, label, size))
+            x += w
+
+    def on_tooltip(self, _widget, x, _y, _keyboard, tooltip):
+        for start, end, label, size in self.spans:
+            if start <= x < end:
+                tooltip.set_text(f"{label}: {size_text(size)}")
+                return True
+        return False
 
 
 class TokenChart(Gtk.DrawingArea):
@@ -829,6 +875,10 @@ class AgentsMap(Adw.Application):
         self.side_map.on_zoom = lambda _z: self.zoom_changed()
         self.update_layer_toggles()
         self.side_map.on_selection = self.on_map_selection
+        self.side_map.move_target_ok = self.move_target_ok
+        self.side_map.on_move = lambda node_id, folder, rect: self.confirm_move(self.side_map, rect, node_id, folder)
+        self.side_map.pin_tips = (_("Pin: keep its connections lit while the pointer moves over other boxes"),
+                                  _("Unpin"))
         self.side_map.on_link = self.on_map_link
         self.side_map.on_relink = self.on_map_relink
         self.side_map.on_pick_model = self.on_map_pick_model
@@ -1320,7 +1370,9 @@ class AgentsMap(Adw.Application):
             if rt is not None:
                 return self.expandable_card(node_id, "\U000F061A", "", rt.name, _("Local LLM"),
                                             lambda b, rt=rt: self.fill_runtime(b, rt, names), dim=True)
-        return self.expandable_card(node_id, "\U000F0163", "", self.item_name(node_id), _("Online provider"),
+        model = key == "model"
+        return self.expandable_card(node_id, "\U000F01A7" if model else "\U000F0163", "", self.item_name(node_id),
+                                    _("Model") if model else _("Online provider"),
                                     lambda b: b.append(self.hide_button(node_id)), dim=True)
 
     def overview_hints(self, new_mcp, new_skills):
@@ -1402,9 +1454,11 @@ class AgentsMap(Adw.Application):
             sections.append(T("section:hidden", _("Hidden ({0})").format(len(put_away)), kind="section", children=[
                 T(i, agents[i].name, self.agent_subtitle(agents[i]), kind="agent", icon=agents[i].icon,
                   icon_font=agents[i].icon_font, dim=True, lazy=True) if i in agents else
-                T(i, self.item_name(i), _("Local LLM") if i.startswith("runtime:") else _("Online provider"),
-                  kind="runtime" if i.startswith("runtime:") else "cloud",
-                  icon="\U000F061A" if i.startswith("runtime:") else "\U000F0163", dim=True, lazy=True)
+                T(i, self.item_name(i), _("Local LLM") if i.startswith("runtime:") else
+                  _("Model") if i.startswith("model:") else _("Online provider"),
+                  kind="runtime" if i.startswith("runtime:") else "model" if i.startswith("model:") else "cloud",
+                  icon="\U000F061A" if i.startswith("runtime:") else "\U000F01A7" if i.startswith("model:")
+                  else "\U000F0163", dim=True, lazy=True)
                 for i in put_away]))
         if missing:
             sections.append(T("section:missing", _("Not installed ({0})").format(len(missing)), kind="section",
@@ -1474,7 +1528,7 @@ class AgentsMap(Adw.Application):
             children += side_tree.limited([T(f"{node.id}/skill/{getattr(s, 'name', s)}", str(getattr(s, "name", s)),
                                              kind="item") for s in skill_set.skills], 15, more)
             actions = ["details"]
-        elif key == "cloud":
+        elif key in ("cloud", "model"):
             actions = ["hide"]
         else:
             return []
@@ -2474,16 +2528,21 @@ class AgentsMap(Adw.Application):
                 panes = herdr_state.snapshot()
             except Exception:
                 panes = None
-            GLib.idle_add(done, info, usage, checks, sessions, panes)
+            try:
+                servers = sum(1 for m in inventory.mcp if agent.command in m.agents)
+                security = agent_security.report_for(agent.command, servers) if agent.installed else None
+            except Exception:
+                security = None
+            GLib.idle_add(done, info, usage, checks, sessions, panes, security)
 
-        def done(info, usage, checks, sessions, panes):
+        def done(info, usage, checks, sessions, panes, security):
             if self.status_showing == ("agent", agent.command):
-                self.fill_agent_status(agent, info, usage, checks, sessions, panes)
+                self.fill_agent_status(agent, info, usage, checks, sessions, panes, security)
             return False
 
         threading.Thread(target=work, daemon=True).start()
 
-    def fill_agent_status(self, agent, info, usage, checks, sessions=None, panes=None):
+    def fill_agent_status(self, agent, info, usage, checks, sessions=None, panes=None, security=None):
         self.clear_status(agent.name)
         body = self.status_body
         # At the top: one sentence, then what it is doing now.
@@ -2545,8 +2604,7 @@ class AgentsMap(Adw.Application):
         if sessions:
             self.fill_session_projects(body, sessions)
 
-        self.settings_heading(body, _("Setup"))
-        body.append(self.check_list(checks))
+        body.append(self.health_security_card(agent, checks, security))
         self.settings_heading(body, _("Configuration"))
         config = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
         config.add_css_class("am-boxed")
@@ -2724,8 +2782,7 @@ class AgentsMap(Adw.Application):
         if rt.address:
             tiles.append((_("Address"), rt.address, rt.service))
         body.append(self.stat_tiles(tiles))
-        self.settings_heading(body, _("Setup"))
-        body.append(self.check_list(checks))
+        body.append(self.health_security_card(None, checks, agent_security.runtime_report(rt)))
         self.settings_heading(body, _("Configuration"))
         config = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
         config.add_css_class("am-boxed")
@@ -2809,6 +2866,183 @@ class AgentsMap(Adw.Application):
         copy.connect("clicked", copied)
         row.add_suffix(copy)
         return row
+
+    # --- Healthy & Security check (agent and local LLM pages) ------------------------------------
+
+    RISK_MARKS = {"high": ("!", "am-state-missing"), "medium": ("!", "am-state-warn"), "low": ("·", "am-state-info"),
+                  "ok": ("✓", "am-state-ok")}
+    RISK_NAMES = {"high": N_("High risk"), "medium": N_("Medium risk"), "low": N_("Low risk")}
+    RISK_SENTENCES = {
+        "high": N_("It can do serious things on this PC without asking you. What lowers the risk is listed below."),
+        "medium": N_("Some things happen without asking you. What lowers the risk is listed below."),
+        "low": N_("It asks before it does anything that matters, or cannot do it at all."),
+    }
+    HEALTH_NAMES = {"ok": N_("Healthy"), "warn": N_("Needs a look"), "missing": N_("Not set up")}
+
+    def risk_mark(self, level: str) -> Gtk.Label:
+        text, css = self.RISK_MARKS.get(level, ("·", "am-state-info"))
+        mark = Gtk.Label(label=text)
+        mark.add_css_class(css)
+        mark.add_css_class("am-check-mark")
+        return mark
+
+    @staticmethod
+    def risk_badge(text: str, level: str) -> Gtk.Label:
+        badge = Gtk.Label(label=text, valign=Gtk.Align.CENTER)
+        badge.add_css_class("am-risk-badge")
+        badge.add_css_class(f"am-risk-{level}")
+        return badge
+
+    def health_security_card(self, agent, checks, security) -> Gtk.Widget:
+        """Health (is it set up and working), security settings (what it may do without asking,
+        each choice explained, changeable with a preview), risk management (what the settings mean
+        together and what lowers each risk) and the words explained."""
+        card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        card.add_css_class("am-help-card")
+        top = Gtk.Box(spacing=8)
+        top.append(Gtk.Image.new_from_icon_name("security-high-symbolic"))
+        heading = Gtk.Label(label=_("Healthy & Security check").upper(), xalign=0, hexpand=True)
+        heading.add_css_class("am-setting-heading")
+        top.append(heading)
+        state, _sentence = agent_status.summary_line(checks)
+        top.append(self.risk_badge(_(self.HEALTH_NAMES.get(state, "Needs a look")),
+                                   {"ok": "ok", "warn": "medium", "missing": "high"}.get(state, "medium")))
+        level = security.level() if security is not None and (security.settings or security.risks) else ""
+        if level:
+            top.append(self.risk_badge(_(self.RISK_NAMES[level]), level))
+        card.append(top)
+        self.note(card, _("Whether it is set up and works, what it may do on this PC without asking you, and what "
+                          "lowers the risks."))
+
+        self.settings_heading(card, _("Health"))
+        card.append(self.check_list(checks))
+        if security is None:
+            return card
+        if security.settings:
+            self.settings_heading(card, _("Security settings"))
+            listbox = self.boxed_list()
+            for setting in security.settings:
+                listbox.append(self.security_setting_row(agent, setting))
+            card.append(listbox)
+            if agent is not None:
+                self.note(card, _("Open a setting to see every choice. A change is shown first, backed up and can "
+                                  "be undone; it applies the next time {0} starts.").format(agent.name))
+        for title, _key, entries in security.rules:
+            listbox = self.boxed_list()
+            rules = Adw.ExpanderRow(title=title, subtitle=ngettext("1 rule", "{0} rules", len(entries))
+                                    .format(len(entries)), use_markup=False)
+            rules.add_prefix(Gtk.Image.new_from_icon_name("view-list-symbolic"))
+            for entry in entries[:60]:
+                row = self.plain_row(entry)
+                row.add_css_class("monospace")
+                row.set_title_selectable(True)
+                rules.add_row(row)
+            listbox.append(rules)
+            card.append(listbox)
+        if security.note:
+            self.note(card, security.note)
+        if security.files:
+            self.note(card, ngettext("Settings file: {0}", "Settings files: {0}", len(security.files)).format(
+                ", ".join(inventory.tilde(f) for f in security.files)))
+
+        if security.risks:
+            self.settings_heading(card, _("Risk management"))
+            if level:
+                self.note(card, _(self.RISK_SENTENCES[level]))
+            listbox = self.boxed_list()
+            for risk in security.risks:
+                lines = [risk.why] + (["→ " + risk.lower] if risk.lower and risk.level != "ok" else [])
+                row = self.plain_row(risk.title, "\n".join(lines))
+                row.add_prefix(self.risk_mark(risk.level))
+                setting = next((s for s in security.settings if s.key == risk.fix_key), None)
+                fix = next((c for c in setting.choices if agent_security._same(c.value, risk.fix_value)), None) \
+                    if setting is not None else None
+                if agent is not None and fix is not None and setting.editable \
+                        and not agent_security._same(setting.value(), fix.value):
+                    button = Gtk.Button(label=_("Lower it…"), valign=Gtk.Align.CENTER)
+                    button.add_css_class("am-small-btn")
+                    button.set_tooltip_text(_("{0}: {1}").format(setting.title, fix.label))
+                    button.connect("clicked", lambda _b, s=setting, c=fix: self.open_security_change(agent, s, c))
+                    row.add_suffix(button)
+                listbox.append(row)
+            card.append(listbox)
+
+        self.settings_heading(card, _("What the words mean"))
+        listbox = self.boxed_list()
+        words = agent_security.terms()
+        for term in security.terms():
+            if term not in words:
+                continue
+            title, text = words[term]
+            row = Adw.ExpanderRow(title=title, use_markup=False)
+            row.add_prefix(Gtk.Image.new_from_icon_name("help-about-symbolic"))
+            explain = self.plain_row("", text)
+            row.add_row(explain)
+            listbox.append(row)
+        card.append(listbox)
+        return card
+
+    def security_setting_row(self, agent, setting) -> Gtk.Widget:
+        """One setting: its value now and what it means; opened, every choice with its risk and Use."""
+        chosen = setting.choice()
+        row = Adw.ExpanderRow(title=setting.title, subtitle=f"{chosen.label} — {chosen.explain}", use_markup=False)
+        row.set_subtitle_lines(0)
+        row.add_prefix(self.risk_mark(agent_security.LEVELS[chosen.risk] if chosen.risk else "ok"))
+        about = setting.explain
+        if setting.current is None:
+            about += " " + _("Not set: the agent's own default applies.")
+        explain = self.plain_row("", about)
+        row.add_row(explain)
+        for choice in setting.choices:
+            if choice.value is None and setting.current is None and choice is not chosen:
+                continue
+            title = choice.label
+            if agent_security._same(choice.value, setting.recommended):
+                title += " · " + _("recommended")
+            line = self.plain_row(title, choice.explain)
+            line.add_prefix(self.risk_mark(agent_security.LEVELS[choice.risk] if choice.risk else "ok"))
+            if choice.risk:
+                line.add_suffix(self.risk_badge(_(self.RISK_NAMES[agent_security.LEVELS[choice.risk]]),
+                                                agent_security.LEVELS[choice.risk]))
+            if choice is chosen:
+                mark = Gtk.Label(label=_("In use"), valign=Gtk.Align.CENTER)
+                mark.add_css_class("am-agent-badge")
+                line.add_suffix(mark)
+            elif setting.editable and agent is not None:
+                use = Gtk.Button(label=_("Use…"), valign=Gtk.Align.CENTER)
+                use.add_css_class("am-small-btn")
+                use.connect("clicked", lambda _b, c=choice: self.open_security_change(agent, setting, c))
+                line.add_suffix(use)
+            row.add_row(line)
+        return row
+
+    def open_security_change(self, agent, setting, choice):
+        """The change of one security setting on the connect page: what it means, the diff, Change."""
+        self.connecting = {"agent": agent, "security": setting.key, "value": choice.value, "title": setting.title,
+                           "label": choice.label, "from": self.view}
+        self.connect_title.set_label(_("{0}: {1}").format(agent.name, setting.title).upper())
+        form = self.connect_form
+        while (child := form.get_first_child()) is not None:
+            form.remove(child)
+        old = setting.choice()
+        levels = agent_security.LEVELS
+        self.connect_intro.set_label(_("{0} → {1}: {2}").format(old.label, choice.label, choice.explain) + " "
+                                     + _("It applies the next time {0} starts; Undo puts it back.").format(agent.name))
+        if old.risk != choice.risk:
+            line = Gtk.Box(spacing=8)
+            line.append(Gtk.Label(label=_("Risk"), xalign=0))
+            line.append(self.risk_badge(_(self.RISK_NAMES[levels[old.risk]]), levels[old.risk]))
+            line.append(Gtk.Label(label="→"))
+            line.append(self.risk_badge(_(self.RISK_NAMES[levels[choice.risk]]), levels[choice.risk]))
+            form.append(line)
+        self.connect_preview_heading.set_visible(True)
+        self.connect_preview_scroller.set_visible(True)
+        self.connect_status.set_label("")
+        self.connect_remove.set_visible(False)
+        self.connect_ok.set_visible(True)
+        self.connect_ok.set_label(_("Change"))
+        self.update_connect_preview()
+        self.show_page("connect")
 
     # --- MCP server details (the (i) on its card) ---------------------------------------------------
 
@@ -4519,9 +4753,10 @@ class AgentsMap(Adw.Application):
     # --- Hide: agents and providers left out of My setup (+ Available › Hidden shows them) -------
 
     def hidden_items(self) -> set:
-        """What Hide put away, as box ids: agent:…, runtime:… (local LLMs), cloud:… (online providers)."""
+        """What Hide put away, as box ids: agent:…, runtime:… (local LLMs), cloud:… (online providers),
+        model:… (models)."""
         value = ai_core.load_settings().get("hidden_items", [])
-        return {str(v) for v in value[:300] if str(v).partition(":")[0] in ("agent", "runtime", "cloud")} \
+        return {str(v) for v in value[:300] if str(v).partition(":")[0] in ("agent", "runtime", "cloud", "model")} \
             if isinstance(value, list) else set()
 
     def provider_users(self) -> dict:
@@ -4536,11 +4771,25 @@ class AgentsMap(Adw.Application):
                  if a.installed and f"agent:{a.command}" not in hidden}
         return graph.provider_users(built, shown)
 
-    def hidden_now(self) -> set:
-        """hidden_items, less the providers a shown agent is fully connected to (again): a connection
-        beats Hide, so nothing in use is ever out of sight."""
+    def model_users(self) -> dict:
+        """Model box id -> names of the shown (not hidden) agents that use it: such a model cannot be hidden."""
+        built = getattr(getattr(self, "side_map", None), "graph", None)
+        if built is None:
+            return {}
         hidden = self.hidden_items()
-        return hidden - set(self.provider_users()) if hidden else hidden
+        shown = {f"agent:{a.command}": a.name for a in self.agent_list
+                 if a.installed and f"agent:{a.command}" not in hidden}
+        users = {}
+        for edge in built.edges:
+            if edge.kind == "default" and edge.source in shown:
+                users.setdefault(edge.target, []).append(shown[edge.source])
+        return users
+
+    def hidden_now(self) -> set:
+        """hidden_items, less the providers a shown agent is fully connected to (again) and the models
+        a shown agent uses: a connection beats Hide, so nothing in use is ever out of sight."""
+        hidden = self.hidden_items()
+        return hidden - set(self.provider_users()) - set(self.model_users()) if hidden else hidden
 
     def item_name(self, node_id: str) -> str:
         key, _sep, ident = node_id.partition(":")
@@ -4568,6 +4817,12 @@ class AgentsMap(Adw.Application):
         name = self.item_name(node_id)
         if node_id in self.hidden_now():
             return _("Show again"), _("Show {0} in My setup again").format(name), True
+        if node_id.startswith("model:"):
+            users = self.model_users().get(node_id)
+            if users:
+                return _("Hide"), _("{0} uses {1}: hide that agent first, or choose another model").format(
+                    ", ".join(users), name), False
+            return _("Hide"), _("Leave {0} out of My setup (+ Available › Hidden shows it)").format(name), True
         users = self.provider_users().get(node_id) if not node_id.startswith("agent:") else None
         if users:
             return _("Hide"), _("{0} uses a model of {1}: hide that agent first, or disconnect it").format(
@@ -4594,13 +4849,7 @@ class AgentsMap(Adw.Application):
         """The same in a box's right-click menu on the map."""
         label, tip, clickable = self.hide_state(node_id)
         hidden = node_id in self.hidden_now()
-        item = Gtk.Button(label=label, halign=Gtk.Align.START)
-        item.add_css_class("flat")
-        item.add_css_class("am-menu-item")
-        item.set_tooltip_text(tip)
-        item.set_sensitive(clickable)
-        item.connect("clicked", lambda *_: (popover.popdown(), self.set_hidden(node_id, not hidden)))
-        return item
+        return self.menu_item(label, popover, lambda: self.set_hidden(node_id, not hidden), tip, clickable)
 
     def card_hidden(self) -> set:
         value = ai_core.load_settings().get("card_hidden", [])
@@ -5283,6 +5532,8 @@ class AgentsMap(Adw.Application):
 
     def current_connect_plan(self, remove: bool = False):
         info = self.connecting
+        if "security" in info:
+            return agent_security.plan(info["agent"].command, info["security"], info["value"])
         if "update" in info:
             return mcp_update.plan(info["update"], [a.command for a in self.agent_list if a.installed])
         if "delete" in info:
@@ -5366,6 +5617,10 @@ class AgentsMap(Adw.Application):
             self.close_connect()
             self.refresh_map()
             self.show_note(_("{0} could not be connected: see the red line on the map.").format(info["agent"].name))
+            return
+        if "security" in info:
+            self.close_connect()
+            self.show_undo(_("{0}: {1} is now {2}").format(info["agent"].name, info["title"], info["label"]), backup)
             return
         remove = remove or bool(info.get("remove_only"))
         if link is not None and remove:
@@ -5527,6 +5782,9 @@ class AgentsMap(Adw.Application):
     def close_connect(self):
         info = getattr(self, "connecting", None)
         self.connecting = None
+        if info and "security" in info:
+            self.open_agent_status(info["agent"])      # back to its page, read again
+            return
         self.show_view(info["from"] if info else self.view, save=False)
 
     # --- models of a local LLM (right-click → Models…) ---------------------------------------------
@@ -7374,79 +7632,306 @@ class AgentsMap(Adw.Application):
 
     # --- right-click on a box ---------------------------------------------------------------
 
-    def show_install_agent_context(self, view, agent, rect):
-        """An agent AI Agents Map installs itself (DeepSeek Harness, LM Studio Bionic)."""
-        import types
-        inst = install_ctl.AGENT_INSTALLERS[agent.command]
-        ours = inst.installed_folder() is not None
-        target = types.SimpleNamespace(key=agent.command, name=agent.name, installed=agent.installed)
+    # --- right-click menus on the map ---------------------------------------------------------
+
+    def context_popover(self, view, rect) -> Gtk.Popover:
+        """An empty right-click menu below the box (framed: popover.am-menu)."""
         popover = Gtk.Popover()
+        popover.add_css_class("am-menu")
         popover.set_parent(view)
         area = Gdk.Rectangle()
         area.x, area.y, area.width, area.height = (int(v) for v in rect)
         popover.set_pointing_to(area)
         popover.set_position(Gtk.PositionType.BOTTOM)
-        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
-        box.add_css_class("am-provider-list")
-        title = Gtk.Label(label=f"{agent.name} · " + (agent.version or _("installed") if agent.installed
-                                                      else _("not installed")), xalign=0)
-        title.add_css_class("am-agent-name")
-        box.append(title)
-        update = [(_("Update…"), "update")] if inst.can_install else []
-        actions = update + [(_("Uninstall…"), "uninstall")] if ours else \
-            [] if agent.installed or not inst.can_install else [(_("Install…"), "install")]
-        if not inst.can_install:
-            note = Gtk.Label(label=_("{0} publishes no checksum for its download, so AI Agents Map does not "
-                                     "install or update it. Get it from {1}.").format(agent.name, inst.site),
-                             xalign=0, wrap=True, max_width_chars=36)
-            note.add_css_class("am-agent-detail")
-            box.append(note)
-        elif agent.installed and not ours:
-            note = Gtk.Label(label=_("Installed by hand: update it the way you installed it."), xalign=0, wrap=True)
-            note.add_css_class("am-agent-detail")
-            box.append(note)
-        for label, mode in actions:
-            button = Gtk.Button(label=label, halign=Gtk.Align.START)
-            button.add_css_class("flat")
-            button.add_css_class("am-menu-item")
-            button.connect("clicked", lambda _b, m=mode: (popover.popdown(), self.open_install(target, m)))
-            box.append(button)
-        box.append(self.hide_menu_item(f"agent:{agent.command}", popover))
-        popover.set_child(box)
         popover.connect("closed", lambda p: GLib.idle_add(p.unparent))
+        return popover
+
+    def show_menu(self, popover, title: str, groups):
+        """The box's name, then its groups of entries with a line between groups; empty
+        groups are left out, and a menu with no entries at all is not shown."""
+        groups = [g for g in groups if g]
+        if not groups:
+            popover.unparent()
+            return
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+        label = Gtk.Label(label=title, xalign=0)
+        label.set_ellipsize(Pango.EllipsizeMode.END)
+        label.set_max_width_chars(36)
+        label.add_css_class("am-agent-name")
+        label.add_css_class("am-menu-title")
+        box.append(label)
+        for group in groups:
+            rule = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
+            rule.add_css_class("am-menu-rule")
+            box.append(rule)
+            for widget in group:
+                box.append(widget)
+        popover.set_child(box)
         popover.popup()
 
+    def menu_item(self, label: str, popover, action, tip: str = "", enabled: bool = True) -> Gtk.Widget:
+        """One entry: the full width of the menu, its text on the left, as every other entry."""
+        item = Gtk.Button()
+        text = Gtk.Label(label=label, xalign=0)
+        item.set_child(text)
+        item.add_css_class("flat")
+        item.add_css_class("am-menu-item")
+        if tip:
+            item.set_tooltip_text(tip)
+        item.set_sensitive(enabled)
+        item.connect("clicked", lambda *_: (popover.popdown(), action()))
+        return item
+
+    @staticmethod
+    def menu_note(text: str) -> Gtk.Widget:
+        note = Gtk.Label(label=text, xalign=0, wrap=True, max_width_chars=36)
+        note.add_css_class("am-agent-detail")
+        note.add_css_class("am-menu-note")
+        return note
+
+    def card_actions(self, node_id: str, popover) -> tuple[list, list]:
+        """The buttons of a box's card, as menu entries: (start entries, Details entries).
+        An agent: Start here / Start in terminal (Show terminal / Stop while it runs here),
+        Details. A local LLM, MCP server or skill folder: Details; an MCP server also Remove."""
+        kind, _sep, ident = node_id.partition(":")
+        starts, details = [], []
+        if kind == "agent":
+            agent = next((a for a in self.agent_list if a.command == ident), None)
+            if agent is None or not agent.installed:
+                return starts, details
+            if terminal_pane.program(agent.command):
+                pane = self.sessions.get(agent.command)
+                if pane is not None and pane.running:
+                    starts.append(self.menu_item(_("Show terminal"), popover, lambda: self.show_terminal(ident),
+                                                 _("Show the terminal {0} runs in here").format(agent.name)))
+                    starts.append(self.menu_item(_("Stop"), popover, lambda: self.stop_agent(ident),
+                                                 _("End {0} and what it started (its MCP servers)").format(agent.name)))
+                else:
+                    starts.append(self.menu_item(_("Start here"), popover,
+                                                 lambda: self.start_agent(agent, None, "here"),
+                                                 _("Start {0} in {1}, in a terminal beside the cards; Stop ends it")
+                                                 .format(agent.name, self.agent_folder())))
+                    starts.append(self.menu_item(_("Start in terminal"), popover,
+                                                 lambda: self.start_agent(agent, None, "terminal"),
+                                                 _("Start {0} in {1}, in a terminal window of its own")
+                                                 .format(agent.name, self.agent_folder())))
+            details.append(self.menu_item(_("Details"), popover, lambda: self.open_agent_status(agent)))
+        elif kind == "runtime":
+            details.append(self.menu_item(_("Details"), popover, lambda: self.open_runtime_status(ident)))
+        elif kind == "mcp" and any(m.name == ident for m in self.inventory.mcp):
+            details.append(self.menu_item(_("Details"), popover, lambda: self.open_mcp_details(ident)))
+            details.append(self.menu_item(_("Remove"), popover, lambda: self.open_mcp_delete(ident),
+                                          _("Take it from every agent and from the list")))
+        elif kind == "skills" and any(s.path == ident for s in self.inventory.skill_sets):
+            details.append(self.menu_item(_("Details"), popover, lambda: self.open_skills_details(ident)))
+        return starts, details
+
     def show_context(self, view, node_id: str, rect):
-        """Local LLM: start, stop, start at login. A new agent: look up its setup again. Every
-        agent and provider: Hide / Show again."""
-        rt = next((r for r in self.inventory.runtimes if f"runtime:{r.key}" == node_id), None)
+        """A box's right-click menu: what only it has (a local LLM's install, start and stop, an
+        agent's install or web look-up), its card's actions, then Details and Hide / Show again
+        (agents, providers, models), each group set off by a line."""
+        kind, _sep, ident = node_id.partition(":")
+        title, own, hideable = self.item_name(node_id), [], kind in ("runtime", "cloud", "model")
+        popover = self.context_popover(view, rect)
+        if kind == "runtime":
+            rt = next((r for r in self.inventory.runtimes if r.key == ident), None)
+            if rt is None:
+                popover.unparent()
+                return
+            title, own = self.runtime_menu(rt, popover)
+        elif kind == "agent":
+            agent = next((a for a in self.agent_list if a.command == ident), None)
+            if agent is None:
+                popover.unparent()
+                return
+            if agent.command in install_ctl.AGENT_INSTALLERS:
+                title, own = self.install_agent_menu(agent, popover)
+                hideable = True
+            elif agent.installed:
+                if self.is_new_agent(agent.command):
+                    own = self.research_menu(agent, popover)
+                hideable = True
+        danger = []
+        if kind == "model":
+            own, danger = self.model_menu(view, rect, node_id, popover)
+        starts, details = self.card_actions(node_id, popover)
+        hide = [self.hide_menu_item(node_id, popover)] if hideable else []
+        self.show_menu(popover, title, [own, starts, details, hide, danger])
+
+    # --- a model: move to another local LLM's folder, delete -----------------------------------
+
+    def model_runtime(self, node_id: str):
+        """(local LLM, model name) of a model box of a local LLM, else (None, "")."""
+        rest = node_id.partition(":")[2]
+        if not rest.startswith("runtime:"):
+            return None, ""
+        key = rest.split(":")[1]
+        rt = next((r for r in self.inventory.runtimes if r.key == key and r.installed), None)
+        built = getattr(self.side_map, "graph", None)
+        node = next((n for n in built.nodes if n.id == node_id), None) if built is not None else None
+        return (rt, node.label) if rt is not None and node is not None else (None, "")
+
+    def folder_owners(self, folder: str) -> list:
+        """The installed local LLMs (that read GGUF files) whose model folder this is."""
+        return [r for r in self.inventory.runtimes
+                if r.installed and r.models_dir == folder and r.key in model_move.MOVABLE]
+
+    def move_target_ok(self, node_id: str, folder: str) -> bool:
+        rt, _name = self.model_runtime(node_id)
+        return rt is not None and rt.key in model_move.MOVABLE and bool(rt.models_dir) \
+            and folder != rt.models_dir and bool(self.folder_owners(folder))
+
+    def model_menu(self, view, rect, node_id: str, popover) -> tuple[list, list]:
+        """A model's own entries: (Move to…, Delete…)."""
+        rt, name = self.model_runtime(node_id)
         if rt is None:
-            agent = next((a for a in self.agent_list if f"agent:{a.command}" == node_id), None)
-            if agent is not None and agent.command in install_ctl.AGENT_INSTALLERS:
-                self.show_install_agent_context(view, agent, rect)
-            elif agent is not None and self.is_new_agent(agent.command):
-                self.show_agent_context(view, agent, rect)
-            elif (agent is not None and agent.installed) or node_id.startswith("cloud:"):
-                self.show_hide_context(view, node_id, rect)
+            return [], []
+        built = getattr(self.side_map, "graph", None)
+        folders = [f for f in dict.fromkeys(r.models_dir for r in self.inventory.runtimes if r.models_dir)
+                   if self.move_target_ok(node_id, f)] if built is not None else []
+        move = [self.menu_item(_("Move to…"), popover, lambda: self.pick_move_folder(view, rect, node_id, folders),
+                               _("Into the model folder of another local LLM; or drag the box onto that folder"))] \
+            if folders else []
+        delete = [self.menu_item(_("Delete…"), popover, lambda: self.confirm_delete(view, rect, rt, name))] \
+            if rt.key in ("llamacpp", "koboldcpp", "lmstudio", "ollama") else []
+        return move, delete
+
+    def pick_move_folder(self, view, rect, node_id: str, folders):
+        _rt, name = self.model_runtime(node_id)
+        popover = self.context_popover(view, rect)
+        items = []
+        for folder in folders:
+            owners = ", ".join(r.name for r in self.folder_owners(folder))
+            items.append(self.menu_item(owners, popover, lambda f=folder: self.confirm_move(view, rect, node_id, f),
+                                        inventory.tilde(folder)))
+        self.show_menu(popover, _("Move {0} to").format(name), [items])
+
+    def confirm_move(self, view, rect, node_id: str, folder: str):
+        """What the move does (size, another disk, agents that use the model), then Move or Keep."""
+        rt, name = self.model_runtime(node_id)
+        owners = self.folder_owners(folder)
+        if rt is None or not owners:
             return
-        popover = Gtk.Popover()
-        popover.set_parent(view)
-        area = Gdk.Rectangle()
-        area.x, area.y, area.width, area.height = (int(v) for v in rect)
-        popover.set_pointing_to(area)
-        popover.set_position(Gtk.PositionType.BOTTOM)
-        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
-        box.add_css_class("am-provider-list")
+        popover = self.context_popover(view, rect)
+        names = ", ".join(r.name for r in owners)
+        try:
+            move = model_move.plan(rt.key, rt.models_dir, name, owners[0].key, folder)
+        except (OSError, ValueError) as problem:
+            self.show_menu(popover, _("Move {0}?").format(name),
+                           [[self.menu_note(_("Cannot move it: {0}").format(problem))]])
+            return
+        text = ngettext("{0} in 1 file goes to {2}; {3} lists it there.",
+                        "{0} in {1} files go to {2}; {3} lists it there.", len(move.steps)).format(
+            size_text(move.size), len(move.steps), inventory.tilde(folder), names)
+        if move.copy:
+            text += " " + _("That folder is on another disk: copied first, then removed here.")
+        users = self.model_users().get(node_id)
+        if users:
+            text += " " + _("{0} uses it through {1}: choose another model for it afterwards.").format(
+                ", ".join(users), rt.name)
+        self.show_menu(popover, _("Move {0}?").format(name), [
+            [self.menu_note(text)],
+            [self.menu_item(_("Move"), popover, lambda: self.run_move(move, names, folder)),
+             self.menu_item(_("Keep"), popover, lambda: None)]])
+
+    def run_move(self, move, names: str, folder: str):
+        self.show_note(_("Moving {0}…").format(move.name))
+
+        def work():
+            try:
+                done, error = model_move.apply(move, progress=lambda f, _t: GLib.idle_add(
+                    self.show_note, _("Moving {0}… {1} %").format(move.name, round(f * 100)))), None
+            except (OSError, ValueError, model_move.model_layout.Cancelled) as problem:
+                done, error = getattr(problem, "done", []), str(problem)
+            GLib.idle_add(finished, done, error)
+
+        def finished(done, error):
+            self.collect()
+            self.refresh_overview()
+            self.refresh_map()
+            if error:
+                if done:
+                    model_move.undo(move, done)
+                    self.collect()
+                    self.refresh_map()
+                self.show_note(_("Not moved: {0}").format(error))
+            else:
+                self.toast(_("{0} moved to {1}").format(move.name, names), 10, _("Undo"),
+                           lambda: self.undo_move(move, done))
+            return False
+
+        threading.Thread(target=work, daemon=True).start()
+
+    def undo_move(self, move, done):
+        def work():
+            problems = model_move.undo(move, done)
+            GLib.idle_add(finished, problems)
+
+        def finished(problems):
+            self.collect()
+            self.refresh_overview()
+            self.refresh_map()
+            self.show_note(_("Undo did not work: {0}").format("; ".join(problems)) if problems
+                           else _("{0} is back").format(move.name))
+            return False
+
+        threading.Thread(target=work, daemon=True).start()
+
+    def confirm_delete(self, view, rect, rt, name: str):
+        """What Delete does (the trash; links only; Ollama's own store), then do it or Keep."""
+        popover = self.context_popover(view, rect)
+        others = {r.name: (r.key, r.models_dir) for r in self.inventory.runtimes
+                  if r.installed and r.models_dir and r.key != rt.key}
+        try:
+            plan = None if rt.key == "ollama" else models_ctl.removal(rt.key, rt.models_dir, name, others)
+        except (OSError, ValueError) as problem:
+            self.show_menu(popover, _("Delete {0}?").format(name),
+                           [[self.menu_note(_("Cannot remove it here: {0}").format(problem))]])
+            return
+        if plan is None:
+            text = _("Ollama deletes {0} from its own store (Ollama has no trash).").format(name)
+        elif plan.links_only:
+            text = _("Only the link in the model folder goes to the trash; the file itself stays where it is.")
+        else:
+            text = _("{0} go to the trash ({1} files); you can restore them from there.") \
+                .format(size_text(plan.size), len(plan.paths))
+        if plan is not None and plan.shared:
+            text += " " + _("{0} reads the same file and loses it too.").format(", ".join(plan.shared))
+        self.show_menu(popover, _("Delete {0}?").format(name), [
+            [self.menu_note(text)],
+            [self.menu_item(_("Delete in Ollama") if plan is None else _("Move to trash"), popover,
+                            lambda: self.delete_model(rt, name, plan)),
+             self.menu_item(_("Keep"), popover, lambda: None)]])
+
+    def delete_model(self, rt, name: str, plan):
+        self.show_note(_("Removing {0}…").format(name))
+
+        def work():
+            try:
+                if plan is None:
+                    models_ctl.ollama_delete(name, rt.address)
+                else:
+                    models_ctl.trash(plan.paths)
+                error = None
+            except (OSError, ValueError, RuntimeError) as problem:
+                error = str(problem)
+            GLib.idle_add(finished, error)
+
+        def finished(error):
+            self.collect()
+            self.refresh_overview()
+            self.refresh_map()
+            self.show_note(_("Not removed: {0}").format(error) if error else
+                           _("Removed: {0}").format(name) + ("" if plan is None else " " + _("(in the trash)")))
+            return False
+
+        threading.Thread(target=work, daemon=True).start()
+
+    def runtime_menu(self, rt, popover) -> tuple[str, list]:
+        """A local LLM: install, update, models, start, stop, free GPU memory, start at login."""
         state = {"running": _("running"), "stopped": _("installed, not running")}.get(graph.runtime_status(rt),
                                                                                        _("not installed"))
-        title = Gtk.Label(label=f"{rt.name} · {state}", xalign=0)
-        title.add_css_class("am-agent-name")
-        box.append(title)
-        if rt.running and self.runtime_users(rt.key):
-            users = Gtk.Label(label=_("In use by {0}").format(self.runtime_users(rt.key)), xalign=0, wrap=True,
-                              max_width_chars=36)
-            users.add_css_class("am-agent-detail")
-            box.append(users)
+        items = []
         inst = install_ctl.installer(rt.key)
         ours = inst is not None and inst.installed_folder() is not None
         actions = []
@@ -7458,62 +7943,64 @@ class AgentsMap(Adw.Application):
         if rt.installed and rt.key in ("ollama", "llamacpp", "lmstudio", "jan", "koboldcpp"):
             actions.insert(0, (_("Models…"), "download"))
         if inst is not None and not inst.can_install and (ours or not rt.installed):
-            note = Gtk.Label(label=_("{0} publishes no checksum for its download, so AI Agents Map does not "
-                                     "install or update it. Get it from {1}.").format(rt.name, inst.site),
-                             xalign=0, wrap=True, max_width_chars=36)
-            note.add_css_class("am-agent-detail")
-            box.append(note)
-        if actions:
-            column = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
-            for label, mode in actions:
-                button = Gtk.Button(label=label, halign=Gtk.Align.START)
-                button.add_css_class("flat")
-                button.add_css_class("am-menu-item")
-                button.connect("clicked", lambda _b, m=mode: (popover.popdown(), self.open_models(rt) if m == "download"
-                                                               else self.open_install(rt, m)))
-                column.append(button)
-            box.append(column)
-        elif rt.installed and inst is not None:
-            note = Gtk.Label(label=_("Installed by hand: AI Agents Map does not update or remove it."), xalign=0,
-                             wrap=True, max_width_chars=36)
-            note.add_css_class("am-agent-detail")
-            box.append(note)
+            items.append(self.menu_note(_("{0} publishes no checksum for its download, so AI Agents Map does not "
+                                          "install or update it. Get it from {1}.").format(rt.name, inst.site)))
+        for label, mode in actions:
+            items.append(self.menu_item(label, popover, lambda m=mode: self.open_models(rt) if m == "download"
+                                        else self.open_install(rt, m)))
+        if not actions and rt.installed and inst is not None:
+            items.append(self.menu_note(_("Installed by hand: AI Agents Map does not update or remove it.")))
         if not runtime_ctl.can_control(rt):
-            note = Gtk.Label(label=_("Not installed.") if not rt.installed else
-                             _("No user service starts it, so it cannot be started from here."), xalign=0,
-                             wrap=True, max_width_chars=36)
-            note.add_css_class("am-agent-detail")
             if rt.installed or inst is None:
-                box.append(note)
+                items.append(self.menu_note(_("Not installed.") if not rt.installed else
+                                            _("No user service starts it, so it cannot be started from here.")))
+            return f"{rt.name} · {state}", items
+        if rt.running and self.runtime_users(rt.key):
+            items.insert(0, self.menu_note(_("In use by {0}").format(self.runtime_users(rt.key))))
+        if rt.running:
+            items.append(self.menu_item(_("Stop"), popover, lambda: self.control_runtime(rt, runtime_ctl.stop, _("Stop"))))
+            items.append(self.menu_item(_("Free GPU memory"), popover,
+                                        lambda: self.control_runtime(rt, runtime_ctl.unload, _("Free GPU memory")),
+                                        _("Unloads its models; it keeps running and loads one again when asked.")))
         else:
-            row = Gtk.Box(spacing=6)
-            for label, action, enabled in ((_("Start"), runtime_ctl.start, not rt.running),
-                                           (_("Stop"), runtime_ctl.stop, rt.running)):
-                button = Gtk.Button(label=label)
-                button.add_css_class("am-small-btn")
-                button.set_sensitive(enabled)
-                button.connect("clicked", lambda _b, a=action, l=label: (popover.popdown(),
-                                                                          self.control_runtime(rt, a, l)))
-                row.append(button)
-            free = Gtk.Button(label=_("Free GPU memory"))
-            free.add_css_class("am-small-btn")
-            free.set_sensitive(rt.running)
-            free.set_tooltip_text(_("Unloads its models; it keeps running and loads one again when asked."))
-            free.connect("clicked", lambda _b: (popover.popdown(),
-                                                self.control_runtime(rt, runtime_ctl.unload, _("Free GPU memory"))))
-            row.append(free)
-            box.append(row)
-            login = runtime_ctl.start_at_login(rt)
-            if login is not None:
-                check = Gtk.CheckButton(label=_("Start at login"), active=login)
-                check.set_tooltip_text(_("Enables or disables the user service {0}.").format(rt.service))
-                check.connect("toggled", lambda b: self.control_runtime(
-                    rt, lambda r: runtime_ctl.set_start_at_login(r, b.get_active()), _("Start at login")))
-                box.append(check)
-        box.append(self.hide_menu_item(node_id, popover))
-        popover.set_child(box)
-        popover.connect("closed", lambda p: GLib.idle_add(p.unparent))
-        popover.popup()
+            items.append(self.menu_item(_("Start"), popover,
+                                        lambda: self.control_runtime(rt, runtime_ctl.start, _("Start"))))
+        login = runtime_ctl.start_at_login(rt)
+        if login is not None:
+            check = Gtk.CheckButton(label=_("Start at login"), active=login)
+            check.add_css_class("am-menu-check")
+            check.set_tooltip_text(_("Enables or disables the user service {0}.").format(rt.service))
+            check.connect("toggled", lambda b: self.control_runtime(
+                rt, lambda r: runtime_ctl.set_start_at_login(r, b.get_active()), _("Start at login")))
+            items.append(check)
+        return f"{rt.name} · {state}", items
+
+    def install_agent_menu(self, agent, popover) -> tuple[str, list]:
+        """An agent AI Agents Map installs itself (DeepSeek Harness, LM Studio Bionic)."""
+        import types
+        inst = install_ctl.AGENT_INSTALLERS[agent.command]
+        ours = inst.installed_folder() is not None
+        target = types.SimpleNamespace(key=agent.command, name=agent.name, installed=agent.installed)
+        title = f"{agent.name} · " + (agent.version or _("installed") if agent.installed else _("not installed"))
+        items = []
+        update = [(_("Update…"), "update")] if inst.can_install else []
+        actions = update + [(_("Uninstall…"), "uninstall")] if ours else \
+            [] if agent.installed or not inst.can_install else [(_("Install…"), "install")]
+        if not inst.can_install:
+            items.append(self.menu_note(_("{0} publishes no checksum for its download, so AI Agents Map does not "
+                                          "install or update it. Get it from {1}.").format(agent.name, inst.site)))
+        elif agent.installed and not ours:
+            items.append(self.menu_note(_("Installed by hand: update it the way you installed it.")))
+        for label, mode in actions:
+            items.append(self.menu_item(label, popover, lambda m=mode: self.open_install(target, m)))
+        return title, items
+
+    def research_menu(self, agent, popover) -> list:
+        """A new agent: what the web look-up found, and Look up again."""
+        _label, value, _tip = self.research_row(agent)
+        return [self.menu_note(value),
+                self.menu_item(_("Look up again on the web"), popover, lambda: self.start_research(agent),
+                               enabled=agent.command not in self.researching)]
 
     def control_runtime(self, rt, action, label: str):
         """Run a start/stop on a thread; look again once it has had a moment."""
@@ -7584,53 +8071,13 @@ class AgentsMap(Adw.Application):
         self.collect()
         self.refresh_overview()
         self.refresh_map()
+        showing = getattr(self, "status_showing", None)
+        if showing and showing[0] == "agent" and self.page_name() == "status":
+            agent = next((a for a in self.agent_list if a.command == showing[1]), None)
+            if agent is not None:
+                self.open_agent_status(agent)          # its security settings as they are again
 
     # --- settings ----------------------------------------------------------------
-
-    def show_hide_context(self, view, node_id: str, rect):
-        """An agent or online provider with no other menu: its name and Hide / Show again."""
-        popover = Gtk.Popover()
-        popover.set_parent(view)
-        area = Gdk.Rectangle()
-        area.x, area.y, area.width, area.height = (int(v) for v in rect)
-        popover.set_pointing_to(area)
-        popover.set_position(Gtk.PositionType.BOTTOM)
-        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
-        box.add_css_class("am-provider-list")
-        title = Gtk.Label(label=self.item_name(node_id), xalign=0)
-        title.add_css_class("am-agent-name")
-        box.append(title)
-        box.append(self.hide_menu_item(node_id, popover))
-        popover.set_child(box)
-        popover.connect("closed", lambda p: GLib.idle_add(p.unparent))
-        popover.popup()
-
-    def show_agent_context(self, view, agent, rect):
-        popover = Gtk.Popover()
-        popover.set_parent(view)
-        area = Gdk.Rectangle()
-        area.x, area.y, area.width, area.height = (int(v) for v in rect)
-        popover.set_pointing_to(area)
-        popover.set_position(Gtk.PositionType.BOTTOM)
-        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
-        box.add_css_class("am-provider-list")
-        title = Gtk.Label(label=agent.name, xalign=0)
-        title.add_css_class("am-agent-name")
-        box.append(title)
-        label, value, _tip = self.research_row(agent)
-        note = Gtk.Label(label=value, xalign=0, wrap=True, max_width_chars=36)
-        note.add_css_class("am-agent-detail")
-        box.append(note)
-        button = Gtk.Button(label=_("Look up again on the web"), halign=Gtk.Align.START)
-        button.add_css_class("flat")
-        button.add_css_class("am-menu-item")
-        button.set_sensitive(agent.command not in self.researching)
-        button.connect("clicked", lambda *_: (popover.popdown(), self.start_research(agent)))
-        box.append(button)
-        box.append(self.hide_menu_item(f"agent:{agent.command}", popover))
-        popover.set_child(box)
-        popover.connect("closed", lambda p: GLib.idle_add(p.unparent))
-        popover.popup()
 
     def build_settings_page(self) -> Gtk.Widget:
         page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
@@ -8465,6 +8912,7 @@ class AgentsMap(Adw.Application):
         manual = self.help_manual_card()
         if manual is not None:
             body.append(manual)
+        body.append(self.help_disk_card())
         body.append(self.help_setup_card())
         monitor = self.help_llm_monitor_card()
         if monitor is not None:
@@ -8520,6 +8968,243 @@ class AgentsMap(Adw.Application):
 
         button.connect("clicked", open_manual)
         return card
+
+    SPACE_PARTS = (("agents", N_("Agent programs")), ("agent_data", N_("Agent data")),
+                   ("runtimes", N_("Local LLMs")), ("models", N_("Models")))
+    SPACE_KINDS = {"program": N_("Program"), "data": N_("Data"), "models": N_("Models")}
+
+    def help_disk_card(self) -> Gtk.Widget:
+        """Disk space of the agents, local LLMs and models: how much, where, on which disk.
+        Measured when Help opens (in the background); nothing is changed or deleted."""
+        card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
+        card.add_css_class("am-help-card")
+        top = Gtk.Box(spacing=10)
+        # The heading with the totals in one line; a click shows or hides the details.
+        toggle = Gtk.Box(spacing=8, hexpand=True)
+        chevron = Gtk.Image.new_from_icon_name("pan-down-symbolic")       # open at first; the sections inside start folded
+        chevron.set_valign(Gtk.Align.START)
+        toggle.append(chevron)
+        texts = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2, hexpand=True)
+        heading = Gtk.Label(label=_("Disk space: agents, local LLMs and models").upper(), xalign=0)
+        heading.add_css_class("am-setting-heading")
+        texts.append(heading)
+        self.disk_summary = Gtk.Label(label="", xalign=0, wrap=True, max_width_chars=1)
+        self.disk_summary.add_css_class("am-agent-detail")
+        texts.append(self.disk_summary)
+        toggle.append(texts)
+        toggle.set_cursor_from_name("pointer")
+        toggle.set_tooltip_text(_("Hide details"))
+        top.append(toggle)
+        again = Gtk.Button(valign=Gtk.Align.START)
+        content = Gtk.Box(spacing=6)
+        content.append(Gtk.Image.new_from_icon_name("view-refresh-symbolic"))
+        content.append(Gtk.Label(label=_("Measure again")))
+        again.set_child(content)
+        again.add_css_class("am-small-btn")
+        again.connect("clicked", lambda *_: self.measure_disk(force=True))
+        top.append(again)
+        card.append(top)
+        details = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10, margin_top=10)
+        self.note(details, _("How much room your AI setup takes and where it is. Programs can be installed again; data "
+                             "holds settings, sessions and history; models are the largest files, and several local "
+                             "LLMs can share one models folder."))
+        self.disk_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+        details.append(self.disk_box)
+        revealer = Gtk.Revealer(child=details, reveal_child=True,
+                                transition_type=Gtk.RevealerTransitionType.SLIDE_DOWN)
+        card.append(revealer)
+
+        def flip(*_args):
+            shown = not revealer.get_reveal_child()
+            revealer.set_reveal_child(shown)
+            chevron.set_from_icon_name("pan-down-symbolic" if shown else "pan-end-symbolic")
+            toggle.set_tooltip_text(_("Hide details") if shown else _("Show details"))
+        click = Gtk.GestureClick()
+        click.connect("released", flip)
+        toggle.add_controller(click)
+        self.disk_result, self.disk_time = None, 0.0
+        self.disk_busy = False
+        return card
+
+    def measure_disk(self, force: bool = False):
+        if self.disk_busy or (self.disk_result is not None and not force
+                              and time.monotonic() - self.disk_time < 600):
+            return
+        self.disk_busy = True
+        self.disk_summary.set_label(_("Measuring…"))
+        box = self.disk_box
+        while (child := box.get_first_child()) is not None:
+            box.remove(child)
+        self.note(box, _("Measuring…"))
+        agent_list, inv = list(self.agent_list), self.inventory
+
+        def work():
+            try:
+                items = disk_usage.plan(agent_list, inv)
+                disks = disk_usage.measure(items)
+                result = (items, disks, "")
+            except Exception as error:      # shown, never fatal
+                result = ([], [], str(error))
+            GLib.idle_add(done, result)
+
+        def done(result):
+            self.disk_busy = False
+            self.disk_result, self.disk_time = result, time.monotonic()
+            self.fill_disk(*result)
+            return False
+
+        threading.Thread(target=work, daemon=True).start()
+
+    def fill_disk(self, items, disks, error):
+        box = self.disk_box
+        while (child := box.get_first_child()) is not None:
+            box.remove(child)
+        if error:
+            self.note(box, _("Could not measure: {0}").format(error))
+            self.disk_summary.set_label(_("Could not measure: {0}").format(error))
+            return
+        sums = disk_usage.totals(items)
+        total = sum(sums.values())
+        partial = any(i.partial() for i in items)
+        at_least = (lambda n: _("at least {0}").format(size_text(n))) if partial else size_text
+        self.disk_summary.set_label("  ·  ".join(_("{0} {1}").format(label, size) for label, size in (
+            (_("Agents"), size_text(sums["agents"] + sums["agent_data"])), (_("Local LLMs"), size_text(sums["runtimes"])),
+            (_("Models"), size_text(sums["models"])), (_("In all"), at_least(total)))))
+        box.append(self.stat_tiles([
+            (_("In all"), at_least(total), ngettext("on 1 disk", "on {0} disks", len(disks)).format(len(disks))),
+            (_("Agents"), size_text(sums["agents"] + sums["agent_data"]),
+             _("{0} programs · {1} data").format(size_text(sums["agents"]), size_text(sums["agent_data"]))),
+            (_("Local LLMs"), size_text(sums["runtimes"]), _("programs and their data")),
+            (_("Models"), size_text(sums["models"]), ngettext("1 folder", "{0} folders", sum(
+                1 for i in items if i.group == "models")).format(sum(1 for i in items if i.group == "models"))),
+        ]))
+        colors = {"agents": "accent", "agent_data": "green", "runtimes": "yellow", "models": "outside"}
+        box.append(SpaceBar(self.side_map.color, [(_(label), sums[key], colors[key]) for key, label in self.SPACE_PARTS]))
+        legend = Gtk.Box(spacing=14)
+        for key, label in self.SPACE_PARTS:
+            if not sums[key]:
+                continue
+            part = Gtk.Box(spacing=4)
+            dot = Gtk.Label(label="●")
+            dot.add_css_class(f"am-space-{key}")
+            part.append(dot)
+            text = Gtk.Label(label=f"{_(label)} {size_text(sums[key])}")
+            text.add_css_class("am-agent-detail")
+            part.append(text)
+            legend.append(part)
+        box.append(legend)
+
+        if disks:
+            section = self.fold_section(box, _("Disks"), "  ·  ".join(
+                f"{d.mount} " + _("{0} free").format(size_text(d.free)) for d in disks))
+            listbox = self.boxed_list()
+            for disk in disks:
+                row = self.plain_row(disk.mount, _("{0} for AI · {1} free of {2}").format(
+                    size_text(disk.ai), size_text(disk.free), size_text(disk.size)))
+                row.add_prefix(Gtk.Image.new_from_icon_name("drive-harddisk-symbolic"))
+                level = Gtk.LevelBar(min_value=0, max_value=1, valign=Gtk.Align.CENTER)
+                level.set_value(1 - disk.free / disk.size if disk.size else 0)
+                level.set_size_request(120, -1)
+                level.set_tooltip_text(_("{0} free").format(size_text(disk.free)))
+                row.add_suffix(level)
+                listbox.append(row)
+            section.append(listbox)
+
+        for group, title in (("agent", _("Agents")), ("runtime", _("Local LLMs")), ("models", _("Models folders"))):
+            rows = sorted((i for i in items if i.group == group), key=lambda i: -i.total())
+            if not rows:
+                continue
+            # Folded: the sum and the three largest in the heading's line.
+            largest = [f"{i.name} {size_text(i.total())}" for i in rows[:3]] + (["…"] if len(rows) > 3 else [])
+            section = self.fold_section(box, title, "  ·  ".join(
+                [size_text(sum(i.total() for i in rows))] + largest))
+            listbox = self.boxed_list()
+            for item in rows:
+                listbox.append(self.disk_item_row(item))
+            section.append(listbox)
+            if group == "agent":
+                for item in [i for i in rows if i.versions > 3][:4]:
+                    self.note(section, "→ " + _("{0} keeps {1} versions; “mise prune” removes the ones no longer "
+                                                "used.").format(item.name, item.versions))
+        self.note(box, _("Space on disk; a file kept in two places counts once, links are not followed. Nothing is "
+                         "deleted from here."))
+
+    def fold_section(self, box, title: str, summary: str, shown: bool = False) -> Gtk.Box:
+        """A heading that folds what is under it: chevron, title and (folded) a one-line summary.
+        Returns the box to fill."""
+        head = Gtk.Box(spacing=8)
+        chevron = Gtk.Image.new_from_icon_name("pan-down-symbolic" if shown else "pan-end-symbolic")
+        head.append(chevron)
+        label = Gtk.Label(label=title, xalign=0)
+        label.add_css_class("heading")
+        head.append(label)
+        line = Gtk.Label(label=summary, xalign=0, hexpand=True, ellipsize=Pango.EllipsizeMode.END,
+                         max_width_chars=1, visible=not shown)
+        line.add_css_class("am-agent-detail")
+        line.set_tooltip_text(summary)
+        head.append(line)
+        head.set_cursor_from_name("pointer")
+        outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)       # folded: no gap for the hidden part
+        outer.append(head)
+        content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8, margin_top=8)
+        revealer = Gtk.Revealer(child=content, reveal_child=shown,
+                                transition_type=Gtk.RevealerTransitionType.SLIDE_DOWN)
+        outer.append(revealer)
+        box.append(outer)
+
+        def flip(*_args):
+            now = not revealer.get_reveal_child()
+            revealer.set_reveal_child(now)
+            chevron.set_from_icon_name("pan-down-symbolic" if now else "pan-end-symbolic")
+            line.set_visible(not now)
+        click = Gtk.GestureClick()
+        click.connect("released", flip)
+        head.add_controller(click)
+        return content
+
+    def disk_item_row(self, item) -> Gtk.Widget:
+        kinds = {}
+        for place in item.places:
+            kinds[place.kind] = kinds.get(place.kind, 0) + place.size
+        parts = [_("{0} {1}").format(_(self.SPACE_KINDS[kind]), size_text(size)) for kind, size in kinds.items()]
+        if item.group == "models":
+            place = item.places[0]
+            parts = [ngettext("1 file", "{0} files", place.files).format(place.files)]
+            if place.links and place.size < 1_000_000:
+                parts = [ngettext("only 1 link to a model in another folder",
+                                  "only links to models in other folders ({0})", place.links).format(place.links)]
+            if item.users:
+                parts.append(_("used by {0}").format(", ".join(item.users)))
+        row = Adw.ExpanderRow(title=item.name, subtitle=" · ".join(parts), use_markup=False)
+        row.set_subtitle_lines(0)
+        size = Gtk.Label(label=(_("at least {0}") if item.partial() else "{0}").format(size_text(item.total())),
+                         valign=Gtk.Align.CENTER)
+        size.add_css_class("heading")
+        row.add_suffix(size)
+        for place in item.places:
+            details = [_(self.SPACE_KINDS[place.kind]), size_text(place.size),
+                       ngettext("1 file", "{0} files", place.files).format(place.files)]
+            if place.kind == "program" and item.versions > 1:
+                details.append(ngettext("1 version kept", "{0} versions kept", item.versions).format(item.versions))
+            line = self.plain_row(inventory.tilde(place.path), " · ".join(details))
+            line.set_title_selectable(True)
+            line.add_prefix(Gtk.Image.new_from_icon_name(
+                "folder-symbolic" if place.path.is_dir() else "text-x-generic-symbolic"))
+            show = Gtk.Button(icon_name="folder-open-symbolic", valign=Gtk.Align.CENTER)
+            show.add_css_class("flat")
+            show.set_tooltip_text(_("Open the folder"))
+            folder = place.path if place.path.is_dir() else place.path.parent
+            show.connect("clicked", lambda _b, f=folder: self.open_folder(f))
+            line.add_suffix(show)
+            row.add_row(line)
+        return row
+
+    def open_folder(self, folder: Path):
+        """The desktop's file manager on a folder (GIO, no command line built here)."""
+        try:
+            Gio.AppInfo.launch_default_for_uri(folder.as_uri(), None)
+        except GLib.Error as error:
+            self.show_note(_("Could not open the folder: {0}").format(error.message))
 
     LLM_MONITOR_ID = "ubruckhaus.llm-usage"
     LLM_MONITOR_LISTING = "https://omarchyplugins.com/plugin.html?id=ubruckhaus.llm-usage"
@@ -8596,13 +9281,16 @@ class AgentsMap(Adw.Application):
         labels = {"h_mcp": _("MCP servers · skills"), "h_agents": _("Agents"), "h_providers": _("LLM providers"),
                   "h_models": _("Models"), "mcp": _("an MCP server"), "skills": _("a skill folder"),
                   "agent": _("your agent"), "online": _("an online provider"), "local": _("a local LLM"),
-                  "model_a": "model-a", "model_b": "model-b"}
+                  "model_a": "model-a", "model_b": "model-b", "m_start": _("Start here"),
+                  "m_terminal": _("Start in terminal"), "m_details": _("Details"), "m_hide": _("Hide")}
         captions = {0: _("Press Start to see how an agent is set up by drawing."),
                     1: _("Drag from the agent to a provider: a line connects them."),
                     2: _("Click a model of that provider: the agent uses it now."),
                     3: _("Drag from the agent to an MCP server: it can use its tools."),
                     4: _("Drag from the agent to a skill folder: it can use those skills."),
-                    5: _("Every change shows a preview first and keeps a backup; Undo takes it back.")}
+                    5: _("Click the pin at a box's corner: its lines stay lit while you move over other boxes."),
+                    6: _("Right-click a box for what its card offers: start an agent here, in a terminal, or open its details."),
+                    7: _("Every change shows a preview first and keeps a backup; Undo takes it back.")}
         sketch = previews.SetupSketch(lambda: self.theme.colors, labels, captions,
                                       on_end=lambda: play_label.set_label(_("Replay")))
         play.connect("clicked", lambda *_: sketch.start())
@@ -8614,6 +9302,7 @@ class AgentsMap(Adw.Application):
         if self.page_name() not in ("settings", "help"):
             self.remember_page()
         self.show_page("help")
+        self.measure_disk()
 
     def close_help(self):
         self.back_to_last_page()
@@ -8836,6 +9525,7 @@ class AgentsMap(Adw.Application):
             dim_hex = "#%02x%02x%02x" % tuple(round(c * 255) for c in colorsys.hsv_to_rgb(hue, sat, val / 1.45))
         except (ValueError, IndexError):
             dim_hex = muted_hex
+        pill = 999 if radius else 0      # chips and switches: round pills, or square with Square corners
         css = f"""
         window#aiagentsmap-window {{ background: {bg_hex}; }}
         .am-card {{ background: {bg_hex}; color: {fg_hex}; border: none;
@@ -8891,7 +9581,7 @@ class AgentsMap(Adw.Application):
         .am-check-step {{ font-size: 11px; }}
         .am-check-step.am-state-info {{ color: {dim_hex}; }}
         .am-stat-tile {{ border-radius: {radius}px; padding: 8px 10px; }}
-        .am-command-line {{ background: alpha({fg_hex}, 0.06); border-radius: 6px; padding: 2px 4px 2px 10px;
+        .am-command-line {{ background: alpha({fg_hex}, 0.06); border-radius: {min(radius, 6)}px; padding: 2px 4px 2px 10px;
             margin-top: 3px; }}
         .am-command {{ font-family: "JetBrainsMono Nerd Font", monospace; font-size: 12px; }}
         .am-card button.am-widen-hint {{ color: {accent_hex}; border: 1px solid alpha({accent_hex}, 0.45);
@@ -8917,9 +9607,9 @@ class AgentsMap(Adw.Application):
         popover button.am-danger {{ color: {red_hex}; border-color: alpha({red_hex}, 0.6); }}
         .am-hint-error {{ color: {red_hex}; font-weight: bold; }}
         .am-model-name {{ font-weight: 600; }}
-        .am-help-picture {{ border-radius: 8px; }}
+        .am-help-picture {{ border-radius: {min(radius, 8)}px; }}
         list.am-tree {{ background: transparent; }}
-        list.am-tree row {{ padding: 2px 6px 2px 2px; min-height: 0; border-radius: 6px; }}
+        list.am-tree row {{ padding: 2px 6px 2px 2px; min-height: 0; border-radius: {min(radius, 6)}px; }}
         list.am-tree row:selected {{ background: alpha({accent_hex}, 0.22); }}
         list.am-tree row.am-tree-section-row {{ padding-top: 10px; }}
         .am-tree-section {{ font-size: 11px; font-weight: 800; letter-spacing: 1px; color: {accent_hex}; }}
@@ -8932,10 +9622,10 @@ class AgentsMap(Adw.Application):
         list.am-tree row.am-dim {{ opacity: 0.6; }}
         button.am-download-btn {{ padding: 6px 18px; font-weight: 700; }}
         .am-model-title {{ font-size: 17px; font-weight: 700; }}
-        .am-model-card {{ background: alpha({fg_hex}, 0.05); border-radius: 8px; padding: 12px 14px; }}
+        .am-model-card {{ background: alpha({fg_hex}, 0.05); border-radius: {min(radius, 8)}px; padding: 12px 14px; }}
         .am-fact-key {{ font-size: 9px; font-weight: 700; letter-spacing: 1px; color: {dim_hex}; }}
         .am-fact-value {{ font-family: monospace; font-weight: 600; }}
-        .am-cap {{ font-size: 10px; font-weight: 600; border-radius: 999px; padding: 1px 8px;
+        .am-cap {{ font-size: 10px; font-weight: 600; border-radius: {pill}px; padding: 1px 8px;
                    border: 1px solid alpha({fg_hex}, 0.25); }}
         .am-cap-vision {{ color: {yellow_hex}; border-color: alpha({yellow_hex}, 0.5); }}
         .am-cap-tools {{ color: {accent_hex}; border-color: alpha({accent_hex}, 0.5); }}
@@ -8957,7 +9647,6 @@ class AgentsMap(Adw.Application):
         .am-add-page .am-choice label.am-detail-value {{ font-size: 13px; font-weight: 600; }}
         .am-add-page label.am-detail-value, .am-add-page row .title, .am-add-page entry, .am-add-page text,
         .am-add-page checkbutton label, .am-add-page dropdown label, .am-add-page expander title label,
-        .am-add-page expander-widget title label,
         .am-add-page button.link label, .am-add-page textview {{ font-size: 12px; }}
         .am-add-page .am-agent-detail, .am-add-page row .subtitle {{ font-size: 11px; }}
         /* The tabs (Recommended | MCP registry | On this PC | By hand): the page's main choice, so a step bigger. */
@@ -8997,7 +9686,7 @@ class AgentsMap(Adw.Application):
         .am-use-tile {{ padding: 12px; border-radius: {radius}px; }}
         .am-use-icon {{ font-family: "JetBrainsMono Nerd Font", "Symbols Nerd Font", monospace; font-size: 20px;
                         color: {accent_hex}; min-width: 26px; }}
-        .am-use-pill {{ font-size: 10px; font-weight: 700; padding: 1px 8px; border-radius: 9px; }}
+        .am-use-pill {{ font-size: 10px; font-weight: 700; padding: 1px 8px; border-radius: {pill}px; }}
         .am-use-ready {{ color: {green_hex}; background: alpha({green_hex}, 0.14); }}
         .am-use-almost {{ color: {accent_hex}; background: alpha({accent_hex}, 0.14); }}
         .am-use-missing {{ color: {yellow_hex}; background: alpha({yellow_hex}, 0.14); }}
@@ -9011,9 +9700,19 @@ class AgentsMap(Adw.Application):
         .am-job-waiting .am-job-mark, .am-job-interrupted .am-job-mark, .am-job-stopped .am-job-mark {{ color: {yellow_hex}; }}
         .am-job-failed .am-job-mark {{ color: {red_hex}; }}
         .am-job-done .am-job-mark {{ color: {green_hex}; }}
-        progressbar.am-progress trough {{ min-height: 6px; background: alpha({fg_hex}, 0.10); border-radius: 3px; }}
-        progressbar.am-progress progress {{ min-height: 6px; background: {accent_hex}; border-radius: 3px; }}
+        progressbar.am-progress trough {{ min-height: 6px; background: alpha({fg_hex}, 0.10); border-radius: {min(radius, 3)}px; }}
+        progressbar.am-progress progress {{ min-height: 6px; background: {accent_hex}; border-radius: {min(radius, 3)}px; }}
         .am-card button.am-menu-item {{ padding: 3px 8px; font-size: 12px; }}
+        popover.am-menu > contents {{ border: 1px solid alpha({fg_hex}, 0.30); border-radius: {radius}px;
+            padding: 6px; }}
+        popover.am-menu button.am-menu-item {{ padding: 4px 10px; font-size: 12px; font-weight: normal;
+            min-height: 0; border-radius: {min(radius, 6)}px; }}
+        popover.am-menu checkbutton.am-menu-check {{ padding: 2px 6px; min-height: 0; }}
+        popover.am-menu checkbutton.am-menu-check label {{ font-size: 12px; }}
+        popover.am-menu .am-menu-title {{ padding: 2px 10px 2px 10px; }}
+        popover.am-menu .am-menu-note {{ padding: 2px 10px; }}
+        popover.am-menu separator.am-menu-rule {{ background-color: alpha({fg_hex}, 0.14); background-image: none;
+            min-height: 1px; margin: 4px 2px; }}
         .am-form-list row .title {{ min-width: 110px; }}
         /* A combo row's chosen value (its inline list): the size and colour of the subtitle, not of the title. */
         row.combo listview.inline label {{ font-size: smaller; color: {dim_hex}; }}
@@ -9021,7 +9720,7 @@ class AgentsMap(Adw.Application):
         /* The chosen value and its arrow framed like the other controls, well apart from a long explanation. */
         row.combo listview.inline {{ min-width: 128px; }}    /* the chosen value stays readable; the explanation wraps */
         row.combo box.suffixes {{ margin-left: 24px; padding: 3px 6px 3px 10px; border: 1px solid alpha({fg_hex}, 0.28);
-            border-radius: {max(4, min(radius, 8))}px; }}
+            border-radius: {min(radius, 8)}px; }}
         row.combo:hover box.suffixes {{ border-color: alpha({fg_hex}, 0.45); }}
         .am-card list.am-list:not(.boxed-list) {{ background: alpha({fg_hex}, 0.03); border-radius: {radius}px; }}
         .am-card list.am-list row:selected {{ background: alpha({accent_hex}, 0.22); }}
@@ -9034,15 +9733,24 @@ class AgentsMap(Adw.Application):
         .am-agent-name {{ font-size: 13px; font-weight: 600; }}
         .am-agent-detail {{ font-size: 11px; color: {dim_hex}; }}
         .am-agent-badge {{ font-size: 10px; font-weight: 600; color: {bg_hex}; background: {accent_hex};
-            border-radius: 4px; padding: 0 5px; }}
+            border-radius: {min(radius, 4)}px; padding: 0 5px; }}
+        .am-risk-badge {{ font-size: 10px; font-weight: 600; border-radius: {min(radius, 4)}px; padding: 1px 6px; }}
+        .am-risk-high {{ color: {red_hex}; background: alpha({red_hex}, 0.16); }}
+        .am-risk-medium {{ color: {yellow_hex}; background: alpha({yellow_hex}, 0.16); }}
+        .am-risk-low {{ color: {dim_hex}; background: alpha({fg_hex}, 0.07); }}
+        .am-risk-ok {{ color: {green_hex}; background: alpha({green_hex}, 0.14); }}
+        .am-space-agents {{ color: {accent_hex}; }}
+        .am-space-agent_data {{ color: {green_hex}; }}
+        .am-space-runtimes {{ color: {yellow_hex}; }}
+        .am-space-models {{ color: {outside_hex}; }}
         .am-agent {{ padding: 0; }}
         .am-agent > box:first-child {{ padding: 10px 12px; }}
         .am-agent-chevron {{ color: {muted_hex}; }}
         .am-agent-details {{ padding: 2px 12px 12px 50px; }}
         .am-card label.am-detail-value {{ font-size: 12px; }}
         levelbar.am-limit trough {{ min-height: 5px; background: alpha({fg_hex}, 0.10); border: none;
-            border-radius: 3px; padding: 0; }}
-        levelbar.am-limit block {{ min-height: 5px; border-radius: 3px; border: none; }}
+            border-radius: {min(radius, 3)}px; padding: 0; }}
+        levelbar.am-limit block {{ min-height: 5px; border-radius: {min(radius, 3)}px; border: none; }}
         levelbar.am-limit block.filled {{ background: {accent_hex}; }}
         levelbar.am-limit block.am-ok {{ background: {green_hex}; }}
         levelbar.am-limit block.am-warn {{ background: {yellow_hex}; }}
@@ -9054,7 +9762,7 @@ class AgentsMap(Adw.Application):
         .am-card button.am-action-btn {{ font-size: 13px; font-weight: 600; min-height: 34px; min-width: 120px;
             padding: 4px 22px; border: 1px solid alpha({fg_hex}, 0.35); border-radius: {radius}px; }}
         .am-card button.am-action-btn:disabled {{ opacity: 0.45; }}
-        .am-card button.am-chip {{ font-size: 11px; min-height: 0; padding: 1px 10px; border-radius: 999px;
+        .am-card button.am-chip {{ font-size: 11px; min-height: 0; padding: 1px 10px; border-radius: {pill}px;
             border: 1px solid alpha({fg_hex}, 0.25); background: transparent; color: {dim_hex}; }}
         .am-card button.am-chip:checked {{ background: alpha({accent_hex}, 0.18); border-color: {accent_hex};
             color: {fg_hex}; }}
@@ -9068,8 +9776,8 @@ class AgentsMap(Adw.Application):
         .am-side-handle {{ padding: 0 13px; }}
         .am-side-handle:hover .am-side-rule {{ background: {accent_hex}; }}
         .am-side-rule {{ margin: 0; background: alpha({fg_hex}, 0.14); min-width: 1px; }}
-        .am-segmented {{ border: 1px solid alpha({fg_hex}, 0.22); border-radius: 999px; padding: 2px; }}
-        .am-card button.am-segment {{ font-size: 11px; min-height: 0; padding: 2px 12px; border-radius: 999px;
+        .am-segmented {{ border: 1px solid alpha({fg_hex}, 0.22); border-radius: {pill}px; padding: 2px; }}
+        .am-card button.am-segment {{ font-size: 11px; min-height: 0; padding: 2px 12px; border-radius: {pill}px;
             border: none; background: none; box-shadow: none; color: {dim_hex}; }}
         .am-card button.am-segment:checked {{ background: alpha({accent_hex}, 0.22); color: {fg_hex}; }}
         .am-card button.am-segment:hover:not(:checked) {{ color: {fg_hex}; }}
@@ -9088,6 +9796,9 @@ class AgentsMap(Adw.Application):
                                  radius)
         self.apply_style_scheme(bg_hex)
         css = self.adw_colors_css(bg_hex, fg_hex, accent_hex, red_hex, green_hex, yellow_hex, radius) + css
+        if radius == 0:
+            # Square: libadwaita's own controls too (lists, dropdowns, entries, switches, popovers).
+            css += "window#aiagentsmap-window *:not(radio):not(.am-tab-dot) { border-radius: 0; }\n"
         provider = Gtk.CssProvider()
         provider.load_from_string(css)
         Gtk.StyleContext.add_provider_for_display(display, provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
@@ -9208,6 +9919,8 @@ class AgentsMap(Adw.Application):
             GLib.idle_add(lambda: self.open_runtime_status(page[8:]) and False)
         elif page == "health":
             GLib.idle_add(lambda: self.open_health() and False)
+        elif page == "help":
+            GLib.idle_add(lambda: self.open_help() and False)
         elif page == "addmcp":
             GLib.idle_add(lambda: self.open_add_mcp() and False)
         elif page == "addskills":
