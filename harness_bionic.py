@@ -16,5 +16,5 @@ def _access():
 
 HARNESS = Harness("bionic", "LM Studio Bionic", label="LM Studio Bionic", icon="\U000f09d1",
                   installer=_installer, short_version=True, offered=False, access=_access,
-                  fixed_provider="lmstudio", skills=Skills(("~/.lmstudio/skills",), "~/.lmstudio/skills"),
+                  fixed_provider="lmstudio", self_served=True, skills=Skills(("~/.lmstudio/skills",), "~/.lmstudio/skills"),
                   mcp=Mcp(in_app="Settings › Connected apps"))

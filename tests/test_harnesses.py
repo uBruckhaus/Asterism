@@ -204,12 +204,16 @@ class CapabilityTablesTest(unittest.TestCase):
         self.assertEqual(mcp_ctl.paths_for("lmstudio"), [Path.home() / ".lmstudio/mcp.json"])
         shapes = {h.mcp.shape for h in harnesses.all_harnesses() if h.mcp and not h.mcp.in_app}
         self.assertEqual(shapes, {"plain", "claude", "codex", "copilot", "crush", "gemini", "muse", "omp",
-                                  "openclaw", "opencode", "dsh"})
+                                  "openclaw", "opencode"})
+        own = {h.command for h in harnesses.all_harnesses() if h.mcp and (h.mcp.read or h.mcp.write or h.mcp.native)}
+        self.assertEqual(own, {"dsh", "muse", "openclaw"})
 
-    def test_watcher_copy(self):
+    def test_short_model_flag(self):
         import provider_watch
-        self.assertEqual(provider_watch.SHORT_MODEL_AGENTS,
-                         {h.command for h in harnesses.all_harnesses() if h.short_model_flag})
+        self.assertEqual({h.command for h in harnesses.all_harnesses() if h.short_model_flag},
+                         {"codex", "opencode", "hermes", "crush"})
+        self.assertEqual(provider_watch.instance_model("codex", ["-m", "gpt-5"]), "gpt-5")
+        self.assertEqual(provider_watch.instance_model("claude", ["-m", "x"]), "")
 
     def test_update_whitelist_unchanged(self):
         import agent_updates

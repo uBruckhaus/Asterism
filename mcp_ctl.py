@@ -137,11 +137,10 @@ def raw_entries(agent: str) -> dict:
             found = tomllib.loads(connect._read(_expand(spec.path))).get(spec.key)
         except (OSError, ValueError):
             found = None
-    elif spec.format == "dsh":
+    elif spec.read is not None:
         try:
-            import dsh_ctl
-            found = dsh_ctl.mcp_servers(connect._read(_expand(spec.path)))
-        except Exception:       # no PyYAML, or a patch it cannot read
+            found = spec.read(connect._read(_expand(spec.path)))
+        except Exception:       # a format its reader cannot read (e.g. no PyYAML)
             found = None
     elif spec.format == "yaml":
         try:
@@ -196,10 +195,9 @@ def native(agent: str, e: dict) -> dict:
     spec = _spec(agent)
     if spec is None:
         return from_profile(agent_profiles.mcp_profile(agent), e)
+    if spec.native is not None:
+        return spec.native(e)
     shape = spec.shape
-    if shape == "dsh":
-        import dsh_ctl
-        return dsh_ctl.mcp_config(e)
     if shape in ("muse", "openclaw", "crush"):
         if stdio:
             item = {"command": e["command"], "args": e["args"]}
@@ -323,27 +321,6 @@ def hermes_text(text: str, name: str, item: dict | None, key: str = "mcp_servers
     return text[:start] + new_body + text[end:]
 
 
-def openclaw_text(text: str, name: str, item: dict | None) -> str:
-    """mcp.servers in ~/.openclaw/openclaw.json. The file may be JSON5 (comments):
-    then it is left alone and `openclaw mcp set` is the way."""
-    try:
-        data = connect._json(text)
-    except ValueError as error:
-        raise ValueError("~/.openclaw/openclaw.json is JSON5: use `openclaw mcp set`") from error
-    mcp = data.setdefault("mcp", {})
-    if not isinstance(mcp, dict):
-        raise ValueError("mcp is not an object")
-    servers_text = _json_text(json.dumps({"servers": mcp.get("servers", {})}), "servers", name, item)
-    servers = json.loads(servers_text).get("servers")
-    if servers:
-        mcp["servers"] = servers
-    else:
-        mcp.pop("servers", None)
-        if not mcp:
-            data.pop("mcp")
-    return connect._dump(data)
-
-
 def check_entry(entry: dict) -> dict:
     """A new server's entry (from the form, the scan or the registry), checked."""
     transport = entry.get("transport")
@@ -431,18 +408,10 @@ def plan(agent: str, name: str, sources=(), remove: bool = False, entry: dict | 
             new_text = hermes_text(old_text, name, item, profile["key"])
     elif spec.format == "toml":
         new_text = codex_text(old_text, name, item, spec.key)
-    elif spec.shape == "muse":
-        new_text = _json_text(old_text, spec.key, name, item)
-        data = connect._json(new_text)
-        if "schema_version" not in data:      # Muse refuses a settings file without it
-            new_text = connect._dump({"schema_version": 1, **data})
-    elif spec.format == "openclaw":
-        new_text = openclaw_text(old_text, name, item)
+    elif spec.write is not None:
+        new_text = spec.write(old_text, name, item)
     elif spec.format == "yaml":
         new_text = hermes_text(old_text, name, item, spec.key)
-    elif spec.format == "dsh":
-        import dsh_ctl
-        new_text = dsh_ctl.mcp_text(old_text, name, item)
     else:
         new_text = _json_text(old_text, spec.key, name, item)
     if new_text != old_text:

@@ -57,13 +57,28 @@ class SameTablesAsBeforeTest(unittest.TestCase):
             self.assertEqual(inst.key, key)
 
 
-class WatcherCopyTest(unittest.TestCase):
-    """provider_watch.py runs isolated (stdlib only) with its own copy of these facts."""
+class WatcherConfigTest(unittest.TestCase):
+    """provider_watch.py runs isolated (stdlib only): the app writes what it needs to know of each
+    local LLM into its config, from the registry."""
 
-    def test_same_as_registry(self):
-        self.assertEqual(provider_watch.RUNTIMES, tuple(p.key for p in providers.local()))
-        self.assertEqual(provider_watch.STAYS_UP, {p.key for p in providers.local() if p.stays_up})
-        self.assertEqual(provider_watch.UNLOADS, {p.key: p.unload for p in providers.local() if p.unload})
+    def test_written_from_registry(self):
+        import json
+        import tempfile
+        from types import SimpleNamespace as NS
+        rts = [NS(key="koboldcpp", installed=True, agents=["pi"], active_agents=["pi"], service="koboldcpp",
+                  address="127.0.0.1:5001"),
+               NS(key="lmstudio", installed=True, agents=["bionic", "opencode"], active_agents=["bionic", "opencode"],
+                  service="", address="127.0.0.1:1234")]
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "c.json"
+            self.assertTrue(provider_watch.write_config(NS(runtimes=rts), path))
+            data = json.loads(path.read_text())
+            self.assertEqual(data["runtimes"]["koboldcpp"]["unload"],
+                             {"path": "/api/admin/reload_config", "body": {"filename": "unload_model"}})
+            self.assertNotIn("stays_up", data["runtimes"]["lmstudio"])
+            self.assertEqual(data["agents"], {"pi": ["koboldcpp"], "opencode": ["lmstudio"]})   # Bionic serves itself
+            agents, runtimes = provider_watch.read_config(path)
+            self.assertTrue(runtimes["koboldcpp"]["stays_up"])
 
 
 if __name__ == "__main__":

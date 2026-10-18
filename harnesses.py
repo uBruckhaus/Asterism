@@ -40,6 +40,9 @@ class Skills:
     dirs: tuple                       # folders the agent reads skills from by itself ("~/…")
     own: str                          # the folder its links go into
     settings_list: bool = False       # it keeps a folder list in its settings, which the app writes (Pi, Hermes)
+    listed: Callable | None = None    # listed() -> extra folders its settings list (raises on unreadable files)
+    settings_file: str = ""           # with settings_list: the file that list is in
+    write: Callable | None = None     # write(text, folder, remove) -> that file's new text
 
 
 @dataclass(frozen=True)
@@ -47,10 +50,24 @@ class Mcp:
     """Where an agent keeps its MCP servers and how an entry looks there (as agent_profiles does
     for agents looked up on the web)."""
     path: str = ""                    # "~/.codex/config.toml"
-    format: str = "json"              # json | toml | yaml | claude (~/.claude.json) | openclaw | dsh
+    format: str = "json"              # json | toml | yaml | claude (~/.claude.json); others: read/write below
     key: str = "mcpServers"           # the table the servers are in ("mcp_servers", "mcp", "mcp.servers")
     shape: str = "plain"              # how mcp_ctl.native writes one entry for it
     in_app: str = ""                  # set up only inside the agent's own app (where), nothing to write
+    read: Callable | None = None      # read(text) -> {name: entry} for a format mcp_ctl does not know
+    write: Callable | None = None     # write(text, name, item or None) -> the file's new text
+    native: Callable | None = None    # native(entry) -> how one entry looks there (instead of `shape`)
+
+
+@dataclass(frozen=True)
+class LocalLlm:
+    """How an agent is pointed at a local LLM (connect.plan): its settings files and three functions
+    over their texts (in the order of `files`)."""
+    files: tuple                      # "~/…" settings files the connection is written to
+    connected: Callable               # connected(texts, provider) -> bool: the provider entry is there
+    active: Callable                  # active(texts, provider) -> bool: its current model is from it
+    transform: Callable               # transform(texts, provider, label, url, models, context, model,
+                                      #           use_now, remove) -> new texts
 
 
 def ref(module: str, name: str) -> Callable:
@@ -84,8 +101,9 @@ class Harness:
     usage: Callable | None = None     # usage() -> agent_status.Usage from its own session store
     access: Callable | None = None    # access() -> agent_status.Access: what it needs to work
     login_status: tuple | None = None  # (argv, text meaning "no", text meaning "yes")
-    local_llm: bool = False           # can be pointed at a local LLM from the map (connect)
+    local_llm: LocalLlm | None = None  # can be pointed at a local LLM from the map (connect)
     fixed_provider: str = ""          # tied to one local LLM ("lmstudio")
+    self_served: bool = False         # runs that LLM's models itself: never a reason to start it (Bionic)
     skills: Skills | None = None
     mcp: Mcp | None = None
     short_model_flag: bool = False    # takes -m for its model (provider_watch)
