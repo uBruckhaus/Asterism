@@ -60,4 +60,5 @@ HARNESS = Harness("codex", "Codex", label="Codex", icon="\ue905", icon_font="oma
                   mcp=Mcp("~/.codex/config.toml", format="toml", key="mcp_servers", shape="codex"),
                   short_model_flag=True,
                   install=(Way("mise", spec="codex"),),
-                  data=("~/.codex",))
+                  data=("~/.codex",),
+                  homepage="https://github.com/openai/codex")

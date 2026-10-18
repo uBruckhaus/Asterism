@@ -33,12 +33,31 @@ class Provider:
     unload: tuple | None = None       # (path, JSON body) of its unload request
     install: tuple = ()               # ways to install / remove it (harnesses.Way), best first
     data: tuple = ()                  # "~/…" folders with its models and settings: never removed by us
+    homepage: str = ""                # its web page (the Add-ons page's Homepage button)
     # online providers
     ids: tuple = ()                   # names used in agent settings ("anthropic", "openai-codex")
     agents: tuple = field(default=())  # agents that come with this provider ("claude")
 
 
+_HIDDEN: set = set()       # built-in providers an installed add-on brings instead (hide_built_in)
+LOCAL_ORDER = ("llamacpp", "ollama", "lmstudio", "vllm", "jan", "koboldcpp")
+
+
+def hide_built_in(keys) -> None:
+    """Asterism: these providers come as add-ons (see harnesses.hide_built_in)."""
+    _HIDDEN.clear()
+    _HIDDEN.update(keys)
+
+
 def _built_in_local() -> tuple:
+    return tuple(p for p in built_in_local() if p.key not in _HIDDEN)
+
+
+def _built_in_online() -> tuple:
+    return tuple(p for p in built_in_online() if p.key not in _HIDDEN)
+
+
+def built_in_local() -> tuple:
     import provider_jan
     import provider_koboldcpp
     import provider_llamacpp
@@ -50,7 +69,7 @@ def _built_in_local() -> tuple:
             provider_vllm.PROVIDER, provider_jan.PROVIDER, provider_koboldcpp.PROVIDER)
 
 
-def _built_in_online() -> tuple:
+def built_in_online() -> tuple:
     import provider_online
     return tuple(provider_online.ONLINE)
 
@@ -60,7 +79,9 @@ _LISTENERS: list = []
 
 
 def local() -> tuple:
-    return _built_in_local() + tuple(p for _o, p in _ADDED if p.kind == "local")
+    added = [p for _o, p in _ADDED if p.kind == "local"]
+    added.sort(key=lambda p: LOCAL_ORDER.index(p.key) if p.key in LOCAL_ORDER else len(LOCAL_ORDER))
+    return _built_in_local() + tuple(added)
 
 
 def online() -> tuple:

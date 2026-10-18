@@ -1,8 +1,12 @@
 """Add-ons for Asterism (not in the AI Agents Map plugin): found, verified, loaded.
 
 Only add-ons signed by Uwe Bruckhaus load. An add-on is a folder <id>/ with:
-    addon.json        id, name, version, api, privacy, harnesses, reads, sends
-    addon.py          register(api) (see addon_api.py); nothing may run at import time
+    addon.json        id, name, version, api, privacy, kind (feature | agent | provider), needs
+                      ("asterism >= x.y.z"), detect ({commands, paths}: is its program here),
+                      capabilities, harnesses, reads, sends
+    addon.py          register(api) (see addon_api.py); at import time only definitions (an agent or
+                      provider adapter: its Harness / Provider objects, the same code the AI Agents
+                      Map plugin has built in)
     translations/<language>.json   optional, the add-on's own strings
     MANIFEST.sha256   "<sha256>  <path>" for every other file
     SIGNATURE         `ssh-keygen -Y sign -n asterism-addon` of MANIFEST.sha256 with Uwe's key
@@ -41,6 +45,8 @@ NAMESPACE = "asterism-addon"
 USER_DIR = Path(os.environ.get("XDG_DATA_HOME") or Path.home() / ".local/share") / "asterism/addons"
 SYSTEM_DIR = Path("/usr/lib/asterism/addons")
 
+ASTERISM_VERSION = "0.7.0"       # an add-on whose "needs" names a newer Asterism is refused
+KINDS = ("feature", "agent", "provider")
 MAX_FILES = 64
 MAX_FILE = 1024 * 1024
 MAX_TOTAL = 4 * 1024 * 1024
@@ -52,6 +58,10 @@ _VERSION = re.compile(r"\d{1,4}\.\d{1,4}\.\d{1,4}")
 _LANG = re.compile(r"translations/[a-z]{2}\.json")
 _LINE = re.compile(r"([0-9a-f]{64})  (\S{1,200})")
 _TEXT_LIMIT = 300
+_HOMEPAGE = re.compile(r"https://[A-Za-z0-9.-]{1,100}(/[A-Za-z0-9._~%/+@-]*)?")
+_ICON = re.compile(r"[a-z0-9-]{1,60}")
+_COMMAND = re.compile(r"[A-Za-z0-9][A-Za-z0-9._+-]{0,63}")
+_NEEDS = re.compile(r"(?:asterism\s*>=\s*)?(\d{1,4}\.\d{1,4}\.\d{1,4})")
 
 
 @dataclass
@@ -65,7 +75,16 @@ class Addon:
     harnesses: list = field(default_factory=list)
     reads: list = field(default_factory=list)
     sends: list = field(default_factory=list)
-    capabilities: list = field(default_factory=list)    # "agent", "provider", "installer"
+    capabilities: list = field(default_factory=list)    # "agent", "provider", "installer", "updater"
+    kind: str = "feature"            # feature | agent | provider
+    icon: str = ""                   # an icon name
+    summary: str = ""
+    description: str = ""
+    homepage: str = ""               # https web page of what it brings
+    needs: str = ""                  # the oldest Asterism it works with
+    provides: list = field(default_factory=list)        # agent commands / provider keys it brings
+    commands: list = field(default_factory=list)        # detect hints: programs on PATH
+    paths: list = field(default_factory=list)           # detect hints: "~/…" folders or files
     state: str = "refused"           # refused | verified | loaded | failed
     reason: str = ""
     files: dict = field(default_factory=dict, repr=False)    # path -> verified bytes
@@ -123,6 +142,31 @@ def _files(folder: Path, uid: int) -> list | str:
             if len(found) > MAX_FILES:
                 return "too many files"
     return sorted(found)
+
+
+def version_tuple(version: str) -> tuple:
+    try:
+        return tuple(int(x) for x in version.split("."))
+    except (AttributeError, ValueError):
+        return ()
+
+
+def detect_hints(data) -> tuple[list, list]:
+    """(commands, paths) from a {commands, paths} object: plain program names and "~/…" paths."""
+    detect = data if isinstance(data, dict) else {}
+    commands, paths = detect.get("commands"), detect.get("paths")
+    commands = [c for c in commands[:8] if isinstance(c, str) and _COMMAND.fullmatch(c)] \
+        if isinstance(commands, list) else []
+    paths = [p for p in paths[:8] if isinstance(p, str) and p.startswith("~/") and ".." not in p
+             and len(p) <= 200 and not any(ord(c) < 32 for c in p)] if isinstance(paths, list) else []
+    return commands, paths
+
+
+def homepage(value) -> str:
+    """A plain https address (no user, password or odd characters), else ""."""
+    if not isinstance(value, str) or len(value) > 300 or not _HOMEPAGE.fullmatch(value):
+        return ""
+    return value
 
 
 def signature_ok(manifest: bytes, signature: bytes, signers: str = ALLOWED_SIGNERS) -> bool:
@@ -205,6 +249,24 @@ def verify(folder: Path, signers: str = ALLOWED_SIGNERS, uid: int | None = None)
         return _refuse(addon, "unknown privacy level")
     addon.name = " ".join(str(meta.get("name") or folder.name).split())[:80]
     addon.version, addon.api, addon.privacy = version, api, addon_api.PRIVACY[privacy]
+    kind, needs = meta.get("kind", "feature"), meta.get("needs", "")
+    if kind not in KINDS:
+        return _refuse(addon, "unknown kind")
+    m = _NEEDS.fullmatch(needs.strip()) if isinstance(needs, str) and needs else None
+    if needs and m is None:
+        return _refuse(addon, "needs is not \"asterism >= x.y.z\"")
+    if m is not None and version_tuple(m.group(1)) > version_tuple(ASTERISM_VERSION):
+        return _refuse(addon, f"made for Asterism {m.group(1)} or newer, this is {ASTERISM_VERSION}")
+    addon.kind, addon.needs = kind, m.group(1) if m else ""
+    icon = meta.get("icon")
+    addon.icon = icon if isinstance(icon, str) and _ICON.fullmatch(icon) else ""
+    addon.homepage = homepage(meta.get("homepage"))
+    addon.summary = " ".join(str(meta.get("summary") or "").split())[:200]
+    addon.description = " ".join(str(meta.get("description") or "").split())[:2000]
+    addon.commands, addon.paths = detect_hints(meta.get("detect"))
+    provides = meta.get("provides", [])
+    addon.provides = [p for p in provides[:40] if isinstance(p, str) and _COMMAND.fullmatch(p)] \
+        if isinstance(provides, list) and kind != "feature" else []
     capabilities = meta.get("capabilities", [])
     if not isinstance(capabilities, list) or not all(c in addon_api.CAPABILITIES for c in capabilities):
         return _refuse(addon, "unknown capabilities")
@@ -279,12 +341,13 @@ def load_all(enabled, dirs=(USER_DIR, SYSTEM_DIR), signers: str = ALLOWED_SIGNER
     hooks.clear()
     harnesses.remove_added()
     providers.remove_added()
-    result = []
-    for folder in find(dirs):
-        addon = verify(folder, signers)
+    result = [verify(folder, signers) for folder in find(dirs)]
+    # An agent or provider that comes as an add-on is shown only through it (when switched on).
+    harnesses.hide_built_in({p for a in result if a.state == "verified" and a.kind == "agent" for p in a.provides})
+    providers.hide_built_in({p for a in result if a.state == "verified" and a.kind == "provider" for p in a.provides})
+    for addon in result:
         if addon.state == "verified" and addon.id in enabled:
             load(addon, hooks)
-        result.append(addon)
     harnesses.changed()
     providers.changed()
     return result

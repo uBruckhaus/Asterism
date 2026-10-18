@@ -24,4 +24,5 @@ HARNESS = Harness("grok", "Grok", label="Grok", icon="\ue904", icon_font="omarch
                   skills=Skills(("~/.grok/skills",), "~/.grok/skills", listed=_skills_listed),
                   mcp=Mcp("~/.grok/config.toml", format="toml", key="mcp_servers"),
                   install=(Way("mise", spec="npm:@xai-official/grok"),),
-                  data=("~/.grok",))
+                  data=("~/.grok",),
+                  homepage="https://www.npmjs.com/package/@xai-official/grok")

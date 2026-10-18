@@ -127,6 +127,7 @@ class Harness:
     install: tuple = ()               # ways to install / remove it (Way), best first
     data: tuple = ()                  # "~/…" folders with its settings and sessions: never removed by us
     latest: Callable | None = None    # latest(channel) -> newest version for self_update
+    homepage: str = ""                # its web page (the Add-ons page's Homepage button)
 
 
 # --- helpers for the adapters ----------------------------------------------------------------------
@@ -208,9 +209,30 @@ _MODULES = ("claude", "codex", "copilot", "crush", "cursor_agent", "gemini", "gr
             "openclaw", "opencode", "pi", "dsh", "bionic", "agy")     # Omarchy's menu order, then the app's own
 
 
+_HIDDEN: set = set()       # built-in agents an installed add-on brings instead (hide_built_in)
+
+
 def _built_in() -> tuple:
+    return tuple(h for h in built_in_adapters() if h.command not in _HIDDEN)
+
+
+def built_in_adapters() -> tuple:
+    """The adapters in the app's own modules (the AI Agents Map plugin always uses these)."""
     import importlib
     return tuple(importlib.import_module(f"harness_{name}").HARNESS for name in _MODULES)
+
+
+def hide_built_in(commands) -> None:
+    """Asterism: these agents come as add-ons (installed, signed), so only the add-on, when it is
+    switched on, shows them; the AI Agents Map plugin never hides any."""
+    _HIDDEN.clear()
+    _HIDDEN.update(commands)
+
+
+def _order(harness) -> int:
+    """Add-on agents in the built-in order (Omarchy's menu), new ones after."""
+    name = harness.command.replace("-", "_")
+    return _MODULES.index(name) if name in _MODULES else len(_MODULES)
 
 
 _ADDED: list = []          # [(addon id, Harness)] registered by loaded add-ons (addon_api.add_harness)
@@ -218,7 +240,8 @@ _LISTENERS: list = []      # rebuild functions of modules that keep tables made 
 
 
 def _all() -> tuple:
-    return _built_in() + tuple(h for _owner, h in _ADDED)
+    added = sorted((h for _owner, h in _ADDED), key=_order)
+    return _built_in() + tuple(added)
 
 
 def on_change(listener) -> None:
@@ -231,13 +254,14 @@ def changed() -> None:
         listener()
 
 
-def add(harness: Harness, owner: str) -> None:
-    """An add-on's agent; refused when the command is taken (a built-in or another add-on's)."""
+def add(harness: Harness, owner: str, updates: bool = False) -> None:
+    """An add-on's agent; refused when the command is taken (a built-in or another add-on's).
+    updates: the add-on may bring an updater (its "updater" capability)."""
     if not isinstance(harness, Harness) or not harness.command:
         raise ValueError("not a Harness")
     if any(h.command == harness.command for h in _all()):
         raise ValueError(f"the agent {harness.command} exists already")
-    if harness.self_update or harness.latest is not None:
+    if (harness.self_update or harness.latest is not None) and not updates:
         raise ValueError("an add-on's agent cannot bring an updater of its own")
     _ADDED.append((owner, harness))
 

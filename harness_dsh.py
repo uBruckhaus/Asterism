@@ -41,4 +41,5 @@ HARNESS = Harness("dsh", "DeepSeek Harness", label="DeepSeek Harness", icon="\U0
                           read=ref("dsh_ctl", "mcp_servers"), write=ref("dsh_ctl", "mcp_text"),
                           native=ref("dsh_ctl", "mcp_config")),
                   install=(Way("installer"),),
-                  data=("~/.dsh",))
+                  data=("~/.dsh",),
+                  homepage="https://www.npmjs.com/package/@deepseek-ai/dsh")

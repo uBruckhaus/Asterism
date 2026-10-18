@@ -46,4 +46,5 @@ HARNESS = Harness("openclaw", "OpenClaw", label="OpenClaw", icon="\ue90c", icon_
                   mcp=Mcp("~/.openclaw/openclaw.json", key="mcp.servers", shape="openclaw", write=_mcp_text),
                   install=(Way("command", argv=("omarchy-install-openclaw-cli", "--now"), sudo=True),
                            Way("package", packages=(("pacman", "openclaw"),))),
-                  data=("~/.openclaw",))
+                  data=("~/.openclaw",),
+                  homepage="https://github.com/openclaw/openclaw")

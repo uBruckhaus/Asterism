@@ -26,4 +26,5 @@ HARNESS = Harness("crush", "Crush", label="Crush", icon="\U000f02d1", access=_ac
                   mcp=Mcp("~/.config/crush/crush.json", key="mcp", shape="crush"),
                   short_model_flag=True,
                   install=(Way("mise", spec="crush"),),
-                  data=("~/.config/crush", "~/.local/share/crush"))
+                  data=("~/.config/crush", "~/.local/share/crush"),
+                  homepage="https://github.com/charmbracelet/crush")

@@ -16,4 +16,5 @@ def _installer():
 
 PROVIDER = Provider("llamacpp", "llama.cpp", "local", detect=_detect, installer=_installer,
                     connect_key="llama-local", connect_label="llama.cpp (local)",
-                    install=(Way("installer"),))
+                    install=(Way("installer"),),
+                    homepage="https://github.com/ggml-org/llama.cpp")

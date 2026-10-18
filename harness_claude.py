@@ -67,4 +67,5 @@ HARNESS = Harness("claude", "Claude Code", sessions=Sessions(claude_sessions.col
                   mcp=Mcp("~/.claude.json", format="claude", shape="claude"),
                   self_update=("claude", "update"), latest=ref("agent_updates", "claude_channel_latest"),
                   install=(Way("mise", spec="claude"),),
-                  data=("~/.claude", "~/.claude.json"))
+                  data=("~/.claude", "~/.claude.json"),
+                  homepage="https://github.com/anthropics/claude-code")

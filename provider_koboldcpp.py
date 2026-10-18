@@ -19,4 +19,5 @@ PROVIDER = Provider("koboldcpp", "KoboldCpp", "local", detect=_detect, installer
                     # Kept running between agents (slow to start, no video memory without a model):
                     # the watcher unloads its model instead of stopping it.
                     stays_up=True, unload=("/api/admin/reload_config", {"filename": "unload_model"}),
-                    install=(Way("installer"),))
+                    install=(Way("installer"),),
+                    homepage="https://github.com/LostRuins/koboldcpp")

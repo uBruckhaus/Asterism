@@ -16,4 +16,5 @@ def _installer():
 
 PROVIDER = Provider("vllm", "vLLM", "local", detect=_detect, installer=_installer,
                     connect_key="vllm-local", connect_label="vLLM (local)",
-                    install=(Way("installer"),))
+                    install=(Way("installer"),),
+                    homepage="https://docs.vllm.ai")

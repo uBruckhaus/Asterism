@@ -58,4 +58,5 @@ HARNESS = Harness("cursor-agent", "Cursor CLI", label="Cursor CLI", icon="\ue90d
                                 "~/.cursor/skills"),
                   mcp=Mcp("~/.cursor/mcp.json"),
                   install=(Way("mise", spec="cursor-agent"),),
-                  data=("~/.cursor", "~/.config/cursor"))
+                  data=("~/.cursor", "~/.config/cursor"),
+                  homepage="https://cursor.com/cli")

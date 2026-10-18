@@ -20,4 +20,5 @@ HARNESS = Harness("bionic", "LM Studio Bionic", label="LM Studio Bionic", icon="
                   skills=Skills(("~/.lmstudio/skills",), "~/.lmstudio/skills"),
                   mcp=Mcp(in_app="Settings › Connected apps"),
                   install=(Way("installer"),),
-                  data=("~/.lmstudio/apps/bionic",))
+                  data=("~/.lmstudio/apps/bionic",),
+                  homepage="https://lmstudio.ai")

@@ -10,4 +10,5 @@ def _installer():
 
 HARNESS = Harness("agy", "Antigravity CLI", label="Antigravity CLI", icon="\U000f02ad", installer=_installer,
                   offered=False,
-                  install=(Way("installer"),))
+                  install=(Way("installer"),),
+                  homepage="https://antigravity.google")

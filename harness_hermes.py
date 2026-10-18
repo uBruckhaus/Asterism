@@ -232,4 +232,5 @@ HARNESS = Harness("hermes", "Hermes", sessions=Sessions(collect, _note), label="
                   install=(Way("command", argv=("omarchy-install-hermes-cli", "--now"), sudo=True),
                            Way("package", packages=(("pacman", "hermes-desktop"),)),
                            Way("manual", url="https://github.com/NousResearch/hermes-agent")),
-                  data=("~/.hermes",))
+                  data=("~/.hermes",),
+                  homepage="https://github.com/NousResearch/hermes-agent")

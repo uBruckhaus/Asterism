@@ -32,7 +32,7 @@ import harnesses
 
 API_VERSION = 1
 PRIVACY = {"numbers": _edition.NUMBERS, "titles": _edition.TITLES, "summary": _edition.SUMMARY}
-CAPABILITIES = ("agent", "provider", "installer")
+CAPABILITIES = ("agent", "provider", "installer", "updater")
 
 
 class AddonError(Exception):
@@ -195,7 +195,10 @@ class AddonAPI:
         self._need("agent", "add_harness")
         if harness.installer is not None:
             self._need("installer", "an agent with an installer")
-        harnesses.add(harness, self.addon_id)
+        updates = bool(harness.self_update or harness.latest is not None)
+        if updates:
+            self._need("updater", "an agent with an updater of its own")
+        harnesses.add(harness, self.addon_id, updates=updates)
 
     def add_provider(self, provider):
         self._need("provider", "add_provider")

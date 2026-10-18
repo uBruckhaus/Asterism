@@ -313,6 +313,8 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, AddonsPage, Adw.Applicat
             GLib.timeout_add(100, lambda: True)  # Let Python dispatch SIGUSR1.
             self.watch_theme()
             write_pid_file()
+            if hasattr(self, "setup_needed") and self.setup_needed():
+                GLib.idle_add(self.open_setup)      # a fresh Asterism: pick what goes on the map
         self.open()
 
     # --- add-ons (Asterism only) ---------------------------------------------------------------
@@ -520,6 +522,7 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, AddonsPage, Adw.Applicat
         stack.add_named(self.build_reorganize_page(), "reorganize")
         if hasattr(self, "build_addons_page"):
             stack.add_named(self.build_addons_page(), "addons")
+            stack.add_named(self.build_setup_page(), "setup")
             self.setup_addon_drop(self.window)
         # Details and the pages that change something open right of the cards, where the map is.
         right = self.right_stack
@@ -1337,6 +1340,21 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, AddonsPage, Adw.Applicat
         servers = [m for m in inv.mcp if f"mcp:{m.name}" not in hidden]
         skill_sets = [s for s in inv.skill_sets if f"skills:{s.path}" not in hidden]
         self.tree_list = None
+        if not harnesses.all_harnesses() and not providers.all_providers() and hasattr(self, "adapter_addons") \
+                and self.adapter_addons():
+            # An empty Asterism: nothing switched on yet.
+            empty = self.empty_state("application-x-addon-symbolic", _("Nothing on the map yet"),
+                                     _("Asterism shows the agents and local LLMs you switch on. Set up switches on "
+                                       "the ones found on this PC with one click."))
+            row = Gtk.Box(spacing=8, halign=Gtk.Align.CENTER, margin_top=12)
+            for label, run, main in ((_("Set up Asterism"), self.open_setup, True), (_("Add-ons"), self.open_addons, False)):
+                button = Gtk.Button(label=label)
+                if main:
+                    button.add_css_class("suggested-action")
+                button.connect("clicked", lambda *_a, r=run: r())
+                row.append(button)
+            empty.append(row)
+            box.append(empty)
         if self.sidebar_tree():
             self.render_tree(self.tree_nodes(installed, runtimes, servers, skill_sets, missing, names))
             new_mcp, new_skills = self.new_found()
@@ -4356,7 +4374,7 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, AddonsPage, Adw.Applicat
             mcp_scan.cleanup_old_cache()
             connect.prune_retired()
             kobold = install_ctl.installer("koboldcpp")
-            if kobold.installed_folder() is not None and kobold.models_folder():
+            if kobold is not None and kobold.installed_folder() is not None and kobold.models_folder():
                 try:
                     kobold.sync(Path(kobold.models_folder()))      # models added since: router ids
                 except (OSError, ValueError):
@@ -5286,7 +5304,7 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, AddonsPage, Adw.Applicat
 
     def update_header(self):
         page = self.page_name()
-        on_settings = page in ("settings", "help", "addons", "reorganize", "connect", "install", "models", "mcp",
+        on_settings = page in ("settings", "help", "addons", "setup", "reorganize", "connect", "install", "models", "mcp",
                                "addmcp", "addskills", "health")
         # Faded out rather than hidden: the header keeps its height, so the
         # card does not jump when the settings page opens.
@@ -8414,6 +8432,9 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, AddonsPage, Adw.Applicat
                                  and not self.addons_search.has_focus()
                                  and not self.addons_search.get_delegate().has_focus()):
             self.close_addons()
+            return True
+        if page == "setup" and keyval == Gdk.KEY_Escape:
+            self.back_to_last_page()
             return True
         if page == "reorganize" and keyval == Gdk.KEY_Escape:
             self.close_reorganize()

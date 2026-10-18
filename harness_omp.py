@@ -16,4 +16,5 @@ HARNESS = Harness("omp", "Oh My Pi", label="omp", full_name="Oh My Pi", icon="\u
                   skills=Skills(("~/.omp/agent/skills",), "~/.omp/agent/skills", listed=_skills_listed),
                   mcp=Mcp("~/.omp/agent/mcp.json", shape="omp"),
                   install=(Way("mise", spec="github:can1357/oh-my-pi"),),
-                  data=("~/.omp",))
+                  data=("~/.omp",),
+                  homepage="https://github.com/can1357/oh-my-pi")

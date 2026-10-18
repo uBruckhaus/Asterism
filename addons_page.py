@@ -18,6 +18,7 @@ from gi.repository import Adw, Gdk, Gio, GLib, GObject, Gtk
 import addon_api
 import addon_store
 import addons
+import ai_core
 import harnesses
 import install_recipes
 import providers
@@ -50,6 +51,9 @@ class Item:
     update: bool = False
     installed: bool | None = None     # built-in agents and local LLMs: is the program itself here
     target: str = ""                  # "agent" | "runtime": what install_dialog installs or removes
+    homepage: str = ""                # the web page of the agent, provider or add-on
+    key: str = ""                     # the agent command or provider key install_dialog gets (else id)
+    here: bool = False                # an add-on (off) whose program is on this PC: suggested
     words: str = ""                   # what search looks through
 
 
@@ -84,29 +88,40 @@ def build_items(installed: list, entries: list, agent_list=(), runtimes=()) -> l
             state = "failed"
         else:
             state = "on" if addon.state == "loaded" else "off"
-        item = Item(addon.id, addon.name or addon.id, entry.kind if entry else "feature", state,
-                    entry.summary if entry else "", entry.description if entry else "", addon.version,
-                    (entry.icon if entry else "") or KIND_ICONS["feature"], privacy=addon.privacy or 1,
+        kind = addon.kind if addon.kind != "feature" else entry.kind if entry else "feature"
+        item = Item(addon.id, addon.name or addon.id, kind, state,
+                    (entry.summary if entry else "") or addon.summary,
+                    (entry.description if entry else "") or addon.description, addon.version,
+                    (entry.icon if entry else "") or addon.icon or KIND_ICONS[kind], privacy=addon.privacy or 1,
                     capabilities=list(addon.capabilities), reads=list(addon.reads), sends=list(addon.sends),
                     reason=addon.reason, entry=entry, addon=addon,
-                    update=bool(entry and addon.version and addon_store.newer(entry.version, addon.version)))
+                    update=bool(entry and addon.version and addon_store.newer(entry.version, addon.version)),
+                    homepage=(entry.homepage if entry else "") or addon.homepage)
         if entry and item.kind == "feature" and "agent" in addon.capabilities:
             item.kind = "agent"
+        if addon.kind in ("agent", "provider") and len(addon.provides) == 1:
+            # An adapter: the program it brings, installed and removed from its card once it is on.
+            key = item.key = addon.provides[0]
+            if addon.kind == "agent" or addon.commands or "installer" in addon.capabilities:     # a program
+                known = agent_on if addon.kind == "agent" else runtime_on
+                item.installed = known[key] if key in known else addon_store.present(addon)
+                item.target = ("agent" if addon.kind == "agent" else "runtime") if state == "on" else ""
+                item.here = state == "off" and bool(item.installed)
         items.append(item)
     for entry in by_id.values():
         items.append(Item(entry.id, entry.name, entry.kind, "suggested" if addon_store.present(entry) else "available",
                           entry.summary, entry.description, entry.version, entry.icon or KIND_ICONS[entry.kind],
                           privacy=entry.privacy, capabilities=list(entry.capabilities), reads=list(entry.reads),
-                          sends=list(entry.sends), entry=entry))
+                          sends=list(entry.sends), entry=entry, homepage=entry.homepage))
     for h in harnesses._built_in():
         items.append(Item(h.command, h.full_name or h.name, "agent", "builtin", harness_summary(h),
                           glyph=h.icon, glyph_font=h.icon_font, installed=agent_on.get(h.command, False),
-                          target="agent" if h.install else ""))
+                          target="agent" if h.install else "", homepage=h.homepage))
     for p in providers._built_in_local():
         items.append(Item(p.key, p.name, "provider", "builtin", _("Local LLM: found, installed, started and stopped "
                                                                   "here, its models on the map"),
                           icon=KIND_ICONS["provider"], installed=runtime_on.get(p.key, False),
-                          target="runtime" if p.install else ""))
+                          target="runtime" if p.install else "", homepage=p.homepage))
     for p in providers._built_in_online():
         items.append(Item(p.key, p.name, "provider", "builtin", _("Online provider"), icon="network-workgroup-symbolic"))
     for item in items:
@@ -203,6 +218,156 @@ class AddonsPage:
         self.addons_entries = []
         return page
 
+    # --- first start: "Set up Asterism" ---
+    def adapter_addons(self) -> list:
+        """The installed, valid add-ons that bring an agent or a provider."""
+        return [a for a in self.addons if a.kind in ("agent", "provider") and a.state in ("verified", "loaded")]
+
+    def setup_needed(self) -> bool:
+        """Adapter add-ons are there, none is on, and the setup was neither done nor put off."""
+        adapters = self.adapter_addons()
+        return bool(adapters) and not any(a.state == "loaded" for a in adapters) \
+            and not ai_core.load_settings().get("setup_done")
+
+    def installed_adapters(self, adapters: list) -> set:
+        """Ids of the adapter add-ons whose program is really installed: every adapter is loaded for a
+        moment and the app's own detection runs (a leftover settings folder or an empty shim does not
+        count); then only the add-ons switched on are loaded again."""
+        import agents
+        import inventory
+        enabled = ai_core.load_settings().get("addons_enabled", [])
+        enabled = {e for e in enabled if isinstance(e, str)} if isinstance(enabled, list) else set()
+        found = set()
+        try:
+            addons.load_all(enabled | {a.id for a in adapters})
+            processes = inventory.own_processes()
+            for addon in adapters:
+                for key in addon.provides[:1]:
+                    if addon.kind == "agent" and agents.detect(key)[0]:
+                        found.add(addon.id)
+                    p = providers.get(key) if addon.kind == "provider" and len(addon.provides) == 1 else None
+                    if p is not None and p.detect is not None and p.detect(processes).installed:
+                        found.add(addon.id)
+        except Exception:
+            found = {a.id for a in adapters if addon_store.present(a)}
+        finally:
+            self.load_addons()
+        return found
+
+    def build_setup_page(self) -> Gtk.Widget:
+        page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        title = Gtk.Label(label=_("Set up Asterism").upper(), xalign=0)
+        title.add_css_class("am-section-title")
+        page.append(title)
+        rule = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
+        rule.add_css_class("am-settings-rule")
+        page.append(rule)
+        self.setup_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12, margin_bottom=12)
+        clamp = Adw.Clamp(maximum_size=820, child=self.setup_box, unit=Adw.LengthUnit.PX)
+        page.append(self.page_scroller(clamp))
+        buttons = Gtk.Box(spacing=8, halign=Gtk.Align.END, margin_top=6, margin_bottom=6)
+        later = Gtk.Button(label=_("Later"))
+        later.set_tooltip_text(_("Start with an empty map; Settings › Add-ons › Set up brings this page back."))
+        later.connect("clicked", lambda *_a: self.finish_setup(False))
+        buttons.append(later)
+        self.setup_ok = Gtk.Button()
+        self.setup_ok.add_css_class("suggested-action")
+        self.setup_ok.connect("clicked", lambda *_a: self.finish_setup(True))
+        buttons.append(self.setup_ok)
+        page.append(buttons)
+        self.setup_checks = {}
+        return page
+
+    def open_setup(self):
+        """What Asterism found on this PC comes first, already ticked: one click puts it on the map.
+        The rest can be ticked too and installed from its card afterwards."""
+        box = self.setup_box
+        while (child := box.get_first_child()) is not None:
+            box.remove(child)
+        self.setup_checks = {}
+        adapters = self.adapter_addons()
+        online = [a for a in adapters if a.kind == "provider" and len(a.provides) > 1]
+        programs = [a for a in adapters if a not in online]
+        installed = self.installed_adapters(programs)
+        found = [a for a in programs if a.id in installed]
+        before = [a for a in programs if a not in found and addon_store.present(a)]
+        missing = [a for a in programs if a not in found and a not in before]
+        on = {a.id for a in adapters if a.state == "loaded"}
+        if found:
+            agents = sum(1 for a in found if a.kind == "agent")
+            self.note(box, _("Asterism shows only what you switch on. It found {0} agents and {1} local LLMs on this "
+                             "PC: they are ticked. Switch them on and the map shows them, their models, MCP servers "
+                             "and skills.").format(agents, len(found) - agents))
+        else:
+            self.note(box, _("Asterism shows only what you switch on, and it found no agent or local LLM on this PC. "
+                             "Tick what you want to use: after Switch on, install the programs from their cards on "
+                             "the Add-ons page."))
+        for title, hint, group, ticked in (
+                (_("Found on this PC"), "", found, True),
+                (_("Used before"), _("Not installed now, but its settings are still here."), before, False),
+                (_("Not on this PC"), _("Ticked ones appear on the Add-ons page with an Install button."), missing,
+                 False)):
+            if not group:
+                continue
+            self.settings_heading(box, title)
+            if hint:
+                self.note(box, hint)
+            rows = self.boxed_list()
+            for addon in group:
+                rows.append(self.setup_row(addon, ticked or addon.id in on))
+            box.append(rows)
+        if online:
+            self.settings_heading(box, _("Online providers"))
+            rows = self.boxed_list()
+            for addon in online:
+                rows.append(self.setup_row(addon, True))
+            box.append(rows)
+        self.setup_installed = installed
+        self.update_setup_button()
+        if self.page_name() not in ("setup", "settings", "help", "addons"):
+            self.remember_page()
+        self.show_page("setup")
+
+    def setup_row(self, addon, ticked: bool) -> Gtk.Widget:
+        kind = _("Agent") if addon.kind == "agent" else _("Provider")
+        row = self.plain_row(addon.name, f"{kind} · {addon.summary}" if addon.summary else kind)
+        icon = Gtk.Image.new_from_icon_name(addon.icon or KIND_ICONS.get(addon.kind, KIND_ICONS["feature"]))
+        row.add_prefix(icon)
+        if addon.homepage:
+            row.add_suffix(self.homepage_button(Item(addon.id, addon.name, addon.kind, "off",
+                                                     homepage=addon.homepage)))
+        check = Gtk.CheckButton(active=ticked, valign=Gtk.Align.CENTER)
+        check.connect("toggled", lambda *_a: self.update_setup_button())
+        row.add_suffix(check)
+        row.set_activatable_widget(check)
+        self.setup_checks[addon.id] = (check, addon)
+        return row
+
+    def update_setup_button(self):
+        n = sum(1 for check, _addon in self.setup_checks.values() if check.get_active())
+        self.setup_ok.set_label(_("Switch on {0}").format(n) if n else _("Switch on"))
+        self.setup_ok.set_sensitive(n > 0)
+
+    def finish_setup(self, switch_on: bool):
+        self.save_setting(setup_done=True)
+        chosen = [addon for check, addon in self.setup_checks.values() if check.get_active()] if switch_on else []
+        if not chosen:
+            self.show_view("main", save=False)
+            return
+        for check, addon in self.setup_checks.values():
+            addon_store.set_enabled(addon.id, check.get_active())
+        self.reload_addons()
+        absent = [a for a in chosen if (a.kind == "agent" or a.commands) and a.id not in self.setup_installed]
+        self.toast(_("{0} add-ons are on.").format(len(chosen)), 4)
+        if absent:
+            # Ticked but not installed: their cards, with Install.
+            self.addons_stack.set_visible_child_name("list")
+            self.show_page("addons")
+            self.addons_select = absent[0].id
+            self.refresh_addons()
+        else:
+            self.show_view("main", save=False)
+
     # --- open, close, data ---
     def open_addons(self, select: str = ""):
         if self.page_name() not in ("settings", "help", "addons"):
@@ -263,8 +428,8 @@ class AddonsPage:
         shown = [i for i in self.addons_items if visible(i, self.addons_filter, query)]
         updates = sum(1 for i in self.addons_items if i.update)
         self.addons_chips["updates"].set_label(_("Updates") + (f" {updates}" if updates else ""))
-        sections = ((_("Suggested for this PC"), [i for i in shown if i.state == "suggested"]),
-                    (_("Installed add-ons"), [i for i in shown if i.state in ("on", "off", "failed")]),
+        sections = ((_("Suggested for this PC"), [i for i in shown if i.state == "suggested" or i.here]),
+                    (_("Installed add-ons"), [i for i in shown if i.state in ("on", "off", "failed") and not i.here]),
                     (_("Available"), [i for i in shown if i.state == "available"]),
                     (_("Built into Asterism"), [i for i in shown if i.state == "builtin"]))
         for title, items in sections:
@@ -307,7 +472,7 @@ class AddonsPage:
     def addon_card(self, item: Item) -> Gtk.Widget:
         card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
         card.add_css_class("am-addon-card")
-        if item.state == "suggested":
+        if item.state == "suggested" or item.here:
             card.add_css_class("am-addon-suggested")
         if item.state == "failed":
             card.add_css_class("am-addon-refused")
@@ -318,12 +483,14 @@ class AddonsPage:
         name.add_css_class("am-addon-name")
         names.append(name)
         kind = {"agent": _("Agent"), "provider": _("Provider"), "feature": _("Feature")}[item.kind]
-        if item.installed is not None and item.target:
+        if item.installed is not None and (item.target or item.key):
             kind += " · " + (_("installed") if item.installed else _("not installed"))
         sub = Gtk.Label(label=kind + (f" · {item.version}" if item.version else ""), xalign=0)
         sub.add_css_class("am-agent-detail")
         names.append(sub)
         top.append(names)
+        if item.homepage:
+            top.append(self.homepage_button(item))
         top.append(self.state_badge(item))
         card.append(top)
         summary = Gtk.Label(label=item.reason if item.state == "failed" else item.summary, xalign=0, wrap=True,
@@ -337,7 +504,7 @@ class AddonsPage:
             bottom.append(chip)
         else:
             bottom.append(Gtk.Box(hexpand=True))
-        if item.state == "builtin" and item.target:
+        if item.target:
             bottom.append(self.program_buttons(item))
         else:
             action = self.addon_action(item)
@@ -349,6 +516,26 @@ class AddonsPage:
         card.add_controller(click)
         card.set_tooltip_text(_("Click for details"))
         return card
+
+    def homepage_button(self, item: Item, small: bool = True) -> Gtk.Button:
+        """Opens the web page of the agent, provider or add-on in the browser."""
+        if small:
+            button = Gtk.Button(icon_name="web-browser-symbolic", valign=Gtk.Align.CENTER)
+            button.add_css_class("flat")
+            button.add_css_class("am-small-btn")
+        else:
+            button = Gtk.Button(label=_("Homepage"))
+        button.set_tooltip_text(_("Open {0}").format(item.homepage))
+        button.connect("clicked", lambda *_a: self.open_homepage(item.homepage))
+        return button
+
+    def open_homepage(self, url: str):
+        if not addons.homepage(url):
+            return
+        try:
+            Gio.AppInfo.launch_default_for_uri(url, None)
+        except GLib.Error:
+            self.toast(_("No browser could be opened."), 5)
 
     def addon_action(self, item: Item) -> Gtk.Widget | None:
         label, run = {"suggested": (_("Get add-on"), self.install_addon), "available": (_("Install"), self.install_addon),
@@ -369,7 +556,7 @@ class AddonsPage:
         """Install and Uninstall for the program itself, always both; the one that does not apply now
         (or that has no way on this PC) is greyed out, with why in its tooltip."""
         box = Gtk.Box(spacing=6, valign=Gtk.Align.CENTER)
-        subject = self.install_subject(item.target, item.id)
+        subject = self.install_subject(item.target, item.key or item.id)
         installed = bool(subject and subject[1])
         for action, label in (("install", _("Install")), ("uninstall", _("Uninstall"))):
             button = Gtk.Button(label=label if small else label + "…")
@@ -389,7 +576,7 @@ class AddonsPage:
                                             _("Opens the install page")))
             if not why and action == "install":
                 button.add_css_class("suggested-action")
-            button.connect("clicked", lambda *_a, a=action: self.offer_install(item.target, item.id, a))
+            button.connect("clicked", lambda *_a, a=action: self.offer_install(item.target, item.key or item.id, a))
             box.append(button)
         return box
 
@@ -425,6 +612,11 @@ class AddonsPage:
                 self.note(box, (_("{0} is installed on this PC.") if item.installed else
                                 _("{0} is not installed on this PC.")).format(item.name))
         else:
+            if item.key and item.installed is not None:
+                self.settings_heading(box, _("The program"))
+                self.note(box, (_("{0} is installed on this PC.") if item.installed else
+                                _("{0} is not installed on this PC.")).format(item.name)
+                          + ("" if item.state == "on" else " " + _("Switch the add-on on to install or remove it here.")))
             self.settings_heading(box, _("What it reads"))
             rows = self.boxed_list()
             for text in item.reads or [_("Nothing beyond what Asterism shows anyway.")]:
@@ -447,6 +639,8 @@ class AddonsPage:
         back = Gtk.Button(label=_("All add-ons"))
         back.connect("clicked", lambda *_a: self.addons_stack.set_visible_child_name("list"))
         buttons.append(back)
+        if item.homepage:
+            buttons.append(self.homepage_button(item, small=False))
         actions = []
         if item.update:
             actions.append((_("Update"), self.update_addon, True))
@@ -460,10 +654,10 @@ class AddonsPage:
                 button.add_css_class("suggested-action")
             button.connect("clicked", lambda *_a, r=run: r(item))
             buttons.append(button)
-        if item.state == "builtin" and item.target:
+        if item.target:
             buttons.append(self.program_buttons(item, small=False))
-        if item.state == "on":
-            # An add-on that brings an agent or a provider: install the program itself too.
+        if item.state == "on" and not item.key:
+            # A feature add-on made for an agent: install the program itself too.
             for command in (item.entry.harnesses if item.entry else []):
                 h = harnesses.get(command)
                 if h is not None and h.install and not any(a.command == command and a.installed

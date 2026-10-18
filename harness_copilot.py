@@ -38,4 +38,5 @@ HARNESS = Harness("copilot", "GitHub Copilot", label="Copilot", full_name="GitHu
                   skills=Skills(("~/.copilot/skills", "~/.agents/skills"), "~/.copilot/skills"),
                   mcp=Mcp("~/.copilot/mcp-config.json", shape="copilot"),
                   install=(Way("mise", spec="copilot"),),
-                  data=("~/.copilot",))
+                  data=("~/.copilot",),
+                  homepage="https://github.com/github/copilot-cli")

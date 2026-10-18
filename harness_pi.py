@@ -111,4 +111,5 @@ HARNESS = Harness("pi", "Pi", label="Pi", full_name="Pi", icon="\ue901", icon_fo
                                 settings_file="~/.pi/agent/settings.json", write=_skills_text),
                   mcp=Mcp("~/.pi/agent/mcp.json"),
                   install=(Way("mise", spec="pi"),),
-                  data=("~/.pi",))
+                  data=("~/.pi",),
+                  homepage="https://github.com/badlogic/pi-mono")

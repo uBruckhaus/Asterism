@@ -154,4 +154,5 @@ HARNESS = Harness("opencode", "OpenCode", sessions=Sessions(collect, _note), lab
                   mcp=Mcp("~/.config/opencode/opencode.json", key="mcp", shape="opencode"),
                   short_model_flag=True,
                   install=(Way("mise", spec="opencode"),),
-                  data=("~/.local/share/opencode", "~/.config/opencode"))
+                  data=("~/.local/share/opencode", "~/.config/opencode"),
+                  homepage="https://opencode.ai")

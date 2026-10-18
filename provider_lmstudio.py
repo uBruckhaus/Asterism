@@ -16,4 +16,5 @@ def _installer():
 
 PROVIDER = Provider("lmstudio", "LM Studio", "local", detect=_detect, installer=_installer,
                     connect_key="lmstudio-local", connect_label="LM Studio (local)",
-                    install=(Way("installer"), Way("manual", url="https://lmstudio.ai/download")), data=("~/.lmstudio",))
+                    install=(Way("installer"), Way("manual", url="https://lmstudio.ai/download")), data=("~/.lmstudio",),
+                    homepage="https://lmstudio.ai")

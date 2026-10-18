@@ -45,7 +45,6 @@ KINDS = ("feature", "agent", "provider")
 _ID = re.compile(r"[a-z][a-z0-9-]{1,40}")
 _VERSION = re.compile(r"\d{1,4}\.\d{1,4}\.\d{1,4}")
 _SHA = re.compile(r"[0-9a-f]{64}")
-_COMMAND = re.compile(r"[A-Za-z0-9][A-Za-z0-9._+-]{0,63}")
 _ICON = re.compile(r"[a-z0-9-]{1,64}")
 
 
@@ -65,6 +64,7 @@ class Entry:
     sends: list = field(default_factory=list)
     commands: list = field(default_factory=list)        # detect hints: programs on PATH
     paths: list = field(default_factory=list)           # detect hints: "~/…" folders or files
+    homepage: str = ""
     url: str = ""
     size: int = 0
     sha256: str = ""
@@ -94,18 +94,14 @@ def entry_from(data) -> Entry | None:
     caps = data.get("capabilities", [])
     if not isinstance(caps, list) or not all(c in addon_api.CAPABILITIES for c in caps):
         return None
-    detect = data.get("detect") if isinstance(data.get("detect"), dict) else {}
-    commands = [c for c in detect.get("commands", [])[:8] if isinstance(c, str) and _COMMAND.fullmatch(c)] \
-        if isinstance(detect.get("commands"), list) else []
-    paths = [p for p in detect.get("paths", [])[:8] if isinstance(p, str) and p.startswith("~/") and ".." not in p
-             and len(p) <= 200 and not any(ord(c) < 32 for c in p)] if isinstance(detect.get("paths"), list) else []
+    commands, paths = addons.detect_hints(data.get("detect"))
     icon = data.get("icon") if isinstance(data.get("icon"), str) and _ICON.fullmatch(data.get("icon")) else ""
     return Entry(aid, _text(data.get("name"), 80) or aid, version,
                  data.get("kind") if data.get("kind") in KINDS else "feature", icon,
                  _text(data.get("summary"), 200), _text(data.get("description"), 2000),
                  addon_api.PRIVACY.get(data.get("privacy"), addon_api.PRIVACY["numbers"]), sorted(set(caps)),
                  _texts(data.get("harnesses")), _texts(data.get("reads")), _texts(data.get("sends")),
-                 commands, paths, url, size, sha)
+                 commands, paths, addons.homepage(data.get("homepage")), url, size, sha)
 
 
 def parse_catalog(text: bytes, signature: bytes, signers: str = addons.ALLOWED_SIGNERS) -> list | None:
@@ -169,8 +165,9 @@ def _load_cache(cache: Path) -> dict | None:
 
 # --- is its harness on this PC? ----------------------------------------------------------------------
 
-def present(entry: Entry) -> bool:
-    """The entry's detect hints find its program on PATH or its folder (read-only checks)."""
+def present(entry) -> bool:
+    """The detect hints of a catalog entry or an add-on find its program on PATH or its folder
+    (read-only checks)."""
     if any(shutil.which(c) for c in entry.commands):
         return True
     home = Path.home()
@@ -338,7 +335,5 @@ def online() -> bool:
 
 def newer(a: str, b: str) -> bool:
     """Version a is newer than b (x.y.z)."""
-    try:
-        return tuple(int(x) for x in a.split(".")) > tuple(int(x) for x in b.split("."))
-    except ValueError:
-        return False
+    ta, tb = addons.version_tuple(a), addons.version_tuple(b)
+    return bool(ta and tb) and ta > tb

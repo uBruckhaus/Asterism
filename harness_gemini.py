@@ -15,4 +15,5 @@ HARNESS = Harness("gemini", "Gemini CLI", label="Gemini", full_name="Gemini CLI"
                   skills=Skills(("~/.gemini/skills", "~/.agents/skills"), "~/.gemini/skills"),
                   mcp=Mcp("~/.gemini/settings.json", shape="gemini"),
                   install=(Way("mise", spec="gemini"),),
-                  data=("~/.gemini",))
+                  data=("~/.gemini",),
+                  homepage="https://github.com/google-gemini/gemini-cli")

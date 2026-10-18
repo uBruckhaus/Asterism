@@ -298,6 +298,10 @@ class SettingsPages:
                             lambda on: self.save_setting(addons_online=on))
             self.button_row(group, _("Add-ons"), _("Agents, providers and features: what is built in, installed "
                                                    "and available."), _("Open"), self.open_addons)
+            if self.adapter_addons():
+                self.button_row(group, _("Set up Asterism"), _("Pick again which agents and providers the map "
+                                                                "shows; found ones come ticked."), _("Set up"),
+                                self.open_setup)
         for addon_id, builder in self.addon_hooks("settings"):
             addon_api.call(addon_id, builder, addon_api.UI(self, addon_id), right)
         self.settings_ready = True
