@@ -27,6 +27,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 import connect
+import harnesses
 from agent_details import _read, _strip_jsonc
 from i18n import _, ngettext
 
@@ -429,8 +430,8 @@ def pi(report: Report):
         recommended=PI_READ))
 
 
-READERS = {"claude": claude, "codex": codex, "copilot": copilot, "cursor-agent": cursor, "hermes": hermes,
-           "opencode": opencode, "pi": pi}
+# Which agent's settings each reader above knows: from the agent adapters (harnesses.py).
+READERS = {h.command: h.security for h in harnesses.all_harnesses() if h.security is not None}
 
 
 def known(agent: str) -> bool:

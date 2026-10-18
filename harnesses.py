@@ -36,6 +36,33 @@ class Sessions:
 
 
 @dataclass(frozen=True)
+class Skills:
+    dirs: tuple                       # folders the agent reads skills from by itself ("~/…")
+    own: str                          # the folder its links go into
+    settings_list: bool = False       # it keeps a folder list in its settings, which the app writes (Pi, Hermes)
+
+
+@dataclass(frozen=True)
+class Mcp:
+    """Where an agent keeps its MCP servers and how an entry looks there (as agent_profiles does
+    for agents looked up on the web)."""
+    path: str = ""                    # "~/.codex/config.toml"
+    format: str = "json"              # json | toml | yaml | claude (~/.claude.json) | openclaw | dsh
+    key: str = "mcpServers"           # the table the servers are in ("mcp_servers", "mcp", "mcp.servers")
+    shape: str = "plain"              # how mcp_ctl.native writes one entry for it
+    in_app: str = ""                  # set up only inside the agent's own app (where), nothing to write
+
+
+def ref(module: str, name: str) -> Callable:
+    """A function of another module, imported when first called (adapters stay light, no cycles)."""
+    def call(*args, **kwargs):
+        import importlib
+        return getattr(importlib.import_module(module), name)(*args, **kwargs)
+    call.__qualname__ = call.__name__ = f"{module}.{name}"
+    return call
+
+
+@dataclass(frozen=True)
 class Harness:
     command: str                      # the agent's command, as in Omarchy's menu
     name: str                         # display name in the app's own texts
@@ -52,6 +79,18 @@ class Harness:
     installer: Callable | None = None  # installer() -> install_ctl.Installer: the app installs it itself
     short_version: bool = False       # show the version up to its first "-" (LM Studio Bionic)
     offered: bool = True              # in Omarchy's agent menu (False: only this app offers it)
+    # capabilities (the feature modules build their tables from these)
+    security: Callable | None = None  # security(report): agent_security fills in its settings
+    usage: Callable | None = None     # usage() -> agent_status.Usage from its own session store
+    access: Callable | None = None    # access() -> agent_status.Access: what it needs to work
+    login_status: tuple | None = None  # (argv, text meaning "no", text meaning "yes")
+    local_llm: bool = False           # can be pointed at a local LLM from the map (connect)
+    fixed_provider: str = ""          # tied to one local LLM ("lmstudio")
+    skills: Skills | None = None
+    mcp: Mcp | None = None
+    short_model_flag: bool = False    # takes -m for its model (provider_watch)
+    self_update: tuple = ()           # argv of its own updater for its own install (("claude", "update"))
+    latest: Callable | None = None    # latest(channel) -> newest version for self_update
 
 
 # --- helpers for the adapters ----------------------------------------------------------------------

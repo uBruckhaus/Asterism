@@ -9,7 +9,7 @@ import sqlite3
 from pathlib import Path
 
 import harnesses
-from harnesses import Harness, Session, Sessions
+from harnesses import Harness, Mcp, Session, Sessions, Skills, ref
 from i18n import _
 
 DB = Path.home() / ".hermes/state.db"
@@ -62,6 +62,15 @@ def _note() -> str:
              "would cost at API prices, not what a plan costs.").format("Hermes")
 
 
+def _access():
+    from agent_status import Access
+    return Access(_("A provider key (hermes setup), or a local LLM from the map"),
+                  "hermes setup", (".hermes/auth.json", ".hermes/.env"), (), local_ok=True)
+
+
 HARNESS = Harness("hermes", "Hermes", sessions=Sessions(collect, _note), label="Hermes", icon="\ue90a",
                   icon_font="omarchy", spec="pipx:hermes-agent[extras=all]", package="hermes-desktop",
-                  own_install_counts=False)
+                  own_install_counts=False, security=ref("agent_security", "hermes"),
+                  usage=ref("agent_status", "hermes"), access=_access, local_llm=True,
+                  skills=Skills(("~/.hermes/skills",), "~/.hermes/skills", settings_list=True),
+                  mcp=Mcp("~/.hermes/config.yaml", format="yaml", key="mcp_servers"), short_model_flag=True)

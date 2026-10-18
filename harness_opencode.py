@@ -10,7 +10,7 @@ import sqlite3
 from pathlib import Path
 
 import harnesses
-from harnesses import Harness, Session, Sessions
+from harnesses import Harness, Mcp, Session, Sessions, Skills, ref
 from i18n import _
 
 DB = Path.home() / ".local/share/opencode/opencode.db"
@@ -63,5 +63,15 @@ def _note() -> str:
              "would cost at API prices, not what a plan costs.").format("OpenCode")
 
 
+def _access():
+    from agent_status import Access
+    return Access(_("An account or API key for any provider, or a local LLM from the map"),
+                  "opencode auth login", (".local/share/opencode/auth.json",), (), local_ok=True)
+
+
 HARNESS = Harness("opencode", "OpenCode", sessions=Sessions(collect, _note), label="OpenCode", icon="\ue902",
-                  icon_font="omarchy")
+                  icon_font="omarchy", security=ref("agent_security", "opencode"),
+                  usage=ref("agent_status", "opencode"), access=_access, local_llm=True,
+                  skills=Skills(("~/.config/opencode/skills", "~/.claude/skills", "~/.agents/skills"), "~/.config/opencode/skills"),
+                  mcp=Mcp("~/.config/opencode/opencode.json", key="mcp", shape="opencode"),
+                  short_model_flag=True)

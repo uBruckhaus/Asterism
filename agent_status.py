@@ -18,6 +18,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 import desktop
+import harnesses
 from i18n import _
 
 HOME = Path.home()
@@ -283,7 +284,8 @@ def pi(today: dt.date | None = None, root: Path = HOME) -> Usage | None:
     return usage
 
 
-READERS = {"hermes": hermes, "opencode": opencode, "pi": pi}
+# Agents whose own session store the readers above know (from the agent adapters).
+READERS = {h.command: h.usage for h in harnesses.all_harnesses() if h.usage is not None}
 
 
 def usage_for(command: str, record: dict) -> Usage | None:
@@ -310,35 +312,13 @@ class Access:
 
 
 def access_table() -> dict:
-    """Per agent: what it needs to work (built on each call, so it follows the interface language)."""
-    return {
-        "claude": Access(_("A Claude Pro or Max subscription (claude.ai), or an API key from console.anthropic.com"),
-                         "claude auth login", (".claude/.credentials.json",), ("ANTHROPIC_API_KEY",)),
-        "codex": Access(_("A ChatGPT plan (Plus, Pro, Business), or an API key from platform.openai.com"),
-                        "codex login", (".codex/auth.json",), ("OPENAI_API_KEY",), local_ok=True),
-        "gemini": Access(_("A Google account (free tier), or an API key from aistudio.google.com"),
-                         "gemini", (".gemini/oauth_creds.json",), ("GEMINI_API_KEY", "GOOGLE_API_KEY")),
-        "copilot": Access(_("A GitHub Copilot subscription (github.com/features/copilot)"),
-                          "copilot  →  /login", (".copilot/config.json",), ("COPILOT_GITHUB_TOKEN", "GH_TOKEN")),
-        "cursor-agent": Access(_("A Cursor account (cursor.com)"), "cursor-agent login",
-                               (".config/cursor/auth.json",), ("CURSOR_API_KEY",)),
-        "opencode": Access(_("An account or API key for any provider, or a local LLM from the map"),
-                           "opencode auth login", (".local/share/opencode/auth.json",), (), local_ok=True),
-        "hermes": Access(_("A provider key (hermes setup), or a local LLM from the map"),
-                         "hermes setup", (".hermes/auth.json", ".hermes/.env"), (), local_ok=True),
-        "pi": Access(_("Sign in inside Pi (/login: Claude, ChatGPT, Copilot …), an API key, or a local LLM from the map"),
-                     "pi  →  /login", (".pi/agent/auth.json",), ("ANTHROPIC_API_KEY", "OPENAI_API_KEY"), local_ok=True),
-        "dsh": Access(_("An API key from platform.deepseek.com, or a local LLM from the map"),
-                      "dsh web", (".dsh/.credentials.yaml",), ("DEEPSEEK_API_KEY",), local_ok=True),
-        "grok": Access(_("An API key from console.x.ai"), "grok", (), ("XAI_API_KEY",)),
-        "crush": Access(_("An API key for a provider, or a local LLM from the map"), "crush",
-                        (".local/share/crush/crush.json",), ("ANTHROPIC_API_KEY", "OPENAI_API_KEY"), local_ok=True),
-        "bionic": Access(_("Nothing: it runs models on this computer"), "", (), (), local_ok=True),
-    }
+    """Per agent: what it needs to work (from the agent adapters; built on each call, so it follows
+    the interface language)."""
+    return {h.command: h.access() for h in harnesses.all_harnesses() if h.access is not None}
 
 
 # Agents that tell their sign-in state themselves: argv, text meaning "no", text meaning "yes".
-STATUS_COMMANDS = {"cursor-agent": (("cursor-agent", "status"), "not logged in", "logged in")}
+STATUS_COMMANDS = {h.command: h.login_status for h in harnesses.all_harnesses() if h.login_status}
 
 
 def login_state(command: str) -> bool | None:

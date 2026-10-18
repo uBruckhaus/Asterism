@@ -167,6 +167,59 @@ class AgentTablesTest(unittest.TestCase):
         self.assertEqual(set(install_ctl.AGENT_INSTALLERS), {"dsh", "bionic", "agy"})
 
 
+
+class CapabilityTablesTest(unittest.TestCase):
+    """The feature modules build their per-agent tables from the adapters; same values as before."""
+
+    def test_security_status_connect(self):
+        import agent_security
+        import agent_status
+        import connect
+        self.assertEqual(set(agent_security.READERS),
+                         {"claude", "codex", "copilot", "cursor-agent", "hermes", "opencode", "pi"})
+        self.assertEqual(set(agent_status.READERS), {"hermes", "opencode", "pi"})
+        self.assertEqual(agent_status.STATUS_COMMANDS,
+                         {"cursor-agent": (("cursor-agent", "status"), "not logged in", "logged in")})
+        self.assertEqual(set(agent_status.access_table()), {
+            "claude", "codex", "gemini", "copilot", "cursor-agent", "opencode", "hermes", "pi", "dsh", "grok",
+            "crush", "bionic"})
+        self.assertEqual(set(connect.SUPPORTED), {"hermes", "pi", "opencode", "dsh"})
+        self.assertEqual(connect.FIXED, {"bionic": "lmstudio"})
+
+    def test_skills(self):
+        import skills_ctl
+        self.assertEqual(skills_ctl.OWN["codex"], "~/.codex/skills")
+        self.assertEqual(skills_ctl.NATIVE["codex"], ["~/.agents/skills", "~/.codex/skills"])
+        self.assertEqual(skills_ctl.NATIVE["bionic"], ["~/.lmstudio/skills"])
+        self.assertEqual(set(skills_ctl.SETTINGS_LIST), {"pi", "hermes"})
+        self.assertEqual(len(skills_ctl.NATIVE), 15)
+
+    def test_mcp(self):
+        import mcp_ctl
+        self.assertEqual(mcp_ctl.SUPPORTED, ("claude", "codex", "copilot", "crush", "cursor-agent", "gemini", "grok",
+                                             "hermes", "muse", "omp", "openclaw", "opencode", "pi", "dsh"))
+        self.assertEqual(mcp_ctl.IN_APP, {"bionic": "Settings › Connected apps"})
+        self.assertEqual(mcp_ctl.paths_for("claude"), [])
+        self.assertEqual(mcp_ctl.paths_for("codex"), [Path.home() / ".codex/config.toml"])
+        self.assertEqual(mcp_ctl.paths_for("lmstudio"), [Path.home() / ".lmstudio/mcp.json"])
+        shapes = {h.mcp.shape for h in harnesses.all_harnesses() if h.mcp and not h.mcp.in_app}
+        self.assertEqual(shapes, {"plain", "claude", "codex", "copilot", "crush", "gemini", "muse", "omp",
+                                  "openclaw", "opencode", "dsh"})
+
+    def test_watcher_copy(self):
+        import provider_watch
+        self.assertEqual(provider_watch.SHORT_MODEL_AGENTS,
+                         {h.command for h in harnesses.all_harnesses() if h.short_model_flag})
+
+    def test_update_whitelist_unchanged(self):
+        import agent_updates
+        self.assertEqual(agent_updates.SELF_UPDATES, (["claude", "update"],))
+        self.assertTrue(agent_updates._allowed(["claude", "update"]))
+        self.assertTrue(agent_updates._allowed(["mise", "upgrade", "x"]))
+        self.assertFalse(agent_updates._allowed(["claude", "mcp", "add"]))
+        self.assertFalse(agent_updates._allowed(["rm", "-rf"]))
+
+
 class EditionTest(unittest.TestCase):
     def setUp(self):
         edition._built_in = None

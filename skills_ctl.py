@@ -22,30 +22,15 @@ from pathlib import Path
 
 import agent_profiles
 import connect
+import harnesses
 
 HOME = Path.home()
 SHARED = "~/.agents/skills"
-NATIVE = {
-    "claude": ["~/.claude/skills"],
-    "codex": [SHARED, "~/.codex/skills"],
-    "copilot": ["~/.copilot/skills", SHARED],
-    "cursor-agent": ["~/.cursor/skills", SHARED, "~/.claude/skills", "~/.codex/skills"],
-    "gemini": ["~/.gemini/skills", SHARED],
-    "opencode": ["~/.config/opencode/skills", "~/.claude/skills", SHARED],
-    "pi": ["~/.pi/agent/skills", SHARED],
-    "omp": ["~/.omp/agent/skills"],
-    "hermes": ["~/.hermes/skills"],
-    "crush": ["~/.config/crush/skills", "~/.config/agents/skills", SHARED, "~/.claude/skills"],
-    "grok": ["~/.grok/skills"],
-    "openclaw": ["~/.openclaw/skills", SHARED],
-    "dsh": ["~/.dsh/skills", SHARED],
-    "bionic": ["~/.lmstudio/skills"],          # global skills, shared with LM Studio
-    "muse": ["~/.config/muse/skills", SHARED, "~/.claude/skills", "~/.codex/skills"],
-}
-# The agent's own folder: where its links go.
-OWN = {agent: dirs[0] for agent, dirs in NATIVE.items()}
-OWN["codex"] = "~/.codex/skills"
-SETTINGS_LIST = ("pi", "hermes")       # a folder list in their settings we write
+# From the agent adapters (harnesses.py): the folders each agent reads by itself, its own folder
+# (where its links go) and the agents whose settings keep a folder list we write.
+NATIVE = {h.command: list(h.skills.dirs) for h in harnesses.all_harnesses() if h.skills is not None}
+OWN = {h.command: h.skills.own for h in harnesses.all_harnesses() if h.skills is not None}
+SETTINGS_LIST = tuple(h.command for h in harnesses.all_harnesses() if h.skills is not None and h.skills.settings_list)
 MAX_SKILLS = 200
 
 
