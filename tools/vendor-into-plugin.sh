@@ -21,5 +21,9 @@ rm -rf "$plugin/tests" && cp -r "$root/tests" "$plugin/tests"
 rm -rf "$plugin/translations" && cp -r "$root/translations" "$plugin/translations"
 mkdir -p "$plugin/assets" && cp "$root/data/user-manual.pdf" "$plugin/assets/"
 for name in $ASTERISM_ONLY; do rm -f "$plugin/tests/test_$name"; done
+# Tests that load the add-on modules by name (the adapters as signed add-ons) need them too.
+for file in "$plugin"/tests/test_*.py; do
+    grep -qE '^(import|from) (addons|addon_api|addon_store|addons_page)\b' "$file" && rm -f "$file"
+done
 echo "Asterism $(git -C "$root" describe --always --tags) → $plugin"
 git -C "$plugin" status --short
