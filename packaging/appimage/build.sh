@@ -13,7 +13,7 @@ dir=$(mktemp -d)/Asterism.AppDir
 mkdir -p "$dir/usr/lib/asterism"
 cp "$root"/*.py "$dir/usr/lib/asterism/"
 cp -r "$root/translations" "$dir/usr/lib/asterism/"
-mkdir -p "$dir/usr/lib/asterism/data" && cp "$root/data/llm-monitor-preview.png" "$root/data/user-manual.pdf" "$dir/usr/lib/asterism/data/"
+mkdir -p "$dir/usr/lib/asterism/data" && cp "$root/data/user-manual.pdf" "$dir/usr/lib/asterism/data/"
 cp "$root/packaging/appimage/AppRun" "$dir/AppRun"
 cp "$root/data/io.github.ubruckhaus.Asterism.desktop" "$dir/"
 cp "$root/data/icons/io.github.ubruckhaus.Asterism.svg" "$dir/"
