@@ -63,6 +63,7 @@ import skills_scan
 import skills_web
 import runtime_ctl
 import install_ctl
+import install_recipes
 import model_move
 import models_ctl
 import side_tree
@@ -81,6 +82,7 @@ import terminal_pane
 import previews
 import inventory
 import provider_watch
+import providers
 import i18n
 import pidfile
 from i18n import _, N_, ngettext
@@ -94,6 +96,7 @@ from gi.repository import PangoCairo  # noqa: E402  (map_view asked for its vers
 from palette import ThemePalette, outside_color
 from settings_pages import SettingsPages
 from theme_css import ThemeCss
+from install_dialog import InstallDialog
 try:
     from addons_page import AddonsPage      # Asterism only: the Add-ons page (not in the Omarchy plugin)
 except ImportError:
@@ -262,7 +265,7 @@ class AppWindow(Adw.ApplicationWindow):
             GLib.idle_add(self.on_width, width)
 
 
-class AgentsMap(SettingsPages, ThemeCss, AddonsPage, Adw.Application):
+class AgentsMap(SettingsPages, ThemeCss, InstallDialog, AddonsPage, Adw.Application):
     def __init__(self):
         super().__init__(application_id=desktop.app_id())
         self.window = None
@@ -7905,10 +7908,16 @@ class AgentsMap(SettingsPages, ThemeCss, AddonsPage, Adw.Application):
             if agent.command in install_ctl.AGENT_INSTALLERS:
                 title, own = self.install_agent_menu(agent, popover)
                 hideable = True
-            elif agent.installed:
-                if self.is_new_agent(agent.command):
-                    own = self.research_menu(agent, popover)
-                hideable = True
+            else:
+                if agent.installed:
+                    if self.is_new_agent(agent.command):
+                        own = self.research_menu(agent, popover)
+                    hideable = True
+                adapter = harnesses.get(agent.command)
+                if adapter is not None and adapter.install:
+                    action = "uninstall" if agent.installed else "install"
+                    own = list(own) + [self.menu_item(_("Uninstall…") if agent.installed else _("Install…"), popover,
+                                                      lambda a=action: self.offer_install("agent", ident, a))]
         danger = []
         if kind == "model":
             own, danger = self.model_menu(view, rect, node_id, popover)
@@ -8108,6 +8117,14 @@ class AgentsMap(SettingsPages, ThemeCss, AddonsPage, Adw.Application):
                                         else self.open_install(rt, m)))
         if not actions and rt.installed and inst is not None:
             items.append(self.menu_note(_("Installed by hand: AI Agents Map does not update or remove it.")))
+        adapter = providers.get(rt.key)
+        if not actions and adapter is not None and adapter.install and \
+                install_recipes.choose(adapter.install, "uninstall" if rt.installed else "install",
+                                       "package" if rt.installed else "") is not None:
+            # Not one of the app's own installs: its recipe (a package command, a web page).
+            items.append(self.menu_item(_("Uninstall…") if rt.installed else _("Install…"), popover,
+                                        lambda: self.offer_install("runtime", rt.key,
+                                                                   "uninstall" if rt.installed else "install")))
         if not runtime_ctl.can_control(rt):
             if rt.installed or inst is None:
                 items.append(self.menu_note(_("Not installed.") if not rt.installed else

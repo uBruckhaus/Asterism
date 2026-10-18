@@ -47,6 +47,8 @@ class Item:
     entry: addon_store.Entry | None = None
     addon: addons.Addon | None = None
     update: bool = False
+    installed: bool | None = None     # built-in agents and local LLMs: is the program itself here
+    target: str = ""                  # "agent" | "runtime": what install_dialog installs or removes
     words: str = ""                   # what search looks through
 
 
@@ -69,8 +71,10 @@ def harness_summary(h) -> str:
     return " · ".join(parts) if parts else _("Shown on the map")
 
 
-def build_items(installed: list, entries: list) -> list:
+def build_items(installed: list, entries: list, agent_list=(), runtimes=()) -> list:
     """Built-ins, installed add-ons and catalog entries as one list of cards."""
+    agent_on = {a.command: a.installed for a in agent_list}
+    runtime_on = {r.key: r.installed for r in runtimes}
     items = []
     by_id = {e.id: e for e in entries}
     for addon in installed:
@@ -95,11 +99,13 @@ def build_items(installed: list, entries: list) -> list:
                           sends=list(entry.sends), entry=entry))
     for h in harnesses._built_in():
         items.append(Item(h.command, h.full_name or h.name, "agent", "builtin", harness_summary(h),
-                          glyph=h.icon, glyph_font=h.icon_font))
+                          glyph=h.icon, glyph_font=h.icon_font, installed=agent_on.get(h.command, False),
+                          target="agent" if h.install else ""))
     for p in providers._built_in_local():
         items.append(Item(p.key, p.name, "provider", "builtin", _("Local LLM: found, installed, started and stopped "
                                                                   "here, its models on the map"),
-                          icon=KIND_ICONS["provider"]))
+                          icon=KIND_ICONS["provider"], installed=runtime_on.get(p.key, False),
+                          target="runtime" if p.install else ""))
     for p in providers._built_in_online():
         items.append(Item(p.key, p.name, "provider", "builtin", _("Online provider"), icon="network-workgroup-symbolic"))
     for item in items:
@@ -199,7 +205,7 @@ class AddonsPage:
 
     def refresh_addons(self):
         """The cards from what is installed now; the catalog read in the background."""
-        self.addons_items = build_items(self.addons, self.addons_entries)
+        self.addons_items = build_items(self.addons, self.addons_entries, self.agent_list, self.inventory.runtimes)
         self.fill_addons_list()
         online = addon_store.online()
         self.addons_status.set_label(_("Looking for add-ons…") if online else
@@ -214,7 +220,7 @@ class AddonsPage:
 
         def done(entries):
             self.addons_entries = entries
-            self.addons_items = build_items(self.addons, entries)
+            self.addons_items = build_items(self.addons, entries, self.agent_list, self.inventory.runtimes)
             if online:
                 self.addons_status.set_label(
                     _("Only add-ons signed by Uwe Bruckhaus are offered and loaded.") if entries else
@@ -297,6 +303,8 @@ class AddonsPage:
         name.add_css_class("am-addon-name")
         names.append(name)
         kind = {"agent": _("Agent"), "provider": _("Provider"), "feature": _("Feature")}[item.kind]
+        if item.installed is not None and item.target:
+            kind += " · " + (_("installed") if item.installed else _("not installed"))
         sub = Gtk.Label(label=kind + (f" · {item.version}" if item.version else ""), xalign=0)
         sub.add_css_class("am-agent-detail")
         names.append(sub)
@@ -330,11 +338,13 @@ class AddonsPage:
                       "failed": (_("Remove"), self.remove_addon)}.get(item.state, (None, None))
         if item.update:
             label, run = _("Update"), self.update_addon
+        if item.state == "builtin" and item.target and item.installed is False:
+            label, run = _("Install"), lambda i: self.offer_install(i.target, i.id)
         if label is None:
             return None
         button = Gtk.Button(label=label, valign=Gtk.Align.CENTER)
         button.add_css_class("am-small-btn")
-        if item.state in ("suggested", "available") or item.update:
+        if item.state in ("suggested", "available") or item.update or item.state == "builtin":
             button.add_css_class("suggested-action")
         button.connect("clicked", lambda *_a: run(item))
         return button
@@ -365,7 +375,11 @@ class AddonsPage:
             self.settings_heading(box, _("Why it is not loaded"))
             self.note(box, item.reason)
         if item.state == "builtin":
-            self.note(box, _("Part of Asterism itself: always there, nothing to install or remove."))
+            self.note(box, _("Part of Asterism itself: always there, nothing to install or remove for it."))
+            if item.target:
+                self.settings_heading(box, _("The program"))
+                self.note(box, (_("{0} is installed on this PC.") if item.installed else
+                                _("{0} is not installed on this PC.")).format(item.name))
         else:
             self.settings_heading(box, _("What it reads"))
             rows = self.boxed_list()
@@ -402,6 +416,23 @@ class AddonsPage:
                 button.add_css_class("suggested-action")
             button.connect("clicked", lambda *_a, r=run: r(item))
             buttons.append(button)
+        if item.state == "builtin" and item.target:
+            button = Gtk.Button(label=_("Uninstall…") if item.installed else _("Install…"))
+            if not item.installed:
+                button.add_css_class("suggested-action")
+            button.connect("clicked", lambda *_a: self.offer_install(item.target, item.id,
+                                                                      "uninstall" if item.installed else "install"))
+            buttons.append(button)
+        if item.state == "on":
+            # An add-on that brings an agent or a provider: install the program itself too.
+            for command in (item.entry.harnesses if item.entry else []):
+                h = harnesses.get(command)
+                if h is not None and h.install and not any(a.command == command and a.installed
+                                                           for a in self.agent_list):
+                    button = Gtk.Button(label=_("Install {0} too").format(h.full_name or h.name))
+                    button.add_css_class("suggested-action")
+                    button.connect("clicked", lambda *_a, c=command: self.offer_install("agent", c))
+                    buttons.append(button)
         if item.state in ("on", "off", "failed") and item.addon is not None:
             remove = Gtk.Button(label=_("Remove"))
             remove.add_css_class("destructive-action")

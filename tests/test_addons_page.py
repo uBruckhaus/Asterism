@@ -53,5 +53,16 @@ class ItemsTest(unittest.TestCase):
         self.assertTrue(page.visible(kilo, "all", "kilo summary"))
 
 
+    def test_built_ins_know_whether_the_program_is_here(self):
+        from types import SimpleNamespace as NS
+        items = {i.id: i for i in page.build_items([], [], [NS(command="opencode", installed=False),
+                                                            NS(command="claude", installed=True)],
+                                                   [NS(key="ollama", installed=True)])}
+        self.assertEqual((items["opencode"].installed, items["opencode"].target), (False, "agent"))
+        self.assertTrue(items["claude"].installed)
+        self.assertEqual((items["ollama"].installed, items["ollama"].target), (True, "runtime"))
+        self.assertEqual(items["anthropic"].target, "")            # online: nothing to install
+
+
 if __name__ == "__main__":
     unittest.main()
