@@ -25,6 +25,16 @@
   <url type="bugtracker">https://github.com/uBruckhaus/asterism/issues</url>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.7.1" date="2026-10-18">
+      <description>
+        <p>A welcome page for a new Asterism: the agents, local LLMs and online providers as cards with
+        their icons, grouped by kind, the ones found on this PC ticked; a click on a card ticks it, one
+        button switches them on. It shows at every start while nothing is switched on. Settings has an
+        About section with the version and a link to the project on GitHub; the health check line stays
+        away while the map is empty. MCP servers show the skills written for them, whether those still
+        match the server's tools, and Update skill rewrites one with a preview and Undo.</p>
+      </description>
+    </release>
     <release version="0.7.0" date="2026-10-18">
       <description>
         <p>Add-ons: every agent and local LLM Asterism understands is now a signed add-on, and a new
