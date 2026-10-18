@@ -10,18 +10,13 @@ Providers are the cloud services the agents talk to and the local runtimes
 
 from dataclasses import dataclass, field
 
+import providers
+
 # The cloud service behind each agent unless its settings point elsewhere.
-CLOUD = {
-    "claude": "Anthropic", "codex": "OpenAI", "copilot": "GitHub Copilot", "cursor-agent": "Cursor",
-    "gemini": "Google", "grok": "xAI", "muse": "Meta", "openclaw": "OpenClaw",
-}
-# Provider ids in agent settings ("anthropic/claude-…", pi's defaultProvider, Hermes's provider).
-PROVIDER_NAMES = {
-    "anthropic": "Anthropic", "openai": "OpenAI", "openai-codex": "OpenAI", "google": "Google",
-    "gemini": "Google", "github-copilot": "GitHub Copilot", "xai": "xAI", "nous": "Nous Research",
-    "openrouter": "OpenRouter", "groq": "Groq", "mistral": "Mistral", "deepseek": "DeepSeek",
-    "fireworks": "Fireworks", "together": "Together AI", "opencode": "OpenCode Zen", "zai": "Z.ai",
-}
+# Agents that come with an online provider, and provider ids in agent settings ("anthropic/claude-…",
+# pi's defaultProvider, Hermes's provider), from providers.py (provider_online.py).
+CLOUD = providers.cloud_of_agent()
+PROVIDER_NAMES = providers.online_names()
 MAX_MODELS_PER_PROVIDER = 10
 
 # Categories the map can show or hide, in toolbar order, and what each needs.

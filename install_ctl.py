@@ -31,6 +31,7 @@ from pathlib import Path
 
 import ai_core
 import netfetch
+import providers
 
 HOME = Path.home()
 BIN_DIR = HOME / ".local/bin"
@@ -1084,8 +1085,8 @@ Terminal=false
         self.desktop.unlink(missing_ok=True)
 
 
-INSTALLERS = {"ollama": Ollama(), "llamacpp": LlamaCpp(), "lmstudio": LmStudio(), "vllm": Vllm(),
-              "jan": Jan(), "koboldcpp": KoboldCpp()}
+# One installer per local LLM, from its adapter (providers.py).
+INSTALLERS = {p.key: p.installer() for p in providers.local() if p.installer is not None}
 class Dsh(Installer):
     """DeepSeek Harness from npm into a version folder (npm install --prefix,
     install scripts off: no package code runs while installing), `dsh` in

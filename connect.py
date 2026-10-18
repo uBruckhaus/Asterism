@@ -29,12 +29,13 @@ import threading
 from dataclasses import dataclass, field
 from pathlib import Path
 
+import providers
+
 HOME = Path.home()
 BACKUP_ROOT = HOME / ".local/state/ai-agents-map/backups"
-KEYS = {"llamacpp": "llama-local", "ollama": "ollama-local", "lmstudio": "lmstudio-local", "vllm": "vllm-local",
-        "jan": "jan-local", "koboldcpp": "koboldcpp-local"}
-LABELS = {"llamacpp": "llama.cpp (local)", "ollama": "Ollama (local)", "lmstudio": "LM Studio (local)",
-          "vllm": "vLLM (local)", "jan": "Jan (local)", "koboldcpp": "KoboldCpp (local)"}
+# The provider id and label agents get for each local LLM (providers.py: one place per provider).
+KEYS = providers.connect_keys()
+LABELS = providers.connect_labels()
 SUPPORTED = ("hermes", "pi", "opencode", "dsh")
 FIXED = {"bionic": "lmstudio"}   # agents tied to one local LLM (nothing to set up, nothing else possible)
 MAX_BYTES = 2 * 1024 * 1024
