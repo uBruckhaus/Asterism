@@ -103,7 +103,7 @@ try:
 except ImportError:
     class AddonsPage:                       # the plugin: no add-ons, no page
         pass
-from ui_helpers import SpaceBar, size_text
+from ui_helpers import MCP_GLYPHS, MCP_GROUP_GLYPHS, RUN_GLYPHS, SpaceBar, glyph_label, pick_cards, size_text
 
 # Smallest card (a small monitor); normally the card fills the screen.
 # Default outer size as in the other popups: a 420 px card around a 590 px
@@ -3555,7 +3555,7 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, AddonsPage, Adw.Applicat
         left = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
         self.add_picks = Gtk.ListBox(selection_mode=Gtk.SelectionMode.SINGLE)
         self.add_picks.add_css_class("am-list")
-        self.add_picks.add_css_class("boxed-list")
+        pick_cards(self.add_picks)
         self.add_picks.connect("row-selected", lambda _l, row: row is not None and self.show_pick(row.pick))
         left.append(self.scrolled(self.add_picks))
         two_panes("picks", left)
@@ -3574,7 +3574,7 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, AddonsPage, Adw.Applicat
         left.append(self.add_web_status)
         self.add_web_list = Gtk.ListBox(selection_mode=Gtk.SelectionMode.SINGLE)
         self.add_web_list.add_css_class("am-list")
-        self.add_web_list.add_css_class("boxed-list")
+        pick_cards(self.add_web_list)
         self.add_web_list.connect("row-selected",
                                   lambda _l, row: row is not None and self.show_registry_server(row.server))
         left.append(self.scrolled(self.add_web_list))
@@ -3751,13 +3751,15 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, AddonsPage, Adw.Applicat
         names = {m.name for m in getattr(self, "inventory", None) and self.inventory.mcp or []}
         for group, label in mcp_catalog.GROUPS:
             heading = Gtk.ListBoxRow(selectable=False, activatable=False)
-            text = Gtk.Label(label=_(label).upper(), xalign=0, margin_start=10, margin_top=8, margin_bottom=2)
+            heading.add_css_class("am-pick-heading")
+            text = Gtk.Label(label=_(label).upper(), xalign=0, margin_start=4, margin_top=8, margin_bottom=2)
             text.add_css_class("am-section-heading")
             heading.set_child(text)
             box.append(heading)
             for pick in (p for p in mcp_catalog.PICKS if p.group == group):
                 maker = _("set up") if pick.key in names else pick.maker
-                row = self.model_row(pick.title, _(pick.about), right=maker)
+                row = self.model_row(pick.title, _(pick.about), right=maker,
+                                     icon=MCP_GLYPHS.get(pick.key, MCP_GROUP_GLYPHS.get(group, "package")))
                 row.pick = pick
                 box.append(row)
 
@@ -4061,13 +4063,13 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, AddonsPage, Adw.Applicat
             detail = "↑ " + _("Update · used by {0}").format(", ".join(users))
             self.add_found_list.append(self.choice_row(
                 "{0}  {1} → {2}".format(candidate.name, candidate.update_from, candidate.version), detail,
-                lambda *_, c=candidate: self.open_mcp_update(c), _("Update…")))
+                lambda *_, c=candidate: self.open_mcp_update(c), _("Update…"), icon="app"))
         for candidate in sorted(fresh, key=lambda c: (c.program in seen, c.name)):
             where = Path(candidate.appimage).name if candidate.appimage else skills_ctl.tilde(candidate.program)
             if candidate.program not in seen:
                 where = "★ " + _("new") + " · " + where
             self.add_found_list.append(self.choice_row(candidate.name, where,
-                                                       lambda *_, c=candidate: self.use_found(c)))
+                                                       lambda *_, c=candidate: self.use_found(c), icon="app"))
 
     def look_inside_appimages(self):
         pending = mcp_scan.not_looked_into()
@@ -4132,10 +4134,10 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, AddonsPage, Adw.Applicat
         (by an agent, the list or a link in ~/.local/bin)."""
         return [c for c in self.found_mcp or [] if c.update_from and (c.users or mcp_update.links(c))]
 
-    def choice_row(self, title: str, detail: str, on_use, button: str = "") -> Gtk.Widget:
+    def choice_row(self, title: str, detail: str, on_use, button: str = "", icon: str = "") -> Gtk.Widget:
         """name ······ [Add…] on one line (a dotted line leads the eye to the
-        button), the details under it."""
-        row = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+        button), the details under it; with an icon, a card with the icon at its start."""
+        row = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2, hexpand=True)
         row.add_css_class("am-choice")
         top = Gtk.Box(spacing=8)
         name = Gtk.Label(label=title, xalign=0)
@@ -4154,7 +4156,15 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, AddonsPage, Adw.Applicat
         sub = Gtk.Label(label=detail, xalign=0, wrap=True, max_width_chars=1)
         sub.add_css_class("am-agent-detail")
         row.append(sub)
-        return row
+        if not icon:
+            return row
+        card = Gtk.Box(spacing=10)
+        card.add_css_class("am-choice")
+        card.add_css_class("am-choice-card")
+        row.remove_css_class("am-choice")
+        card.append(glyph_label(icon))
+        card.append(row)
+        return card
 
     def use_found(self, candidate):
         import shlex
@@ -4217,7 +4227,8 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, AddonsPage, Adw.Applicat
                 kind, who = mcp_registry.publisher(server.name)
                 kinds = " | ".join(dict.fromkeys(_(self.RUN_KIND[o.kind]) for o in server.options))
                 row = self.model_row(server.title or server.short, server.description or server.name,
-                                     right=kinds)
+                                     right=kinds, icon=RUN_GLYPHS.get(server.options[0].kind, "package")
+                                     if server.options else "package")
                 row.set_tooltip_text(server.name)
                 row.server = server
                 box.append(row)
@@ -4726,7 +4737,8 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, AddonsPage, Adw.Applicat
         for skill_set in found:
             detail = f"{skill_set.path} · " + ngettext("1 skill", "{0} skills", len(skill_set.skills)).format(
                 len(skill_set.skills)) + ": " + ", ".join(skill_set.skills[:6])
-            box.append(self.choice_row(skill_set.origin, detail, lambda *_, s=skill_set: self.use_skill_set(s)))
+            box.append(self.choice_row(skill_set.origin, detail, lambda *_, s=skill_set: self.use_skill_set(s),
+                                       icon="folder"))
         if self.found_skills is None and not self.checking_new:
             self.check_new_apps()
 
@@ -4763,7 +4775,8 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, AddonsPage, Adw.Applicat
             for skill in result[:25]:
                 detail = f"github.com/{skill.repo}" + (" · " + ngettext("1 install", "{0} installs", skill.installs)
                                                        .format(f"{skill.installs:,}") if skill.installs else "")
-                box.append(self.choice_row(skill.name, detail, lambda *_, k=skill: self.use_web_skill(k)))
+                box.append(self.choice_row(skill.name, detail, lambda *_, k=skill: self.use_web_skill(k),
+                                           icon="skill"))
             return False
 
         threading.Thread(target=work, daemon=True).start()
@@ -6188,7 +6201,7 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, AddonsPage, Adw.Applicat
         left.append(self.models_have_heading)
         self.models_installed = Gtk.ListBox(selection_mode=Gtk.SelectionMode.SINGLE)
         self.models_installed.add_css_class("am-list")
-        self.models_installed.add_css_class("boxed-list")
+        pick_cards(self.models_installed)
         self.models_installed.connect("row-selected", lambda _l, row: row is not None and self.show_installed_model(row))
         left.append(self.scrolled(self.models_installed))
         installed.append(Adw.Clamp(maximum_size=MODEL_LIST_WIDTH, child=left, unit=Adw.LengthUnit.PX,
@@ -6222,7 +6235,7 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, AddonsPage, Adw.Applicat
         left.append(self.models_results_heading)
         self.models_repos = Gtk.ListBox(selection_mode=Gtk.SelectionMode.SINGLE)
         self.models_repos.add_css_class("am-list")
-        self.models_repos.add_css_class("boxed-list")
+        pick_cards(self.models_repos)
         self.models_repos.connect("row-selected", lambda _l, row: row is not None and self.show_model_files(row.repo))
         left.append(self.scrolled(self.models_repos))
         web.append(Adw.Clamp(maximum_size=MODEL_LIST_WIDTH, child=left, unit=Adw.LengthUnit.PX,
@@ -6258,7 +6271,7 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, AddonsPage, Adw.Applicat
         local_box.append(top)
         self.models_local = Gtk.ListBox(selection_mode=Gtk.SelectionMode.SINGLE)
         self.models_local.add_css_class("am-list")
-        self.models_local.add_css_class("boxed-list")
+        pick_cards(self.models_local)
         self.models_local.connect("row-selected", lambda *_: self.update_model_buttons())
         local_box.append(self.scrolled(self.models_local, hexpand=True))
         add_row = Gtk.Box(spacing=8, halign=Gtk.Align.END)
@@ -6349,11 +6362,12 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, AddonsPage, Adw.Applicat
         label.add_css_class("am-agent-detail")
         return label
 
-    def model_row(self, title: str, subtitle: str, chips=(), right: str = "") -> Gtk.ListBoxRow:
-        """A row of the model lists: the name, a line below, capability chips, a value on the right."""
+    def model_row(self, title: str, subtitle: str, chips=(), right: str = "", icon: str = "") -> Gtk.ListBoxRow:
+        """A row of the model lists: the name, a line below, capability chips, a value on the right;
+        with an icon (a ui_helpers.GLYPHS name) at its start, as on the cards of the pick lists."""
         row = Gtk.ListBoxRow()
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=3, margin_start=10, margin_end=10,
-                      margin_top=7, margin_bottom=7)
+                      margin_top=7, margin_bottom=7, hexpand=True)
         top = Gtk.Box(spacing=6)
         name = Gtk.Label(label=title, xalign=0, hexpand=True)
         name.set_ellipsize(Pango.EllipsizeMode.END)
@@ -6373,7 +6387,15 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, AddonsPage, Adw.Applicat
         row.value_label.add_css_class("am-agent-detail")
         line.append(row.value_label)
         box.append(line)
-        row.set_child(box)
+        if icon:
+            outer = Gtk.Box(spacing=0)
+            mark = glyph_label(icon)
+            mark.set_margin_start(8)
+            outer.append(mark)
+            outer.append(box)
+            row.set_child(outer)
+        else:
+            row.set_child(box)
         return row
 
     CAPABILITIES = {"vision": N_("Vision"), "tools": N_("Tools"), "reasoning": N_("Reasoning"), "mtp": "MTP"}
@@ -6511,7 +6533,7 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, AddonsPage, Adw.Applicat
         rows = {}
         for name in rt.models:
             quant = models_ctl.QUANT_RE.search(name)
-            row = self.model_row(name, quant.group(1).upper() if quant else "", right="")
+            row = self.model_row(name, quant.group(1).upper() if quant else "", right="", icon="model")
             row.model_name = name
             row.context = None
             listbox.append(row)
@@ -6828,7 +6850,8 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, AddonsPage, Adw.Applicat
                 line = " · ".join(x for x in (repo.author, self.params_text(repo.params),
                                               "↓ " + short_number(repo.downloads), "♥ " + short_number(repo.likes))
                                   if x)
-                row = self.model_row(repo.name, line, self.repo_chips(repo), self.age_text(repo.updated))
+                row = self.model_row(repo.name, line, self.repo_chips(repo), self.age_text(repo.updated),
+                                     icon="model")
                 row.repo = repo.id
                 self.models_repos.append(row)
             self.models_status.set_label(error or ("" if repos else _("Nothing found.")))
@@ -7119,7 +7142,10 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, AddonsPage, Adw.Applicat
             for item in found[:500]:
                 row = Gtk.ListBoxRow()
                 row.local = item
-                line = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+                card = Gtk.Box(spacing=8, margin_start=8, margin_end=8, margin_top=6, margin_bottom=6)
+                card.append(glyph_label("file"))
+                line = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2, hexpand=True)
+                card.append(line)
                 name = Gtk.Label(label=item.path.name, xalign=0)
                 name.set_ellipsize(Pango.EllipsizeMode.MIDDLE)
                 name.set_max_width_chars(1)
@@ -7129,7 +7155,7 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, AddonsPage, Adw.Applicat
                 where.set_max_width_chars(1)
                 where.add_css_class("am-agent-detail")
                 line.append(where)
-                row.set_child(line)
+                row.set_child(card)
                 self.models_local.append(row)
             if found:
                 self.models_local_status.set_label(ngettext(

@@ -5,6 +5,41 @@ from gi.repository import Gtk
 from map_view import MapView
 
 
+# Nerd Font glyphs for the cards of the pick lists (MCP servers, models, skills).
+GLYPHS = {
+    "folder": "\U000F024B", "web": "\U000F059F", "chrome": "\U000F02AF", "screen": "\U000F0379",
+    "search": "\U000F0349", "git": "\U000F02A2", "github": "\U000F02A4", "code": "\U000F0169",
+    "docs": "\U000F05DA", "clock": "\U000F0150", "brain": "\U000F09D1", "steps": "\U000F027B",
+    "test": "\U000F0668", "package": "\U000F03D6", "cloud": "\U000F015F", "docker": "\U000F0868",
+    "python": "\U000F0320", "node": "\U000F0399", "model": "\U000F01A7", "file": "\U000F0214",
+    "app": "\U000F0614", "skill": "\U000F140B",
+}
+MCP_GLYPHS = {"filesystem": "folder", "git": "git", "fetch": "web", "playwright": "screen",
+              "chrome-devtools": "chrome", "brave-search": "search", "github": "github", "context7": "docs",
+              "time": "clock", "memory": "brain", "sequential-thinking": "steps", "everything": "test"}
+MCP_GROUP_GLYPHS = {"files": "folder", "web": "web", "code": "code", "think": "brain"}
+RUN_GLYPHS = {"npm": "node", "pypi": "python", "oci": "docker", "remote": "cloud"}
+
+
+def glyph(name: str) -> str:
+    return GLYPHS.get(name, GLYPHS["package"])
+
+
+def glyph_label(name: str) -> Gtk.Label:
+    """A card's icon: a Nerd Font glyph in the accent colour."""
+    label = Gtk.Label(label=glyph(name), valign=Gtk.Align.CENTER)
+    label.add_css_class("am-agent-icon")
+    label.add_css_class("am-pick-glyph")
+    return label
+
+
+def pick_cards(listbox: Gtk.ListBox) -> Gtk.ListBox:
+    """A list whose rows are cards (spaced, framed, the selected one in the accent colour)."""
+    listbox.remove_css_class("boxed-list")
+    listbox.add_css_class("am-pick-cards")
+    return listbox
+
+
 def size_text(n: int) -> str:
     """2490000000 -> "2.5 GB"."""
     for size, unit in ((1e12, "TB"), (1e9, "GB"), (1e6, "MB")):

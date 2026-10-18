@@ -77,8 +77,10 @@ def harness_summary(h) -> str:
     return " · ".join(parts) if parts else _("Shown on the map")
 
 
-def build_items(installed: list, entries: list, agent_list=(), runtimes=()) -> list:
-    """Built-ins, installed add-ons and catalog entries as one list of cards."""
+def build_items(installed: list, entries: list, agent_list=(), runtimes=(), glyphs=None) -> list:
+    """Built-ins, installed add-ons and catalog entries as one list of cards; glyphs: add-on id ->
+    (Nerd Font glyph, font) of the agent or provider it brings."""
+    glyphs = glyphs or {}
     agent_on = {a.command: a.installed for a in agent_list}
     runtime_on = {r.key: r.installed for r in runtimes}
     items = []
@@ -100,6 +102,8 @@ def build_items(installed: list, entries: list, agent_list=(), runtimes=()) -> l
                     homepage=(entry.homepage if entry else "") or addon.homepage)
         if entry and item.kind == "feature" and "agent" in addon.capabilities:
             item.kind = "agent"
+        if addon.id in glyphs:
+            item.glyph, item.glyph_font = glyphs[addon.id]
         if addon.kind in ("agent", "provider") and len(addon.provides) == 1:
             # An adapter: the program it brings, installed and removed from its card once it is on.
             key = item.key = addon.provides[0]
@@ -243,14 +247,9 @@ class AddonsPage:
         try:
             addons.load_all(enabled | {a.id for a in adapters})
             processes = inventory.own_processes()
+            self.collect_glyphs(adapters)
             for addon in adapters:
                 for key in addon.provides[:1]:
-                    h = harnesses.get(key) if addon.kind == "agent" else None
-                    if h is not None and h.icon:
-                        # Omarchy's own font is only there on Omarchy: elsewhere the robot.
-                        omarchy = h.icon_font == "omarchy"
-                        self.setup_glyphs[addon.id] = (agents.ROBOT, "") if omarchy and desktop.NAME != "omarchy" \
-                            else (h.icon, h.icon_font)
                     if addon.kind == "agent" and agents.detect(key)[0]:
                         found.add(addon.id)
                     p = providers.get(key) if addon.kind == "provider" and len(addon.provides) == 1 else None
@@ -263,6 +262,41 @@ class AddonsPage:
         return found
 
     LOCAL_GLYPH, ONLINE_GLYPH, AGENT_GLYPH = "\U000F061A", "\U000F015F", "\U000f06a9"
+
+    def collect_glyphs(self, adapters: list):
+        """The icons of the agents and providers the adapters bring (while they are all loaded)."""
+        import agents
+        for addon in adapters:
+            if addon.kind == "provider":
+                online = len(addon.provides) > 1
+                self.setup_glyphs[addon.id] = (self.ONLINE_GLYPH if online else self.LOCAL_GLYPH, "")
+                continue
+            h = harnesses.get(addon.provides[0]) if addon.provides else None
+            if h is not None and h.icon:
+                # Omarchy's own font is only there on Omarchy: elsewhere the robot.
+                omarchy = h.icon_font == "omarchy"
+                self.setup_glyphs[addon.id] = (agents.ROBOT, "") if omarchy and desktop.NAME != "omarchy" \
+                    else (h.icon, h.icon_font)
+
+    def adapter_glyphs(self) -> dict:
+        """The adapters' icons for the Add-ons page: looked up once (every adapter loaded for a moment,
+        as for the welcome page), then kept."""
+        if getattr(self, "setup_glyphs", None):
+            return self.setup_glyphs
+        adapters = self.adapter_addons()
+        self.setup_glyphs = {}
+        if not adapters:
+            return self.setup_glyphs
+        enabled = ai_core.load_settings().get("addons_enabled", [])
+        enabled = {e for e in enabled if isinstance(e, str)} if isinstance(enabled, list) else set()
+        try:
+            addons.load_all(enabled | {a.id for a in adapters})
+            self.collect_glyphs(adapters)
+        except Exception:
+            pass
+        finally:
+            self.load_addons()
+        return self.setup_glyphs
 
     def build_setup_page(self) -> Gtk.Widget:
         """The welcome page of a new Asterism: the app's icon and a greeting, then the agents and
@@ -433,7 +467,9 @@ class AddonsPage:
 
     def refresh_addons(self):
         """The cards from what is installed now; the catalog read in the background."""
-        self.addons_items = build_items(self.addons, self.addons_entries, self.agent_list, self.inventory.runtimes)
+        glyphs = self.adapter_glyphs()      # first: the lookup loads the add-ons again
+        self.addons_items = build_items(self.addons, self.addons_entries, self.agent_list, self.inventory.runtimes,
+                                        glyphs)
         self.fill_addons_list()
         online = addon_store.online()
         self.addons_status.set_label(_("Looking for add-ons…") if online else
@@ -448,7 +484,8 @@ class AddonsPage:
 
         def done(entries):
             self.addons_entries = entries
-            self.addons_items = build_items(self.addons, entries, self.agent_list, self.inventory.runtimes)
+            glyphs = self.adapter_glyphs()
+            self.addons_items = build_items(self.addons, entries, self.agent_list, self.inventory.runtimes, glyphs)
             if online:
                 self.addons_status.set_label(
                     _("Only add-ons signed by Uwe Bruckhaus are offered and loaded.") if entries else

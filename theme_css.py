@@ -190,6 +190,17 @@ class ThemeCss:
         .am-setup-check {{ color: {bg_hex}; background: {accent_hex}; border-radius: 999px; min-width: 20px;
             min-height: 20px; font-size: 11px; font-weight: 700; }}
         .am-setup-title {{ font-size: 22px; font-weight: 700; }}
+        list.am-pick-cards {{ background: transparent; }}
+        list.am-pick-cards > row {{ background: alpha({fg_hex}, 0.04); border: 1px solid alpha({fg_hex}, 0.10);
+            border-radius: {radius}px; margin: 0 2px 6px 2px; padding: 2px 4px; }}
+        list.am-pick-cards > row:hover {{ background: alpha({fg_hex}, 0.08); }}
+        list.am-pick-cards > row:selected {{ background: alpha({accent_hex}, 0.14); border: 2px solid {accent_hex};
+            padding: 1px 3px; }}
+        list.am-pick-cards > row.am-pick-heading {{ background: none; border: none; margin-bottom: 0; }}
+        .am-agent-icon.am-pick-glyph {{ font-size: 22px; min-width: 30px; }}
+        .am-choice.am-choice-card {{ background: alpha({fg_hex}, 0.04); border: 1px solid alpha({fg_hex}, 0.10);
+            border-radius: {radius}px; padding: 8px 10px; margin-bottom: 2px; }}
+        .am-choice.am-choice-card:hover {{ background: alpha({fg_hex}, 0.08); }}
         .am-addon-privacy {{ font-size: 10px; color: {dim_hex}; }}
         .am-addon-chip {{ font-size: 11px; min-height: 0; padding: 2px 12px; border-radius: 999px; }}
         .am-addon-chip:checked {{ background: {accent_hex}; color: {bg_hex}; }}
@@ -325,7 +336,7 @@ class ThemeCss:
         row.combo box.suffixes {{ margin-left: 24px; padding: 3px 6px 3px 10px; border: 1px solid alpha({fg_hex}, 0.28);
             border-radius: {min(radius, 8)}px; }}
         row.combo:hover box.suffixes {{ border-color: alpha({fg_hex}, 0.45); }}
-        .am-card list.am-list:not(.boxed-list) {{ background: alpha({fg_hex}, 0.03); border-radius: {radius}px; }}
+        .am-card list.am-list:not(.boxed-list):not(.am-pick-cards) {{ background: alpha({fg_hex}, 0.03); border-radius: {radius}px; }}
         .am-card list.am-list row:selected {{ background: alpha({accent_hex}, 0.22); }}
         .am-card-check {{ color: {accent_hex}; font-weight: 700; }}
         /* Omarchy's default agent: its "Default" badge says so; no border that looks like a selection. */
