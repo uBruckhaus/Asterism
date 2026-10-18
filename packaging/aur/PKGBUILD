@@ -6,7 +6,7 @@ pkgdesc="Your AI agents, models and tools on one map (GTK4/libadwaita)"
 arch=('any')
 url="https://github.com/uBruckhaus/asterism"
 license=('MIT')
-depends=('python' 'python-gobject' 'gtk4' 'libadwaita' 'curl' 'ttf-nerd-fonts-symbols')
+depends=('python' 'python-gobject' 'gtk4' 'libadwaita' 'curl' 'openssh' 'ttf-nerd-fonts-symbols')
 optdepends=('vte4: agents in a terminal inside the window'
             'xdg-terminal-exec: start agents in your own terminal'
             'mise: updates for agents installed with mise')
@@ -15,7 +15,7 @@ _addons=https://github.com/uBruckhaus/asterism-addons/releases/download
 source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/v$pkgver.tar.gz"
         "adapters-$pkgver.zip::$_addons/adapters-$pkgver/adapters-$pkgver.zip")
 noextract=("adapters-$pkgver.zip")
-sha256sums=('dda63c1eabe2a2c93c2939883cf1484b920e1ff4b5c3a6d2f006af78f5315e58'
+sha256sums=('fa1ee168e1dccbb29e8625a41b1a65b16aa1799c5c0c0d18907f1e4e1eb16713'
             '71d011fc6a2dfd6e67f79099cab694d0cd5a1c39910f719062893c5dbae1f752')
 
 package() {
