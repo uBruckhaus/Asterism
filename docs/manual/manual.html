@@ -119,7 +119,7 @@
   <ul>
     <li><b>Arch Linux (AUR):</b> install the package <code>asterism</code> with your AUR helper.</li>
     <li><b>AppImage:</b> download <code>Asterism-&lt;version&gt;-x86_64.AppImage</code> from the
-      releases page at <code>github.com/uBruckhaus/asterism</code>, make it executable and run it.
+      releases page at <code>github.com/uBruckhaus/Asterism</code>, make it executable and run it.
       The AppImage uses your distribution's Python 3 with PyGObject, GTK&nbsp;4 and libadwaita:
       <table class="compact">
         <tbody>
@@ -144,8 +144,9 @@
   there unless you say yes; you can change it later in Settings › <b>In the app launcher</b>.</p>
   <p>The window is a normal app window: it can be tiled, floated, moved to another workspace and
   reached with <kbd>Alt</kbd>+<kbd>Tab</kbd>. <span class="badge">Asterism</span> A fresh Asterism opens on
-  <b>Set up Asterism</b>: the agents and local LLMs installed on this computer are ticked, and
-  <b>Switch on</b> puts them on the map (see <a href="#addons-setup">Setting up Asterism</a>).
+  its <b>welcome page</b>: the agents and local LLMs installed on this computer are cards that are
+  already ticked, and <b>Switch on</b> puts them on the map (see <a href="#addons-setup">Setting up
+  Asterism</a>).
   <span class="badge omarchy">Omarchy</span> The bar
   button opens the window, brings it to the front, or hides it when it is already in front.
   Closing the window hides it; the program keeps running in the background so it opens again at
@@ -240,7 +241,8 @@
   models, tools — what is fine, what are tips and what to fix, each with what to do and, where
   possible, a button that does it. It also tells you what the setup is good for (everyday help,
   coding, images, voice, research and writing) and the next step. The health check only reads;
-  it never changes, starts or sends anything.</p>
+  it never changes, starts or sends anything. The line shows only when something needs fixing, and
+  never while the map is still empty.</p>
 
   <h2 id="hints">Hints and updates</h2>
   <p>Below the cards, a hint area appears when there is something to say: new programs or skills
@@ -572,8 +574,14 @@
       <tr><td><b>In the app launcher</b></td><td>The launcher entry; off removes it.</td></tr>
       <tr><td><b>Agents start in</b></td><td>The folder agents start in.</td></tr>
       <tr><td><b>Models folder</b></td><td>One folder for all models, with <b>Reorganize models…</b>.</td></tr>
+      <tr><td><b>Add-ons</b> <span class="badge">Asterism</span></td><td><b>Look for add-ons online</b>, the Add-ons page, and <b>Set up</b> for the welcome page.</td></tr>
+      <tr><td><b>About</b></td><td>The version, the author and the license; <b>Website</b> opens the project on GitHub and <b>Report an Issue</b> its issue list.</td></tr>
     </tbody>
   </table>
+  <div class="figure narrow">
+    <img src="images/about.jpg" alt="The About dialog: the Asterism icon, name, Uwe Bruckhaus, version 0.7.1, and the rows Website, Report an Issue and Legal">
+    <p class="caption">Settings › About.</p>
+  </div>
 
   <h2 id="help">Help</h2>
   <p><b>?</b> (<kbd>F1</kbd>) opens Help: <b>Open user manual</b> opens this manual (the copy that
@@ -733,17 +741,24 @@
   adapters built in and no add-ons.</p>
 
   <h2 id="addons-setup">Setting up Asterism</h2>
-  <p>On the first start, <b>Set up Asterism</b> lists every agent and local LLM Asterism knows:</p>
+  <p>A new Asterism opens on its <b>welcome page</b>. Every agent and local LLM Asterism knows is a
+  card with its own icon, in three groups: <b>AI agents</b>, <b>Local LLMs</b> and <b>Online
+  providers</b> (the names of Anthropic, OpenAI and the others on the map). Each card says whether the
+  program is here:</p>
   <ul>
-    <li><b>Found on this PC</b> — installed here, found the same way the map finds them; ticked;</li>
-    <li><b>Used before</b> — not installed now, but its settings are still here; not ticked;</li>
-    <li><b>Not on this PC</b> — tick one to install it afterwards from its card;</li>
-    <li><b>Online providers</b> — the names of Anthropic, OpenAI and the others on the map; ticked.</li>
+    <li><b>Installed</b> (green) — found the same way the map finds it; the card is already ticked;</li>
+    <li><b>Used before</b> — not installed now, but its settings are still here;</li>
+    <li><b>Not installed</b> — tick it to install it afterwards from its card.</li>
   </ul>
-  <p><b>Switch on</b> loads the ticked add-ons and shows the map; when you ticked programs that are not
-  installed, the Add-ons page opens on their cards, each with <b>Install</b>. <b>Later</b> starts with
-  an empty map, which offers the setup again; Settings › Add-ons › <b>Set up</b> brings the page back at
-  any time. Each row has a button that opens the program's homepage.</p>
+  <div class="figure wide">
+    <img src="images/setup-welcome.jpg" alt="The welcome page: the Asterism icon and Welcome to Asterism, then AI agents as cards with their icons; ten installed ones are ticked with a blue frame and a check mark, the ones used before or not installed are grey; Later and Switch on 14 at the bottom">
+    <p class="caption">The welcome page: found programs come first and are ticked.</p>
+  </div>
+  <p>Click a card (or press <kbd>Space</kbd> on it) to tick or untick it; a ticked card has a blue frame
+  and a check mark. <b>Switch on</b> (with the number of ticked cards) loads them and shows the map; when
+  you ticked programs that are not installed, the Add-ons page opens on their cards, each with
+  <b>Install</b>. <b>Later</b> starts with an empty map. As long as nothing is switched on, Asterism opens
+  on the welcome page again at every start; Settings › Add-ons › <b>Set up</b> brings it back at any time.</p>
 
   <h2 id="addons-page">The Add-ons page</h2>
   <p>Open it with the puzzle button in the header, from Settings › <b>Add-ons</b>, or from any
@@ -756,6 +771,10 @@
     <li><b>Built into Asterism</b> — agents and providers that no installed add-on brings (when you
       run Asterism from its source folder without add-ons).</li>
   </ul>
+  <div class="figure wide">
+    <img src="images/addons-page.jpg" alt="The Add-ons page: search field, filter chips All, Agents, Providers, Features, Installed, Updates, and the Installed add-ons as cards; Claude Code, Codex, OpenCode, Pi, llama.cpp, LM Studio and Ollama are On with Install greyed out and Uninstall, the others Off with Switch on">
+    <p class="caption">Installed add-ons: on or off, with Install and Uninstall for the program.</p>
+  </div>
   <p>The card of an agent or local LLM that is switched on has <b>Install</b> and <b>Uninstall</b> for
   the program itself (the one that does not apply is greyed out), and every card with a homepage has a
   globe button that opens it in your browser.</p>

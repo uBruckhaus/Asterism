@@ -74,6 +74,7 @@ h3 { font-size: 11pt; color: var(--ink); margin: 1.4em 0 0.5em; }
 /* ---------- Figures ---------- */
 .figure { margin: 0 0 1.2em; break-inside: avoid; }
 .figure img { width: 100%; display: block; border-radius: 6px; border: 1px solid var(--rule); }
+.figure.narrow img { width: 40%; margin: 0 auto; }
 .caption { font-size: 8.6pt; color: var(--muted); margin-top: 2mm; }
 .caption::before { content: "Figure " counter(figure) " · "; color: var(--accent); font-weight: 600; }
 body { counter-reset: figure; }
