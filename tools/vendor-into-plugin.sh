@@ -10,7 +10,7 @@ plugin=${1:?usage: vendor-into-plugin.sh <plugin checkout>}
 # Asterism-only modules (and their tests) stay out of the plugin: everything above edition.NUMBERS
 # (session titles and the Claude summary) is not part of what the marketplace reviewed, and its
 # absence is what limits the plugin to numbers (edition.maximum(); ai_popup works without it).
-ASTERISM_ONLY="addons.py addon_api.py"
+ASTERISM_ONLY="addons.py addon_api.py addon_store.py"
 for file in "$root"/*.py; do
     case " $ASTERISM_ONLY " in *" $(basename "$file") "*) continue ;; esac
     cp "$file" "$plugin/"

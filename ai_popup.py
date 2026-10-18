@@ -321,6 +321,18 @@ class AgentsMap(SettingsPages, ThemeCss, Adw.Application):
         except Exception:               # never keep the app from starting
             self.addons = []
 
+    def reload_addons(self):
+        """After an add-on was installed, switched on or off, updated or removed: load them again and
+        show their agents, providers, sections and cards everywhere, without a restart."""
+        self.load_addons()
+        old = self.stack.get_child_by_name("help")
+        if old is not None:
+            self.stack.remove(old)
+        self.stack.add_named(self.build_help_page(), "help")      # Help cards come from add-ons too
+        self.collect()
+        self.refresh_overview()
+        self.refresh_map()
+
     def addon_hooks(self, kind: str) -> list:
         return list(getattr(addon_api.HOOKS, kind)) if addon_api is not None else []
 
