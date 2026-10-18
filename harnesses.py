@@ -37,9 +37,21 @@ class Sessions:
 
 @dataclass(frozen=True)
 class Harness:
-    command: str                      # as in agents.py
-    name: str
+    command: str                      # the agent's command, as in Omarchy's menu
+    name: str                         # display name in the app's own texts
     sessions: Sessions | None = None
+    # identity and install (agents.py builds its list from these)
+    label: str = ""                   # short label when the desktop's menu cannot be read
+    full_name: str = ""               # used instead of the menu's short label ("Claude Code" for "Claude")
+    icon: str = ""                    # Nerd Font glyph, or Omarchy's own font with icon_font="omarchy"
+    icon_font: str = ""
+    spec: str = ""                    # mise tool spec when it is not the command
+    package: str = ""                 # pacman package that also counts as installed
+    package_only: bool = False        # installed only as that package (OpenClaw)
+    own_install_counts: bool = True   # a file of the user's own at ~/.local/bin/<command> counts (not Hermes)
+    installer: Callable | None = None  # installer() -> install_ctl.Installer: the app installs it itself
+    short_version: bool = False       # show the version up to its first "-" (LM Studio Bionic)
+    offered: bool = True              # in Omarchy's agent menu (False: only this app offers it)
 
 
 # --- helpers for the adapters ----------------------------------------------------------------------
@@ -117,11 +129,13 @@ def add_run(parent: Session, kind: str, run: Session) -> None:
 
 # --- the registry ----------------------------------------------------------------------------------
 
+_MODULES = ("claude", "codex", "copilot", "crush", "cursor_agent", "gemini", "grok", "hermes", "muse", "omp",
+            "openclaw", "opencode", "pi", "dsh", "bionic", "agy")     # Omarchy's menu order, then the app's own
+
+
 def _all() -> tuple:
-    import harness_claude
-    import harness_hermes
-    import harness_opencode
-    return (harness_claude.HARNESS, harness_hermes.HARNESS, harness_opencode.HARNESS)
+    import importlib
+    return tuple(importlib.import_module(f"harness_{name}").HARNESS for name in _MODULES)
 
 
 def all_harnesses() -> tuple:

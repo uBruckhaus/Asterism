@@ -63,4 +63,5 @@ def _note() -> str:
              "would cost at API prices, not what a plan costs.").format("OpenCode")
 
 
-HARNESS = Harness("opencode", "OpenCode", sessions=Sessions(collect, _note))
+HARNESS = Harness("opencode", "OpenCode", sessions=Sessions(collect, _note), label="OpenCode", icon="\ue902",
+                  icon_font="omarchy")

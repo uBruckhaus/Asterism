@@ -124,6 +124,7 @@ class RegistryTest(unittest.TestCase):
         self.assertEqual(harnesses.get("opencode").name, "OpenCode")
         self.assertIsNone(harnesses.get("nope"))
         self.assertEqual({h.command for h in harnesses.with_sessions()}, {"claude", "hermes", "opencode"})
+        self.assertEqual(len(commands), 16)
 
     def test_notes_name_the_harness(self):
         self.assertIn("Hermes", harnesses.get("hermes").sessions.note())
@@ -136,6 +137,34 @@ class RegistryTest(unittest.TestCase):
             sql = " ".join(part for part in source.split('"') if "SELECT" in part or "FROM" in part)
             for column in ("title", "content", "data", "system_prompt"):
                 self.assertNotIn(column, sql.lower().replace("metadata", ""), (module.__name__, column))
+
+
+
+class AgentTablesTest(unittest.TestCase):
+    """agents.py builds its tables from the adapters; they equal what it had written out."""
+
+    def test_same_as_before(self):
+        import agents
+        self.assertEqual([c for c, *_r in agents.FALLBACK],
+                         ["claude", "codex", "copilot", "crush", "cursor-agent", "gemini", "grok", "hermes", "muse",
+                          "omp", "openclaw", "opencode", "pi"])
+        self.assertEqual([c for c, *_r in agents.EXTRA], ["dsh", "bionic", "agy"])
+        self.assertEqual(agents.NAMES, {"claude": "Claude Code", "copilot": "GitHub Copilot", "gemini": "Gemini CLI",
+                                        "omp": "Oh My Pi", "pi": "Pi"})
+        self.assertEqual(agents.SPECS, {
+            "omp": "github:can1357/oh-my-pi", "grok": "npm:@xai-official/grok",
+            "muse": "http:muse[url=https://api.meta.ai/muse-launcher.sh,bin=muse]",
+            "hermes": "pipx:hermes-agent[extras=all]"})
+        self.assertEqual(agents.FALLBACK[0], ("claude", "Claude", "\U000f06c4", ""))
+        self.assertEqual(agents.FALLBACK[1], ("codex", "Codex", "\ue905", "omarchy"))
+
+    def test_every_agent_complete(self):
+        import install_ctl
+        for h in harnesses.all_harnesses():
+            self.assertTrue(h.label and h.icon, h.command)
+            if h.installer is not None:
+                self.assertIs(type(install_ctl.AGENT_INSTALLERS[h.command]), type(h.installer()))
+        self.assertEqual(set(install_ctl.AGENT_INSTALLERS), {"dsh", "bionic", "agy"})
 
 
 class EditionTest(unittest.TestCase):

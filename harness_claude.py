@@ -10,4 +10,5 @@ def _note() -> str:
              "tokens would cost at API prices, not what a plan costs.")
 
 
-HARNESS = Harness("claude", "Claude Code", sessions=Sessions(claude_sessions.collect_by_id, _note))
+HARNESS = Harness("claude", "Claude Code", sessions=Sessions(claude_sessions.collect_by_id, _note),
+                  label="Claude", full_name="Claude Code", icon="\U000f06c4")

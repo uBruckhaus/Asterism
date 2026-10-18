@@ -62,4 +62,6 @@ def _note() -> str:
              "would cost at API prices, not what a plan costs.").format("Hermes")
 
 
-HARNESS = Harness("hermes", "Hermes", sessions=Sessions(collect, _note))
+HARNESS = Harness("hermes", "Hermes", sessions=Sessions(collect, _note), label="Hermes", icon="\ue90a",
+                  icon_font="omarchy", spec="pipx:hermes-agent[extras=all]", package="hermes-desktop",
+                  own_install_counts=False)

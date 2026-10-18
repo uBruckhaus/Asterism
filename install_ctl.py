@@ -30,6 +30,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 import ai_core
+import harnesses
 import netfetch
 import providers
 
@@ -1162,7 +1163,8 @@ class Agy(Installer):
         return Release(f"v{version}", [(name, url, 0)], {name: sha512})
 
 
-AGENT_INSTALLERS = {"bionic": Bionic(), "dsh": Dsh(), "agy": Agy()}   # agents installed the same way (not local LLMs)
+# Agents installed the same way (not local LLMs), from their adapters (harnesses.py).
+AGENT_INSTALLERS = {h.command: h.installer() for h in harnesses.all_harnesses() if h.installer is not None}
 
 
 def installer(key: str):

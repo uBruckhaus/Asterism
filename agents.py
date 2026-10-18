@@ -20,6 +20,8 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
+import harnesses
+
 BIN_DIR = Path.home() / ".local/bin"
 MISE_DIR = Path.home() / ".local/share/mise"
 PACMAN_DB = Path("/var/lib/pacman/local")
@@ -32,31 +34,18 @@ _MENU_RE = re.compile(r'^\s*"setup\.default\.agent\.([a-z0-9-]{1,64})"\s*:\s*(\{
 _EXEC_RE = re.compile(r'^exec mise x "([^"\n]{1,512})" -- "([A-Za-z0-9._-]{1,64})" "\$@"$', re.MULTILINE)
 _SEMVERISH = re.compile(r"[0-9][0-9A-Za-z.+_-]{0,63}")
 
-# Omarchy's list as of 4.0 (omarchy-default-agent), used when its menu file
-# cannot be read. Icons: Nerd Font, or Omarchy's own "omarchy" font.
-FALLBACK = [
-    ("claude", "Claude", "\U000f06c4", ""), ("codex", "Codex", "", "omarchy"),
-    ("copilot", "Copilot", "", ""), ("crush", "Crush", "\U000f02d1", ""),
-    ("cursor-agent", "Cursor CLI", "", "omarchy"), ("gemini", "Gemini", "\U000f0ae2", ""),
-    ("grok", "Grok", "", "omarchy"), ("hermes", "Hermes", "", "omarchy"),
-    ("muse", "Muse Code", "\U000f06e4", ""), ("omp", "omp", "", "omarchy"),
-    ("openclaw", "OpenClaw", "", "omarchy"), ("opencode", "OpenCode", "", "omarchy"),
-    ("pi", "Pi", "", "omarchy"),
-]
-# Fuller names than the menu's short labels.
-NAMES = {"claude": "Claude Code", "copilot": "GitHub Copilot", "gemini": "Gemini CLI", "omp": "Oh My Pi",
-         "pi": "Pi"}
-# mise tool specs that differ from the command (omarchy-default-agent's agent_package).
-SPECS = {
-    "omp": "github:can1357/oh-my-pi", "grok": "npm:@xai-official/grok",
-    "muse": "http:muse[url=https://api.meta.ai/muse-launcher.sh,bin=muse]",
-    "hermes": "pipx:hermes-agent[extras=all]",
-}
+# Built from the agent adapters (harnesses.py, one harness_<command>.py per agent):
+# Omarchy's list as of 4.0 (omarchy-default-agent), used when its menu file cannot be read
+# (icons: Nerd Font, or Omarchy's own "omarchy" font) ...
+FALLBACK = [(h.command, h.label, h.icon, h.icon_font) for h in harnesses.all_harnesses() if h.offered]
+# ... fuller names than the menu's short labels ...
+NAMES = {h.command: h.full_name for h in harnesses.all_harnesses() if h.full_name}
+# ... mise tool specs that differ from the command (omarchy-default-agent's agent_package) ...
+SPECS = {h.command: h.spec for h in harnesses.all_harnesses() if h.spec}
 ROBOT = "\U000f06a9"
-# Agents Omarchy's menu does not offer (yet): AI Agents Map installs them itself
+# ... and agents Omarchy's menu does not offer (yet): AI Agents Map installs them itself
 # (install_ctl.AGENT_INSTALLERS) into a version folder, the command in ~/.local/bin.
-EXTRA = [("dsh", "DeepSeek Harness", "\U000f0e7b", ""), ("bionic", "LM Studio Bionic", "\U000f09d1", ""),
-         ("agy", "Antigravity CLI", "\U000f02ad", "")]
+EXTRA = [(h.command, h.label, h.icon, h.icon_font) for h in harnesses.all_harnesses() if not h.offered]
 
 
 @dataclass
@@ -188,23 +177,23 @@ def package_version(name: str, db: Path = PACMAN_DB) -> str | None:
 def detect(command: str, bin_dir: Path = BIN_DIR, mise_dir: Path = MISE_DIR,
            db: Path = PACMAN_DB) -> tuple[bool, str, str]:
     """(installed, version, source) for one agent."""
-    if command in dict((c, 1) for c, *_rest in EXTRA):
+    h = harnesses.get(command)
+    if h is not None and h.installer is not None:          # the app installs it itself
         import install_ctl
         inst = install_ctl.AGENT_INSTALLERS.get(command)
         if inst is not None and inst.installed_folder() is not None:
             version = inst.current_version().lstrip("v")
-            return True, version.split("-")[0] if command == "bionic" else version, "own"
+            return True, version.split("-")[0] if h.short_version else version, "own"
         return (True, "", "own") if own_install(command, bin_dir) else (False, "", "")
-    if command == "openclaw":
-        version = package_version("openclaw", db)
-        return (True, version, "package") if version is not None else (False, "", "")
-    if command == "hermes":
-        version = package_version("hermes-desktop", db)
+    if h is not None and h.package:
+        version = package_version(h.package, db)
         if version is not None:
             return True, version, "package"
+        if h.package_only:
+            return False, "", ""
     spec = wrapper_spec(command, bin_dir) or SPECS.get(command, command)
     folder = mise_install(spec, mise_dir)
-    if command != "hermes" and own_install(command, bin_dir):
+    if (h is None or h.own_install_counts) and own_install(command, bin_dir):
         # A script of the user's own may still run mise's copy: show its version.
         return True, mise_version(folder) if folder is not None else "", "own"
     if folder is not None:
