@@ -108,7 +108,9 @@ class InstallDialog:
                 except GLib.Error:
                     pass
             elif response == "run":
-                if install_recipes.run(step):
+                if self.run_in_window(step, kind, key, name, remove):
+                    self.watch_install(kind, key, name, not remove)
+                elif install_recipes.run(step):
                     self.toast(_("{0}: running in a terminal. Asterism looks again when it is done.").format(name), 6)
                     self.watch_install(kind, key, name, not remove)
                 else:
@@ -116,6 +118,39 @@ class InstallDialog:
                     self.toast(_("No terminal could be opened; the command is copied."), 6)
         dialog.connect("response", answered)
         dialog.present(self.window)
+
+    @staticmethod
+    def installs_in_window() -> bool:
+        """Add-ons page › Run installs in the window's terminal (on unless switched off)."""
+        import ai_core
+        return ai_core.load_settings().get("installs_in_window") is not False
+
+    def run_in_window(self, step, kind: str, key: str, name: str, remove: bool) -> bool:
+        """The step's commands in a terminal tab of the window (VTE), when that is on and VTE is
+        there; sudo asks for the password in it. False: use a terminal window instead."""
+        import shlex
+        import terminal_pane
+        if not self.installs_in_window() or terminal_pane.vte() is None or not step.run:
+            return False
+        done = _("Done. You can close this tab (Back).")
+        script = " && ".join(shlex.join(c) for c in step.run) + f"; echo; echo {shlex.quote(done)}"
+        title = (_("Remove {0}") if remove else _("Install {0}")).format(name)
+        tab = f"install:{kind}:{key}"
+        old = self.sessions.pop(tab, None)
+        if old is not None:
+            if old.running:
+                self.show_terminal(tab)
+                return True
+            self.right_stack.remove(old)
+        subject = types.SimpleNamespace(name=title, command=tab)
+        pane = terminal_pane.TerminalPane(subject, str(Path.home()), self.theme.colors,
+                                          on_back=lambda: self.show_view("main", save=False),
+                                          on_state=lambda _p: GLib.idle_add(self.terminal_changed),
+                                          argv=["bash", "-c", script])
+        self.sessions[tab] = pane
+        self.right_stack.add_named(pane, f"term:{tab}")
+        self.show_terminal(tab)
+        return True
 
     def measure_stays(self, label, data):
         """The data folders' sizes, measured in the background (bounded like Help › Disk space)."""

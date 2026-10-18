@@ -1630,5 +1630,8 @@
  "{0} is removed.": "{0} został usunięty.",
  "{0}: running in a terminal. Asterism looks again when it is done.": "{0}: działa w terminalu. Asterism sprawdzi ponownie po zakończeniu.",
  "Adding the add-on…": "Dodawanie dodatku…",
- "Drop an add-on (.zip from a folder, or a link from the web) anywhere on the window to add it.": "Upuść dodatek (.zip z folderu lub link z sieci) w dowolnym miejscu okna, aby go dodać."
+ "Drop an add-on (.zip from a folder, or a link from the web) anywhere on the window to add it.": "Upuść dodatek (.zip z folderu lub link z sieci) w dowolnym miejscu okna, aby go dodać.",
+ "Done. You can close this tab (Back).": "Gotowe. Możesz zamknąć tę kartę (Wstecz).",
+ "Run installs in the window's terminal": "Uruchamiaj instalacje w terminalu okna",
+ "On: installs and removals run in a terminal tab here (sudo asks for your password in it). Off: in a terminal window of its own.": "Włączone: instalacje i usuwanie działają tu w karcie terminala (sudo pyta w niej o hasło). Wyłączone: w osobnym oknie terminala."
 }

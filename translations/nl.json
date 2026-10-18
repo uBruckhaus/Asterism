@@ -1581,5 +1581,8 @@
  "{0} is removed.": "{0} is verwijderd.",
  "{0}: running in a terminal. Asterism looks again when it is done.": "{0}: draait in een terminal. Asterism kijkt opnieuw als het klaar is.",
  "Adding the add-on…": "Add-on wordt toegevoegd…",
- "Drop an add-on (.zip from a folder, or a link from the web) anywhere on the window to add it.": "Sleep een add-on (.zip uit een map of een link van het web) ergens op het venster om het toe te voegen."
+ "Drop an add-on (.zip from a folder, or a link from the web) anywhere on the window to add it.": "Sleep een add-on (.zip uit een map of een link van het web) ergens op het venster om het toe te voegen.",
+ "Done. You can close this tab (Back).": "Klaar. Je kunt dit tabblad sluiten (Terug).",
+ "Run installs in the window's terminal": "Installaties in de terminal van het venster uitvoeren",
+ "On: installs and removals run in a terminal tab here (sudo asks for your password in it). Off: in a terminal window of its own.": "Aan: installaties en verwijderingen draaien hier in een terminaltabblad (sudo vraagt daarin om je wachtwoord). Uit: in een eigen terminalvenster."
 }

@@ -175,9 +175,19 @@ class AddonsPage:
             self.addons_chips[key] = chip
         page.append(chips)
         drop = Gtk.Label(label=_("Drop an add-on (.zip from a folder, or a link from the web) anywhere on the "
-                                 "window to add it."), xalign=0, wrap=True)
+                                 "window to add it."), xalign=0, wrap=True, hexpand=True)
         drop.add_css_class("am-agent-detail")
-        page.append(drop)
+        line = Gtk.Box(spacing=8)
+        line.append(drop)
+        inside = Gtk.Label(label=_("Run installs in the window's terminal"))
+        inside.add_css_class("am-agent-detail")
+        line.append(inside)
+        switch = Gtk.Switch(active=self.installs_in_window(), valign=Gtk.Align.CENTER)
+        switch.set_tooltip_text(_("On: installs and removals run in a terminal tab here (sudo asks for your "
+                                  "password in it). Off: in a terminal window of its own."))
+        switch.connect("notify::active", lambda s, *_a: self.save_setting(installs_in_window=s.get_active()))
+        line.append(switch)
+        page.append(line)
         self.addons_status = Gtk.Label(xalign=0, wrap=True)
         self.addons_status.add_css_class("am-agent-detail")
         page.append(self.addons_status)

@@ -1581,5 +1581,8 @@
  "{0} is removed.": "{0} se ha quitado.",
  "{0}: running in a terminal. Asterism looks again when it is done.": "{0}: se ejecuta en un terminal. Asterism vuelve a mirar cuando termine.",
  "Adding the add-on…": "Añadiendo el complemento…",
- "Drop an add-on (.zip from a folder, or a link from the web) anywhere on the window to add it.": "Suelta un complemento (.zip desde una carpeta o un enlace de la web) en cualquier parte de la ventana para añadirlo."
+ "Drop an add-on (.zip from a folder, or a link from the web) anywhere on the window to add it.": "Suelta un complemento (.zip desde una carpeta o un enlace de la web) en cualquier parte de la ventana para añadirlo.",
+ "Done. You can close this tab (Back).": "Listo. Puedes cerrar esta pestaña (Atrás).",
+ "Run installs in the window's terminal": "Ejecutar las instalaciones en el terminal de la ventana",
+ "On: installs and removals run in a terminal tab here (sudo asks for your password in it). Off: in a terminal window of its own.": "Activado: las instalaciones y eliminaciones se ejecutan aquí en una pestaña de terminal (sudo pide ahí tu contraseña). Desactivado: en una ventana de terminal propia."
 }
