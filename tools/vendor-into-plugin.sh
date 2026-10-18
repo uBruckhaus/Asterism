@@ -19,6 +19,7 @@ rm -rf "$plugin/tests" && cp -r "$root/tests" "$plugin/tests"
 # The translations (one data file per language) and the pictures the pages show (assets/).
 rm -rf "$plugin/translations" && cp -r "$root/translations" "$plugin/translations"
 mkdir -p "$plugin/assets" && cp "$root/data/llm-monitor-preview.png" "$plugin/assets/"
+cp "$root/data/user-manual.pdf" "$plugin/assets/"
 for name in $ASTERISM_ONLY; do rm -f "$plugin/tests/test_$name"; done
 echo "Asterism $(git -C "$root" describe --always --tags) → $plugin"
 git -C "$plugin" status --short

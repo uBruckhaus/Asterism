@@ -220,6 +220,15 @@ def main():
     finish(pdfcraft, raw, built, chapters, count, body, physical, f"Asterism {av} · AI Agents Map {pv}")
     if out != built.resolve():
         shutil.copyfile(built, out)
+    # The copy the app opens from Help (data/ here; tools/vendor-into-plugin.sh puts it into the
+    # plugin's assets/). The marketplace scan reads a file over 512 KiB only up to its first 4 KiB
+    # and accepts it as a (non-executable) binary only when that part holds a NUL byte; a smaller
+    # binary or one without that NUL fails the scan, so stop here instead of in review.
+    data = built.read_bytes()
+    if len(data) <= 512 * 1024 or b"\0" not in data[:4096]:
+        sys.exit(f"{built}: {len(data)} bytes, NUL in the first 4 KiB: {b'\0' in data[:4096]} — the marketplace "
+                 "scan would refuse it as an app asset (needs > 512 KiB and a NUL in the first 4 KiB)")
+    shutil.copyfile(built, REPO / "data/user-manual.pdf")
     print(f"{out} — {count} pages, chapter 1 on page {body}")
 
 
