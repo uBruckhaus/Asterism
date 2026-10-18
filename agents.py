@@ -157,11 +157,17 @@ def mise_version(folder: Path) -> str:
 
 
 def mise_install(spec: str, mise_dir: Path = MISE_DIR) -> Path | None:
+    """mise's install folder for the spec, when it holds at least one real version (after
+    `mise uninstall --all` the folder can stay, with only links to versions that are gone)."""
     installs = mise_dir / "installs"
     for name in install_dir_candidates(spec):
         folder = installs / name
         if folder.is_dir() and not folder.is_symlink():
-            return folder
+            try:
+                if any(p.is_dir() and not p.is_symlink() for p in list(folder.iterdir())[:MAX_DIR_ENTRIES]):
+                    return folder
+            except OSError:
+                continue
     return None
 
 

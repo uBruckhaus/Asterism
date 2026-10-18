@@ -37,7 +37,7 @@ _PACKAGE = re.compile(r"[a-z0-9@][a-z0-9@._+-]{0,99}")
 class Step:
     kind: str                         # the way's kind
     commands: list = field(default_factory=list)   # what the user can copy (shell text)
-    run: list | None = None           # argv the app may start in a terminal, or None
+    run: list | None = None           # the commands (argv lists) the app may start in a terminal, or None
     sudo: bool = False
     installer: bool = False           # the app's own installer page does it
     url: str = ""
@@ -49,11 +49,17 @@ def manager() -> str:
     return next((m for m in MANAGERS if shutil.which(m)), "")
 
 
-def _runnable(argv) -> list | None:
+def _plain(argv) -> list | None:
     words = [str(w) for w in argv]
     if not words or not _PROGRAM.fullmatch(words[0] if words[0] != "sudo" else (words[1:] or ["-"])[0]):
         return None
     return words if all(_WORD.fullmatch(w) for w in words) else None
+
+
+def _runnable(*commands) -> list | None:
+    """The commands as argv lists when every one is plain words, else None (then only shown)."""
+    found = [_plain(c) for c in commands]
+    return found if all(found) else None
 
 
 def _step(way, action: str) -> Step | None:
@@ -64,8 +70,14 @@ def _step(way, action: str) -> Step | None:
     if way.kind == "mise":
         if not way.spec or not shutil.which("mise"):
             return None
-        argv = ["mise", "unuse", "-g", way.spec] if remove else ["mise", "use", "-g", way.spec]
-        return Step("mise", [shlex.join(argv)], _runnable(argv))
+        # --yes: mise asks before pruning in a terminal, and the chain would wait for an answer.
+        if remove:
+            # unuse takes it out of the global config; its versions are pruned only when nothing else
+            # tracks them, so uninstall --all removes them for sure.
+            commands = [["mise", "--yes", "unuse", "-g", way.spec], ["mise", "--yes", "uninstall", "--all", way.spec]]
+        else:
+            commands = [["mise", "--yes", "use", "-g", way.spec]]
+        return Step("mise", [shlex.join(c) for c in commands], _runnable(*commands))
     if way.kind == "tool":
         if way.tool not in TOOLS or not way.spec or not shutil.which(way.tool):
             return None
@@ -103,7 +115,9 @@ def choose(ways, action: str = "install", source: str = "") -> Step | None:
     commands = []
     for way in ways:
         if way.kind == "mise" and way.spec:
-            commands.append(shlex.join(["mise", "unuse" if action == "uninstall" else "use", "-g", way.spec]))
+            commands.append(shlex.join(["mise", "--yes", "unuse" if action == "uninstall" else "use", "-g", way.spec]))
+            if action == "uninstall":
+                commands.append(shlex.join(["mise", "--yes", "uninstall", "--all", way.spec]))
         elif way.kind == "tool" and way.tool in TOOLS and way.spec:
             commands.append(shlex.join([*TOOLS[way.tool][action == "uninstall"], way.spec]))
         elif way.kind == "package":
@@ -120,9 +134,9 @@ def available(ways) -> bool:
 
 
 def run(step: Step) -> bool:
-    """Start the step's command in a terminal window (desktop.run_in_terminal); False when it
-    cannot be started from here (then only its commands are shown)."""
+    """Start the step's commands in one terminal window, one after the other while each succeeds
+    (desktop.run_steps_in_terminal); False when they cannot be started from here."""
     if step is None or step.run is None:
         return False
     import desktop
-    return bool(desktop.run_in_terminal(list(step.run)))
+    return bool(desktop.run_steps_in_terminal([list(c) for c in step.run]))

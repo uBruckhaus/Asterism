@@ -24,28 +24,29 @@ class ChooseTest(unittest.TestCase):
         with mock.patch.object(r.shutil, "which", which("mise")):
             step = r.choose((Way("mise", spec="opencode"),))
         self.assertEqual((step.kind, step.run, step.commands, step.sudo),
-                         ("mise", ["mise", "use", "-g", "opencode"], ["mise use -g opencode"], False))
+                         ("mise", [["mise", "--yes", "use", "-g", "opencode"]], ["mise --yes use -g opencode"], False))
 
     def test_without_mise_the_commands_to_copy(self):
         with mock.patch.object(r.shutil, "which", which()):
             step = r.choose((Way("mise", spec="opencode"),))
-        self.assertEqual((step.kind, step.run, step.commands), ("commands", None, ["mise use -g opencode"]))
+        self.assertEqual((step.kind, step.run, step.commands), ("commands", None, ["mise --yes use -g opencode"]))
 
     def test_desktop_installer_with_sudo(self):
         with mock.patch.object(r.shutil, "which", which("omarchy-install-hermes-cli", "pacman")):
             step = r.choose(HERMES)
-        self.assertEqual((step.kind, step.run, step.sudo), ("command", ["omarchy-install-hermes-cli", "--now"], True))
+        self.assertEqual((step.kind, step.run, step.sudo), ("command", [["omarchy-install-hermes-cli", "--now"]], True))
 
     def test_package_for_this_systems_manager(self):
         with mock.patch.object(r.shutil, "which", which("apt")):
             step = r.choose(HERMES)
-        self.assertEqual((step.run, step.sudo), (["sudo", "apt", "install", "hermes"], True))
+        self.assertEqual((step.run, step.sudo), ([["sudo", "apt", "install", "hermes"]], True))
 
     def test_uninstall_matches_how_it_was_installed(self):
         with mock.patch.object(r.shutil, "which", which("omarchy-install-hermes-cli", "pacman", "mise")):
-            self.assertEqual(r.choose(HERMES, "uninstall", "package").run, ["sudo", "pacman", "-R", "hermes-desktop"])
+            self.assertEqual(r.choose(HERMES, "uninstall", "package").run, [["sudo", "pacman", "-R", "hermes-desktop"]])
+            # unuse alone keeps versions something else still tracks: uninstall --all removes them.
             self.assertEqual(r.choose((Way("mise", spec="opencode"),), "uninstall", "mise").run,
-                             ["mise", "unuse", "-g", "opencode"])
+                             [["mise", "--yes", "unuse", "-g", "opencode"], ["mise", "--yes", "uninstall", "--all", "opencode"]])
             self.assertTrue(r.choose((Way("installer"),), "uninstall", "own").installer)
             # Installed by mise, but the recipe only knows the package: nothing removes it from here.
             self.assertEqual(r.choose(HERMES, "uninstall", "mise").kind, "manual")
@@ -55,7 +56,7 @@ class ChooseTest(unittest.TestCase):
         with mock.patch.object(r.shutil, "which", which("mise")):
             step = r.choose((Way("mise", spec=spec),))
         self.assertIsNone(step.run)                                   # brackets: shown, never run
-        self.assertEqual(step.commands, [f"mise use -g '{spec}'"])     # quoted for copying
+        self.assertEqual(step.commands, [f"mise --yes use -g '{spec}'"])     # quoted for copying
         with mock.patch.object(r.shutil, "which", which("x;rm")):
             step = r.choose((Way("command", argv=("x;rm", "-rf")),))
         self.assertIsNone(step.run)                                   # a strange program name: shown only
@@ -63,10 +64,10 @@ class ChooseTest(unittest.TestCase):
 
     def test_run_starts_only_the_shown_argv(self):
         import desktop
-        with mock.patch.object(desktop, "run_in_terminal", return_value=True) as started:
-            self.assertTrue(r.run(r.Step("mise", ["mise use -g pi"], ["mise", "use", "-g", "pi"])))
+        with mock.patch.object(desktop, "run_steps_in_terminal", return_value=True) as started:
+            self.assertTrue(r.run(r.Step("mise", ["mise use -g pi"], [["mise", "use", "-g", "pi"]])))
             self.assertFalse(r.run(r.Step("commands", ["x"])))
-        started.assert_called_once_with(["mise", "use", "-g", "pi"])
+        started.assert_called_once_with([["mise", "use", "-g", "pi"]])
 
 
 class RecipesTest(unittest.TestCase):
