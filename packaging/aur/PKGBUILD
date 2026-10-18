@@ -4,7 +4,7 @@ pkgver=0.7.1
 pkgrel=1
 pkgdesc="Your AI agents, models and tools on one map (GTK4/libadwaita)"
 arch=('any')
-url="https://github.com/uBruckhaus/asterism"
+url="https://github.com/uBruckhaus/Asterism"
 license=('MIT')
 depends=('python' 'python-gobject' 'gtk4' 'libadwaita' 'curl' 'openssh' 'ttf-nerd-fonts-symbols')
 optdepends=('vte4: agents in a terminal inside the window'
@@ -16,11 +16,11 @@ _adapters=0.7.0              # the adapter add-ons' own release (signed separate
 source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/v$pkgver.tar.gz"
         "adapters-$_adapters.zip::$_addons/adapters-$_adapters/adapters-$_adapters.zip")
 noextract=("adapters-$_adapters.zip")
-sha256sums=('ac828c0b5c63c155e5ea2418824655e05dd6f4960e71ff52c10a396502a02c19'
+sha256sums=('33120fbe0100c423f11ab6210c8b165af02edf4d127f8a032e30742415f450c4'
             '71d011fc6a2dfd6e67f79099cab694d0cd5a1c39910f719062893c5dbae1f752')
 
 package() {
-    cd "$pkgname-$pkgver"
+    cd "Asterism-$pkgver"          # GitHub names the folder after the repository
     install -d "$pkgdir/usr/lib/asterism"
     install -m644 ./*.py "$pkgdir/usr/lib/asterism/"
     install -Dm644 translations/*.json -t "$pkgdir/usr/lib/asterism/translations/"

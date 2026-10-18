@@ -460,6 +460,11 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, AddonsPage, Adw.Applicat
         settings = Gtk.Settings.get_default()
         if settings is not None:
             settings.set_property("gtk-enable-primary-paste", False)
+        # The app's own icon from data/icons when no package put it into the icon theme
+        # (the AppImage, a source checkout): window, welcome page and About find it by name.
+        own_icons = Path(__file__).resolve().parent / "data/icons"
+        if own_icons.is_dir():
+            Gtk.IconTheme.get_for_display(Gdk.Display.get_default()).add_search_path(str(own_icons))
         window = AppWindow(self.width_changed, application=self)
         window.set_decorated(desktop.decorated())       # Omarchy: Hyprland draws the border, the header is our own
         desktop.attach_window(window)

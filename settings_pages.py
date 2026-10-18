@@ -313,7 +313,7 @@ class SettingsPages:
 
     # --- About: name, version, author, license and the GitHub project ------------------------------
 
-    ASTERISM_URL = "https://github.com/uBruckhaus/asterism"
+    ASTERISM_URL = "https://github.com/uBruckhaus/Asterism"
     PLUGIN_URL = "https://github.com/uBruckhaus/omarchy-ai-agents-map"
 
     @classmethod
@@ -336,10 +336,9 @@ class SettingsPages:
         about = Adw.AboutDialog(
             application_name=desktop.app_name(), application_icon=desktop.app_id(), version=version,
             developer_name="Uwe Bruckhaus", copyright="© 2026 Uwe Bruckhaus", license_type=Gtk.License.MIT_X11,
-            comments=_("Your AI setup as cards or a tree and a map: coding agents, local LLMs, MCP servers "
-                       "and skills, and how they are connected."),
-            issue_url=url + "/issues")
-        about.add_link(_("GitHub project page"), url)
+            # No comments: with them libadwaita moves the website into Details; this way the GitHub
+            # project page is a row on the dialog's first page.
+            website=url, issue_url=url + "/issues")
         about.present(self.window)
 
     def preference_group(self, box, title: str) -> Adw.PreferencesGroup:

@@ -290,12 +290,7 @@ class AddonsPage:
 
     def setup_hero(self, found: int) -> Gtk.Widget:
         hero = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6, margin_top=18, margin_bottom=6)
-        own = Path(__file__).resolve().parent / "data/icons" / f"{desktop.app_id()}.svg"
-        theme = Gtk.IconTheme.get_for_display(Gdk.Display.get_default())
-        if theme.has_icon(desktop.app_id()) or not own.is_file():
-            icon = Gtk.Image.new_from_icon_name(desktop.app_id())
-        else:
-            icon = Gtk.Image.new_from_file(str(own))     # started from the source folder: no installed icon
+        icon = Gtk.Image.new_from_icon_name(desktop.app_id())
         icon.set_pixel_size(72)
         hero.append(icon)
         title = Gtk.Label(label=_("Welcome to {0}").format(desktop.app_name()))

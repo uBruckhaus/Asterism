@@ -21,8 +21,8 @@
     <p>On Omarchy, the same app is the AI Agents Map plugin.</p>
   </description>
   <launchable type="desktop-id">io.github.ubruckhaus.Asterism.desktop</launchable>
-  <url type="homepage">https://github.com/uBruckhaus/asterism</url>
-  <url type="bugtracker">https://github.com/uBruckhaus/asterism/issues</url>
+  <url type="homepage">https://github.com/uBruckhaus/Asterism</url>
+  <url type="bugtracker">https://github.com/uBruckhaus/Asterism/issues</url>
   <content_rating type="oars-1.1"/>
   <releases>
     <release version="0.7.1" date="2026-10-18">
