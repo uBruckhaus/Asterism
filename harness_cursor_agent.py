@@ -6,8 +6,10 @@ from i18n import _
 
 def _access():
     from agent_status import Access
+    from signin import Login
     return Access(_("A Cursor account (cursor.com)"), "cursor-agent login",
-                  (".config/cursor/auth.json",), ("CURSOR_API_KEY",))
+                  (".config/cursor/auth.json",), ("CURSOR_API_KEY",),
+                  logins=(Login(_("Cursor account"), ("cursor-agent", "login")),))
 
 
 # --- security settings (agent_security) ----------------------------------------------------------

@@ -1062,7 +1062,8 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, SetupPage, AddonsPage, A
         if pane is None or pane.running:
             return
         if self.right_stack.get_visible_child() is pane:
-            self.show_view("main", save=False)
+            back = getattr(pane, "back", None)       # an install: where it was started from
+            back() if back is not None else self.show_view("main", save=False)
         del self.sessions[command]
         self.right_stack.remove(pane)
         self.update_terminal_tabs()
@@ -5025,7 +5026,8 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, SetupPage, AddonsPage, A
 
     def update_header(self):
         page = self.page_name()
-        on_settings = page in ("settings", "help", "addons", "setup", "reorganize", "connect", "install", "models", "mcp",
+        # My setup is a view of its own: the header's buttons stay on it.
+        on_settings = page in ("settings", "help", "addons", "reorganize", "connect", "install", "models", "mcp",
                                "addmcp", "addskills", "health")
         # Faded out rather than hidden: the header keeps its height, so the
         # card does not jump when the settings page opens.
@@ -5035,6 +5037,14 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, SetupPage, AddonsPage, A
             widget.set_can_target(not on_settings)
             widget.set_can_focus(not on_settings)
             widget.set_sensitive(not on_settings)
+        # The legend explains the map's marks: only while the map is in view (faded, so nothing moves).
+        legend = getattr(self, "legend_button", None)
+        if legend is not None:
+            on_map = page == "main"
+            legend.set_opacity(1 if on_map else 0)
+            legend.set_can_target(on_map)
+            legend.set_can_focus(on_map)
+            legend.set_sensitive(on_map)
         # The sidebar button only where there is a sidebar: the Overview with the map beside the cards.
         self.sidebar_button.set_visible((page == "main" or page in RIGHT_PAGES) and self.split)
         self.updating_buttons = True
@@ -7704,6 +7714,9 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, SetupPage, AddonsPage, A
                     action = "uninstall" if agent.installed else "install"
                     own = list(own) + [self.menu_item(_("Uninstall…") if agent.installed else _("Install…"), popover,
                                                       lambda a=action: self.offer_install("agent", ident, a))]
+            if agent.installed and self.sign_in_access(agent.command) is not None:
+                own = list(own) + [self.menu_item(_("Sign in…"), popover, lambda: self.offer_sign_in(ident),
+                                                  _("Subscription, account or API key"))]
         danger = []
         if kind == "model":
             own, danger = self.model_menu(view, rect, node_id, popover)
@@ -8189,6 +8202,9 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, SetupPage, AddonsPage, A
             return False          # Esc, Backspace, Ctrl+… belong to the agent
         if keyval == Gdk.KEY_F1 and page != "help":
             self.open_help()
+            return True
+        if keyval == Gdk.KEY_F5 and page == "setup" and not self.setup_welcome:
+            self.reload_setup()
             return True
         if page == "help" and keyval in (Gdk.KEY_Escape, Gdk.KEY_BackSpace):
             self.close_help()

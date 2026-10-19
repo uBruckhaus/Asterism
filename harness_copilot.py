@@ -6,8 +6,10 @@ from i18n import _
 
 def _access():
     from agent_status import Access
+    from signin import Login
     return Access(_("A GitHub Copilot subscription (github.com/features/copilot)"),
-                  "copilot  →  /login", (".copilot/config.json",), ("COPILOT_GITHUB_TOKEN", "GH_TOKEN"))
+                  "copilot  →  /login", (".copilot/config.json",), ("COPILOT_GITHUB_TOKEN", "GH_TOKEN"),
+                  logins=(Login(_("GitHub account"), ("copilot",), _("Type /login in it.")),))
 
 
 # --- security settings (agent_security) ----------------------------------------------------------

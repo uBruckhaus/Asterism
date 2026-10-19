@@ -180,12 +180,24 @@ class ThemeCss:
         .am-addon-available {{ color: {accent_hex}; border: 1px solid alpha({accent_hex}, 0.5); }}
         .am-setup-tile {{ background: alpha({fg_hex}, 0.04); border: 1px solid alpha({fg_hex}, 0.10);
             border-radius: {radius}px; padding: 12px 14px; color: {fg_hex}; }}
-        .am-setup-absent:not(:checked) .am-setup-glyph {{ color: {dim_hex}; }}
+        .am-setup-absent .am-setup-glyph {{ color: {dim_hex}; }}
+        .am-setup-absent {{ background: transparent; border-style: dashed; }}
+        .am-setup-absent .am-addon-name, .am-setup-absent .am-agent-detail {{ color: {dim_hex}; }}
+        button.am-setup-section {{ padding: 2px 6px; min-height: 0; }}
+        button.am-setup-section:hover {{ background: alpha({fg_hex}, 0.08); }}
+        button.am-setup-action {{ min-width: 84px; }}
+        .am-setup-explain {{ background: alpha({fg_hex}, 0.04); border: 1px solid alpha({fg_hex}, 0.10);
+            border-radius: {radius}px; padding: 6px 14px 12px 8px; }}
+        .am-explain-situation {{ font-weight: 600; font-size: 13px; }}
         .am-agent-detail.am-setup-here {{ color: {green_hex}; }}
         .am-setup-tile:hover {{ background: alpha({fg_hex}, 0.08); }}
-        .am-setup-tile:checked {{ background: alpha({accent_hex}, 0.14); border: 2px solid {accent_hex};
+        /* Highlighted only when it is installed; a tick (switched on) shows as the ✓ alone. */
+        .am-setup-tile:checked {{ background: alpha({fg_hex}, 0.04); color: {fg_hex}; }}
+        .am-setup-tile:checked:hover {{ background: alpha({fg_hex}, 0.08); }}
+        .am-setup-tile.am-setup-installed {{ background: alpha({accent_hex}, 0.14); border: 2px solid {accent_hex};
             padding: 11px 13px; color: {fg_hex}; }}
-        .am-setup-tile:checked:hover {{ background: alpha({accent_hex}, 0.20); }}
+        .am-setup-tile.am-setup-installed.am-setup-small {{ padding: 7px 9px; }}
+        .am-setup-tile.am-setup-installed:hover {{ background: alpha({accent_hex}, 0.20); }}
         .am-agent-icon.am-setup-glyph {{ font-size: 30px; min-width: 36px; }}
         .am-setup-check {{ color: {bg_hex}; background: {accent_hex}; border-radius: {pill}px; min-width: 20px;
             min-height: 20px; font-size: 11px; font-weight: 700; }}

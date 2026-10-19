@@ -6,8 +6,10 @@ from i18n import _
 
 def _access():
     from agent_status import Access
+    from signin import Login
     return Access(_("An API key for a provider, or a local LLM from the map"), "crush",
-                  (".local/share/crush/crush.json",), ("ANTHROPIC_API_KEY", "OPENAI_API_KEY"), local_ok=True)
+                  (".local/share/crush/crush.json",), ("ANTHROPIC_API_KEY", "OPENAI_API_KEY"), local_ok=True,
+                  logins=(Login(_("Inside Crush (it asks for a key)"), ("crush",)),))
 
 
 # --- skills (skills_ctl) --------------------------------------------------------------------------

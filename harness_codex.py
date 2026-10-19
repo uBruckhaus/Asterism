@@ -6,8 +6,12 @@ from i18n import _
 
 def _access():
     from agent_status import Access
+    from signin import KeyStep, Login
     return Access(_("A ChatGPT plan (Plus, Pro, Business), or an API key from platform.openai.com"),
-                  "codex login", (".codex/auth.json",), ("OPENAI_API_KEY",), local_ok=True)
+                  "codex login", (".codex/auth.json",), ("OPENAI_API_KEY",), local_ok=True,
+                  logins=(Login(_("ChatGPT plan"), ("codex", "login")),),
+                  key=KeyStep("OPENAI_API_KEY", "https://platform.openai.com/api-keys",
+                              stdin=("codex", "login", "--with-api-key")))
 
 
 # --- security settings (agent_security) ----------------------------------------------------------

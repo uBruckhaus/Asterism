@@ -65,8 +65,10 @@ def _note() -> str:
 
 def _access():
     from agent_status import Access
+    from signin import Login
     return Access(_("A provider key (hermes setup), or a local LLM from the map"),
-                  "hermes setup", (".hermes/auth.json", ".hermes/.env"), (), local_ok=True)
+                  "hermes setup", (".hermes/auth.json", ".hermes/.env"), (), local_ok=True,
+                  logins=(Login(_("Setup wizard (account or key)"), ("hermes", "setup")),))
 
 
 # --- pointed at a local LLM (connect.plan) --------------------------------------------------------

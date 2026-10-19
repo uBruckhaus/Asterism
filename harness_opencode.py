@@ -66,8 +66,10 @@ def _note() -> str:
 
 def _access():
     from agent_status import Access
+    from signin import Login
     return Access(_("An account or API key for any provider, or a local LLM from the map"),
-                  "opencode auth login", (".local/share/opencode/auth.json",), (), local_ok=True)
+                  "opencode auth login", (".local/share/opencode/auth.json",), (), local_ok=True,
+                  logins=(Login(_("A provider (account or key)"), ("opencode", "auth", "login")),))
 
 
 # --- pointed at a local LLM (connect.plan) --------------------------------------------------------

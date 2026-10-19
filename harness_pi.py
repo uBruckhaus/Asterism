@@ -6,8 +6,10 @@ from i18n import _
 
 def _access():
     from agent_status import Access
+    from signin import Login
     return Access(_("Sign in inside Pi (/login: Claude, ChatGPT, Copilot …), an API key, or a local LLM from the map"),
-                  "pi  →  /login", (".pi/agent/auth.json",), ("ANTHROPIC_API_KEY", "OPENAI_API_KEY"), local_ok=True)
+                  "pi  →  /login", (".pi/agent/auth.json",), ("ANTHROPIC_API_KEY", "OPENAI_API_KEY"), local_ok=True,
+                  logins=(Login(_("Inside Pi"), ("pi",), _("Type /login in it.")),))
 
 
 # --- pointed at a local LLM (connect.plan) --------------------------------------------------------

@@ -226,7 +226,7 @@ class MapView(Gtk.DrawingArea):
         self.group_labels = []
         self.group_rects = {}
         for slot, column in enumerate(active):
-            y = self.column_top(self.column_height(column), height)
+            y = self.column_top(self.column_height(column), height, hub=column == 1)
             x = left + slot * (node_w + gap)
             self.column_x[column] = x
             titled = self.titled(column)
@@ -304,14 +304,15 @@ class MapView(Gtk.DrawingArea):
             return 0.0, height
         return adjustment.get_value() / self.zoom, adjustment.get_page_size() / self.zoom
 
-    def column_top(self, column_height: float, height: float) -> float:
+    def column_top(self, column_height: float, height: float, hub: bool = False) -> float:
         """A column that fits the view sits in its middle (below the headings while they
-        show); a taller one starts under its heading and scrolls with the map."""
+        show); a taller one starts under its heading and scrolls with the map. The agents
+        (hub) are always centred: taller than the view, in the middle of the whole map."""
         top, visible = self.visible_rows(height)
         area_top = max(HEADER_H, top + PAD)
         area_h = top + visible - PAD - area_top
         if column_height > area_h:
-            return HEADER_H
+            return max(HEADER_H, (HEADER_H + height - PAD - column_height) / 2) if hub else HEADER_H
         y = area_top + (area_h - column_height) / 2
         return max(HEADER_H, min(y, height - PAD - column_height))
 

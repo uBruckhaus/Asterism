@@ -316,6 +316,8 @@ class Access:
     files: tuple = ()        # credential files (relative to ~): only whether one exists is checked
     env: tuple = ()          # API-key variables: only whether one is set is checked
     local_ok: bool = False   # works with a local LLM, without any account
+    logins: tuple = ()       # signin.Login: the agent's own sign-ins the app can start in a terminal
+    key: object = None       # signin.KeyStep: how an API key gets where the agent reads it
 
 
 def access_table() -> dict:

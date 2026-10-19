@@ -13,8 +13,11 @@ def _note() -> str:
 
 def _access():
     from agent_status import Access
+    from signin import Login
     return Access(_("A Claude Pro or Max subscription (claude.ai), or an API key from console.anthropic.com"),
-                  "claude auth login", (".claude/.credentials.json",), ("ANTHROPIC_API_KEY",))
+                  "claude auth login", (".claude/.credentials.json",), ("ANTHROPIC_API_KEY",),
+                  logins=(Login(_("Claude subscription"), ("claude", "auth", "login", "--claudeai")),
+                          Login(_("API billing (Anthropic Console)"), ("claude", "auth", "login", "--console"))))
 
 
 # --- security settings (agent_security) ----------------------------------------------------------
