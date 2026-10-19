@@ -17,7 +17,6 @@ import app_entry
 import corners
 import desktop
 import disk_usage
-import graph
 import i18n
 import install_ctl
 import inventory
@@ -301,9 +300,9 @@ class SettingsPages:
             self.button_row(group, _("Add-ons"), _("Agents, providers and features: what is built in, installed "
                                                    "and available."), _("Open"), self.open_addons)
             if self.adapter_addons():
-                self.button_row(group, _("Set up Asterism"), _("Pick again which agents and providers the map "
-                                                                "shows; found ones come ticked."), _("Set up"),
-                                self.open_setup)
+                self.button_row(group, _("My setup"), _("Switch agents and providers on or off, update or remove "
+                                                         "them, and your MCP servers, skills and models."), _("Open"),
+                                self.open_my_setup)
         for addon_id, builder in self.addon_hooks("settings"):
             addon_api.call(addon_id, builder, addon_api.UI(self, addon_id), right)
         group = self.preference_group(right, _("About"))
@@ -424,12 +423,6 @@ class SettingsPages:
         self.switch_row(group, _("Health check line"),
                         _("On the main page when something needs fixing (× hides it until the next start)."),
                         settings.get("health_line", True) is not False, self.set_health_line)
-        self.combo_row(group, _("Start with"),
-                       _("What the cards and the map show when AI Agents Map opens; My setup and + Available "
-                         "in the header switch for the moment."),
-                       [_("My setup: installed and set up"), _("Everything you could add too")],
-                       graph.SCOPES.index(self.start_scope()),
-                       lambda i: (self.save_setting(start_scope=graph.SCOPES[i]), self.set_scope(graph.SCOPES[i])))
         self.window_rounding = desktop.window_rounding()
         like = _("Like windows ({0} px)").format(self.window_rounding) if self.window_rounding is not None \
             else _("Like windows")
@@ -455,13 +448,6 @@ class SettingsPages:
                         _("When a new agent is installed, Claude Code or Codex finds out on the web where it keeps "
                           "MCP servers and skills (once, a few minutes in the background)."),
                         settings.get("look_up_new_agents", True), lambda on: self.save_setting(look_up_new_agents=on))
-        self.switch_row(group, _("Show what you could set up"),
-                        _("In My setup, a hint below the cards: “{0}” (agents and local LLMs that are not "
-                          "installed, MCP servers no agent uses). + Available in the header shows them either "
-                          "way.").format(ngettext("1 more you could set up", "{0} more you could set up",
-                                                  2).format("N")),
-                        settings.get("show_more_hint", True),
-                        lambda on: (self.save_setting(show_more_hint=on), self.refresh_overview()))
         self.switch_row(group, _("Animate active lines"),
                         _("Light runs along a running agent's line to its provider and model on the map. Off: "
                           "the lines stay still. Also off when the system turns animations off."),

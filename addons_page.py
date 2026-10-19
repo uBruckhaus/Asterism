@@ -23,6 +23,7 @@ import desktop
 import harnesses
 import install_recipes
 import providers
+import setup_page
 from i18n import _
 
 KIND_ICONS = {"agent": "system-users-symbolic", "provider": "network-server-symbolic",
@@ -261,7 +262,7 @@ class AddonsPage:
             self.load_addons()
         return found
 
-    LOCAL_GLYPH, ONLINE_GLYPH, AGENT_GLYPH = "\U000F061A", "\U000F015F", "\U000f06a9"
+    LOCAL_GLYPH, ONLINE_GLYPH, AGENT_GLYPH = setup_page.LOCAL_GLYPH, setup_page.ONLINE_GLYPH, setup_page.AGENT_GLYPH
 
     def collect_glyphs(self, adapters: list):
         """The icons of the agents and providers the adapters bring (while they are all loaded)."""
@@ -297,158 +298,6 @@ class AddonsPage:
         finally:
             self.load_addons()
         return self.setup_glyphs
-
-    def build_setup_page(self) -> Gtk.Widget:
-        """The welcome page of a new Asterism: the app's icon and a greeting, then the agents and
-        local LLMs as cards with their icons; a click on a card ticks it, one button switches all on."""
-        page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
-        self.setup_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12, margin_bottom=12)
-        clamp = Adw.Clamp(maximum_size=900, child=self.setup_box, unit=Adw.LengthUnit.PX)
-        page.append(self.page_scroller(clamp))
-        page.append(Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL))
-        buttons = Gtk.Box(spacing=8, margin_top=6, margin_bottom=6)
-        self.setup_count = Gtk.Label(xalign=0, hexpand=True)
-        self.setup_count.add_css_class("am-agent-detail")
-        buttons.append(self.setup_count)
-        later = Gtk.Button(label=_("Later"))
-        later.set_tooltip_text(_("Start with an empty map; Settings › Add-ons › Set up brings this page back."))
-        later.connect("clicked", lambda *_a: self.finish_setup(False))
-        buttons.append(later)
-        self.setup_ok = Gtk.Button()
-        self.setup_ok.add_css_class("suggested-action")
-        self.setup_ok.connect("clicked", lambda *_a: self.finish_setup(True))
-        buttons.append(self.setup_ok)
-        page.append(buttons)
-        self.setup_checks = {}
-        return page
-
-    def setup_hero(self, found: int) -> Gtk.Widget:
-        hero = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6, margin_top=18, margin_bottom=6)
-        icon = Gtk.Image.new_from_icon_name(desktop.app_id())
-        icon.set_pixel_size(72)
-        hero.append(icon)
-        title = Gtk.Label(label=_("Welcome to {0}").format(desktop.app_name()))
-        title.add_css_class("am-setup-title")
-        hero.append(title)
-        text = _("Pick the AI agents and local LLMs you use. The ones found on this PC are already ticked: "
-                 "one click on Switch on puts them on your map.") if found else \
-            _("No agent or local LLM was found on this PC yet. Pick what you want to use: after Switch on, "
-              "Asterism shows you how to install it.")
-        line = Gtk.Label(label=text, wrap=True, justify=Gtk.Justification.CENTER, max_width_chars=60)
-        line.add_css_class("am-hint")
-        hero.append(line)
-        return hero
-
-    def open_setup(self):
-        """What Asterism found on this PC comes first, already ticked: one click puts it on the map.
-        The rest can be ticked too and installed from its card afterwards."""
-        box = self.setup_box
-        while (child := box.get_first_child()) is not None:
-            box.remove(child)
-        self.setup_checks = {}
-        adapters = self.adapter_addons()
-        online = [a for a in adapters if a.kind == "provider" and len(a.provides) > 1]
-        programs = [a for a in adapters if a not in online]
-        installed = self.installed_adapters(programs)
-        found = [a for a in programs if a.id in installed]
-        before = [a for a in programs if a not in found and addon_store.present(a)]
-        missing = [a for a in programs if a not in found and a not in before]
-        on = {a.id for a in adapters if a.state == "loaded"}
-        box.append(self.setup_hero(len(found)))
-        # By kind, found ones first: agents, local LLMs, online providers. Found and online come ticked.
-        state = {**{a.id: _("Installed") for a in found}, **{a.id: _("Used before") for a in before},
-                 **{a.id: _("Not installed") for a in missing}, **{a.id: _("Online") for a in online}}
-        ordered = found + before + missing
-        for title, hint, group in (
-                (_("AI agents"), _("The coding agents you work with in a terminal."),
-                 [a for a in ordered if a.kind == "agent"]),
-                (_("Local LLMs"), _("Programs that run language models on this PC."),
-                 [a for a in ordered if a.kind == "provider"]),
-                (_("Online providers"), _("The models your agents use on the web."), online)):
-            if not group:
-                continue
-            self.settings_heading(box, title)
-            self.note(box, hint)
-            flow = Gtk.FlowBox(selection_mode=Gtk.SelectionMode.NONE, homogeneous=True, column_spacing=10,
-                               row_spacing=10, min_children_per_line=2, max_children_per_line=5)
-            for addon in group:
-                ticked = addon in found or addon in online or addon.id in on
-                flow.append(self.setup_tile(addon, ticked, state[addon.id], addon in online,
-                                            here=addon in found or addon in online))
-            box.append(flow)
-        if missing or before:
-            self.note(box, _("Ticked but not installed: after Switch on, Asterism shows you how to install it."))
-        self.setup_installed = installed
-        self.update_setup_button()
-        if self.page_name() not in ("setup", "settings", "help", "addons"):
-            self.remember_page()
-        self.show_page("setup")
-
-    def setup_tile(self, addon, ticked: bool, state: str, online: bool, here: bool) -> Gtk.Widget:
-        """One card: the agent's or provider's icon, its name and whether it is on this PC; the whole
-        card is the tick (click, or Space on the focused card)."""
-        tile = Gtk.ToggleButton(active=ticked)
-        tile.add_css_class("am-setup-tile")
-        if not here:
-            tile.add_css_class("am-setup-absent")
-        body = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
-        top = Gtk.Box(spacing=8)
-        glyph, font = getattr(self, "setup_glyphs", {}).get(addon.id) or \
-            ((self.ONLINE_GLYPH if online else self.LOCAL_GLYPH) if addon.kind == "provider" else self.AGENT_GLYPH, "")
-        icon = Gtk.Label(label=glyph, xalign=0, hexpand=True)
-        icon.add_css_class("am-agent-icon")
-        icon.add_css_class("am-setup-glyph")
-        if font == "omarchy":
-            icon.add_css_class("am-agent-icon-omarchy")
-        top.append(icon)
-        mark = Gtk.Label(label="✓", valign=Gtk.Align.START, visible=ticked)
-        mark.add_css_class("am-setup-check")
-        top.append(mark)
-        body.append(top)
-        name = Gtk.Label(label=addon.name, xalign=0, ellipsize=3, max_width_chars=1)
-        name.add_css_class("am-addon-name")
-        body.append(name)
-        sub = Gtk.Label(label=state, xalign=0, ellipsize=3, max_width_chars=1)
-        sub.add_css_class("am-agent-detail")
-        if here and not online:
-            sub.add_css_class("am-setup-here")
-        body.append(sub)
-        tile.set_child(body)
-        tile.set_tooltip_text(addon.summary or addon.name)
-
-        def toggled(button):
-            mark.set_visible(button.get_active())
-            self.update_setup_button()
-
-        tile.connect("toggled", toggled)
-        self.setup_checks[addon.id] = (tile, addon)
-        return tile
-
-    def update_setup_button(self):
-        n = sum(1 for check, _addon in self.setup_checks.values() if check.get_active())
-        self.setup_ok.set_label(_("Switch on {0}").format(n) if n else _("Switch on"))
-        self.setup_ok.set_sensitive(n > 0)
-        self.setup_count.set_label(_("Click a card to tick it or untick it."))
-
-    def finish_setup(self, switch_on: bool):
-        self.save_setting(setup_done=True)
-        chosen = [addon for check, addon in self.setup_checks.values() if check.get_active()] if switch_on else []
-        if not chosen:
-            self.show_view("main", save=False)
-            return
-        for check, addon in self.setup_checks.values():
-            addon_store.set_enabled(addon.id, check.get_active())
-        self.reload_addons()
-        absent = [a for a in chosen if (a.kind == "agent" or a.commands) and a.id not in self.setup_installed]
-        self.toast(_("{0} add-ons are on.").format(len(chosen)), 4)
-        if absent:
-            # Ticked but not installed: their cards, with Install.
-            self.addons_stack.set_visible_child_name("list")
-            self.show_page("addons")
-            self.addons_select = absent[0].id
-            self.refresh_addons()
-        else:
-            self.show_view("main", save=False)
 
     # --- open, close, data ---
     def open_addons(self, select: str = ""):

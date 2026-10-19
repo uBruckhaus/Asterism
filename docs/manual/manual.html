@@ -189,31 +189,46 @@
 
   <ol class="legend-list">
     <li><b>Sidebar button</b> — hides or shows the cards (<kbd>Ctrl</kbd>+<kbd>B</kbd>).</li>
-    <li><b>My setup · + Available</b> and <b>All · Online · Local LLMs</b> — what to show (see below).</li>
+    <li><b>My setup</b> — every agent, local LLM, MCP server, skill folder and model as a card: switch on,
+      update, remove (see below). <b>All · Online · Local LLMs</b> — what the map shows.</li>
     <li><b>ⓘ</b> legend, <b>?</b> Help (<kbd>F1</kbd>) and the gear for Settings (<kbd>Ctrl</kbd>+<kbd>,</kbd>).</li>
     <li><b>Health check</b> — a one-line summary; <b>Open ›</b> lists the details.</li>
-    <li><b>Cards</b> — Agents, Local LLMs, MCP servers, Skills, each with its <b>Show ▾</b> list.
-      The buttons beside <b>Show ▾</b> switch between cards and a compact tree.</li>
+    <li><b>Cards</b> — Agents, Local LLMs, MCP servers, Skills. The two buttons at the top switch
+      between cards and a compact tree.</li>
     <li><b>GPU memory</b> and <b>GPU activity</b> — how the graphics card is used right now.</li>
     <li><b>Show</b> toggles — shorten the map to the categories you are working on.</li>
     <li><b>The map</b> — MCP servers and skills ← agents → LLM providers → models.</li>
     <li><b>The legend</b> — what every dot, line and mark on the map means.</li>
   </ol>
 
-  <h2 id="views">Choosing what to show</h2>
+  <h2 id="my-setup">My setup</h2>
+  <p>The map shows only what is set up: installed agents and local LLMs, the MCP servers and skill
+  folders agents use, and models. Everything else is done on <b>My setup</b> (the button in the
+  header), one card per item:</p>
+  <ul>
+    <li><b>AI agents, Local LLMs, Online providers</b> <span class="badge">Asterism</span> — click a
+      card to tick or untick it, then <b>Apply</b>: the add-on is switched on or off. Switching off
+      takes it off the map; nothing is deleted.</li>
+    <li><b>MCP servers, Skills, Models</b> — a card for each one that is installed. A click opens its
+      details (a model: its menu). The dashed card at the end of a section adds one:
+      <b>Add MCP server</b>, <b>Add skills</b>, <b>Add model</b>, <b>Get add-ons</b>.</li>
+    <li><b>⋯</b> or a right-click on a card opens the same menu as the box on the map: update, start or
+      stop, details, uninstall or remove, move a model.</li>
+    <li>A yellow <b>↑ version</b> on a card means an update is waiting; its menu has <b>Update</b>.</li>
+  </ul>
+  <p>There is nothing to hide: what you do not want on the map is switched off or removed here.</p>
+
+  <h2 id="views">Choosing what the map shows</h2>
   <table class="first-nowrap">
     <thead><tr><th>Switch</th><th>Shows</th></tr></thead>
     <tbody>
-      <tr><td><b>My setup</b></td><td>Only what is yours: installed agents and local LLMs, and MCP servers an agent uses. This is the default.</td></tr>
-      <tr><td><b>+ Available</b></td><td>Adds what you could set up: agents and local LLMs that are not installed, MCP servers no agent uses, and anything you have hidden.</td></tr>
       <tr><td><b>All</b></td><td>Everything.</td></tr>
       <tr><td><b>Online</b></td><td>Online providers only; no local LLMs, their models or the GPU meters.</td></tr>
       <tr><td><b>Local LLMs</b></td><td>Only local LLMs and the agents that can use them.</td></tr>
     </tbody>
   </table>
-  <p>Settings › <b>Start with</b> picks the view the app opens with. Every column heading on the map
-  (<b>AGENTS ▾</b>, <b>MODELS ▾</b>, …) opens a list where you can untick single boxes or whole
-  groups; the heading then shows how many are shown, for example <i>(5/8)</i>.</p>
+  <p>The <b>Show</b> toggles below the GPU meters leave whole categories out of the map, for example
+  all skills.</p>
 
   <h2 id="map">Working with the map</h2>
   <ul>
@@ -222,7 +237,7 @@
       <kbd>Esc</kbd> or <b>Clear selection</b> clears it.</li>
     <li>The <b>pin</b> at a box's top-right corner keeps its connections lit while you look elsewhere.</li>
     <li><b>Right-click</b> a box for everything its card offers: start or stop, details, install,
-      models, <b>Hide</b>, and more.</li>
+      models, update, remove, and more.</li>
     <li>Each agent's active path — agent → provider in use → its model — is drawn bold. While an
       agent is working, light runs along that line.</li>
     <li>When a program that is not on the map uses a local LLM, the line from that LLM to the model
@@ -288,12 +303,6 @@
   <b>×</b> closes an ended one.</p>
   <p>An agent with an open instance anywhere on the computer gets a green dot and <i>running</i>,
   and the model box it runs with says <i>in use · &lt;agent&gt;</i>.</p>
-
-  <h2 id="hide">Hiding agents and providers</h2>
-  <p><b>Hide</b> (on a card, in the tree, or in a box's right-click menu) leaves an agent or a
-  provider out of <b>My setup</b>, with Undo. Hidden ones are listed under
-  <b>+ Available › Hidden</b> with <b>Show again</b>. A provider can only be hidden while no shown
-  agent uses one of its models.</p>
 
   <h2 id="agent-updates">Updating agents</h2>
   <p>When a newer version of an installed agent is out, the hint area names it. <b>Update</b> runs
@@ -389,8 +398,8 @@
 <!-- ============================== 6 Models ============================== -->
 <section class="chapter" id="models">
   <h1>Models</h1>
-  <p class="lead">Right-click an installed local LLM › <b>Models…</b>, or click a folder's dashed
-  <b>+ Model</b> box on the map. The page has a list on the left and the chosen model on the right,
+  <p class="lead">Right-click an installed local LLM › <b>Models…</b>, or click <b>Add model</b> on
+  <b>My setup</b>. The page has a list on the left and the chosen model on the right,
   in three tabs.</p>
 
   <div class="figure wide">
@@ -562,19 +571,17 @@
     <tbody>
       <tr><td><b>Language</b></td><td>The system language, or English, Deutsch, Français, Español, Italiano, Português, Nederlands, Polski.</td></tr>
       <tr><td><b>Look</b> <span class="badge omarchy">Omarchy</span></td><td>The Omarchy theme colours, or GNOME's Adwaita look with the system's light/dark mode and accent colour.</td></tr>
-      <tr><td><b>Start with</b></td><td>Open with <b>My setup</b> or <b>+ Available</b>.</td></tr>
       <tr><td><b>Sidebar</b></td><td>Cards or a compact tree.</td></tr>
       <tr><td><b>Animate active lines</b></td><td>Light runs along the line of a working agent.</td></tr>
       <tr><td><b>Terminal tabs above the map</b></td><td>One tab per agent terminal in the window.</td></tr>
       <tr><td><b>Corners</b></td><td>Like windows, rounded or square.</td></tr>
       <tr><td><b>Look up new agents</b></td><td>Ask an installed agent where an unknown agent keeps its settings.</td></tr>
-      <tr><td><b>Show what you could set up</b></td><td>The "N more you could set up" hint below the cards.</td></tr>
       <tr><td><b>Start local LLMs with their agents</b></td><td>The background watcher described in <a href="#start-with-agents">Starting and stopping with agents</a>.</td></tr>
       <tr><td><b>Too narrow for the map</b> <span class="badge omarchy">Omarchy</span></td><td>What "Maximize to see the map" does: move to a free workspace, maximize in place, or show no hint.</td></tr>
       <tr><td><b>In the app launcher</b></td><td>The launcher entry; off removes it.</td></tr>
       <tr><td><b>Agents start in</b></td><td>The folder agents start in.</td></tr>
       <tr><td><b>Models folder</b></td><td>One folder for all models, with <b>Reorganize models…</b>.</td></tr>
-      <tr><td><b>Add-ons</b> <span class="badge">Asterism</span></td><td><b>Look for add-ons online</b>, the Add-ons page, and <b>Set up</b> for the welcome page.</td></tr>
+      <tr><td><b>Add-ons</b> <span class="badge">Asterism</span></td><td><b>Look for add-ons online</b>, the Add-ons page, and <b>My setup</b>.</td></tr>
       <tr><td><b>About</b></td><td>The version, the author and the license; <b>Website</b> opens the project on GitHub and <b>Report an Issue</b> its issue list.</td></tr>
     </tbody>
   </table>
@@ -756,9 +763,10 @@
   </div>
   <p>Click a card (or press <kbd>Space</kbd> on it) to tick or untick it; a ticked card has a blue frame
   and a check mark. <b>Switch on</b> (with the number of ticked cards) loads them and shows the map; when
-  you ticked programs that are not installed, the Add-ons page opens on their cards, each with
-  <b>Install</b>. <b>Later</b> starts with an empty map. As long as nothing is switched on, Asterism opens
-  on the welcome page again at every start; Settings › Add-ons › <b>Set up</b> brings it back at any time.</p>
+  you ticked programs that are not installed, <b>My setup</b> opens: <b>⋯</b> on their cards ›
+  <b>Install…</b>. <b>Later</b> starts with an empty map. As long as nothing is switched on, Asterism opens
+  on the welcome page again at every start. Afterwards the same cards are on <b>My setup</b> (the header
+  button), where agents and providers are switched on and off at any time.</p>
 
   <h2 id="addons-page">The Add-ons page</h2>
   <p>Open it with the puzzle button in the header, from Settings › <b>Add-ons</b>, or from any
@@ -812,8 +820,7 @@
   <p>When you install an agent Asterism does not know yet, it looks in the catalog (Settings ›
   <b>Look for add-ons online</b>, on by default: the list is read from GitHub every few hours, nothing
   is sent but the request). If an add-on knows that agent, you see a line at the bottom of the cards
-  (<i>"Kilo Code is on this PC; an add-on shows it here"</i>), a dashed box in the map's agents column
-  and a card under <b>Suggested for this PC</b>; one click installs it. If no add-on exists yet, the
+  (<i>"Kilo Code is on this PC but not on the map"</i>) and a card under <b>Suggested for this PC</b>; one click installs it. If no add-on exists yet, the
   agent's details say so, with a link to ask for one.</p>
 </section>
 
@@ -844,7 +851,7 @@
     <thead><tr><th>Problem</th><th>What to do</th></tr></thead>
     <tbody>
       <tr><td>The map is missing; only cards are shown.</td><td>The window is narrower than about 1300 pixels. Maximize it, or press <kbd>Ctrl</kbd>+<kbd>B</kbd> to hide the cards.</td></tr>
-      <tr><td>A box I expect is not on the map.</td><td>Check <b>My setup</b> vs <b>+ Available</b>, the <b>All · Online · Local LLMs</b> switch, the <b>Show</b> toggles and the column heading's list (a heading like <i>(5/8)</i> means some are hidden). Hidden agents are under <b>+ Available › Hidden</b>.</td></tr>
+      <tr><td>A box I expect is not on the map.</td><td>The map shows only what is set up: check <b>My setup</b> (an add-on switched off, an MCP server no agent uses), the <b>All · Online · Local LLMs</b> switch and the <b>Show</b> toggles.</td></tr>
       <tr><td><b>Start here</b> is missing or does nothing.</td><td>Install VTE for GTK&nbsp;4 (<code>vte4</code>), or use <b>Start in terminal</b>.</td></tr>
       <tr><td>Agent icons are boxes.</td><td>Install a Nerd Font (Symbols Nerd Font).</td></tr>
       <tr><td>A line is dotted red.</td><td>Click it for hints, fix what it says, then <b>Test again</b>. See <a href="#failed">When a connection fails</a>.</td></tr>

@@ -190,6 +190,17 @@ class ThemeCss:
         .am-setup-check {{ color: {bg_hex}; background: {accent_hex}; border-radius: {pill}px; min-width: 20px;
             min-height: 20px; font-size: 11px; font-weight: 700; }}
         .am-setup-title {{ font-size: 22px; font-weight: 700; }}
+        .am-setup-small {{ padding: 8px 10px; }}
+        .am-agent-icon.am-setup-glyph-sm {{ font-size: 20px; min-width: 24px; }}
+        .am-setup-add {{ background: transparent; border: 1px solid alpha({fg_hex}, 0.16); box-shadow: none; }}
+        .am-setup-add .am-setup-glyph, .am-setup-add .am-setup-glyph-sm {{ color: {dim_hex}; }}
+        .am-setup-add:hover {{ border-color: {accent_hex}; background: alpha({accent_hex}, 0.06); }}
+        .am-setup-add:hover .am-setup-glyph, .am-setup-add:hover .am-setup-glyph-sm {{ color: {accent_hex}; }}
+        .am-setup-update {{ color: {bg_hex}; background: {yellow_hex}; border-radius: {pill}px; padding: 1px 8px;
+            font-size: 11px; font-weight: 700; }}
+        button.am-setup-more {{ min-height: 0; min-width: 0; padding: 0 8px; font-size: 14px; color: {dim_hex};
+            border-radius: {radius}px; }}
+        button.am-setup-more:hover {{ color: {fg_hex}; background: alpha({fg_hex}, 0.10); }}
         list.am-pick-cards {{ background: transparent; }}
         list.am-pick-cards > row {{ background: alpha({fg_hex}, 0.04); border: 1px solid alpha({fg_hex}, 0.10);
             border-radius: {radius}px; margin: 0 2px 6px 2px; padding: 2px 4px; }}

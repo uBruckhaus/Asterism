@@ -98,6 +98,7 @@ from palette import ThemePalette, outside_color
 from settings_pages import SettingsPages
 from theme_css import ThemeCss
 from install_dialog import InstallDialog
+from setup_page import SetupPage
 try:
     from addons_page import AddonsPage      # Asterism only: the Add-ons page (not in the Omarchy plugin)
 except ImportError:
@@ -266,7 +267,7 @@ class AppWindow(Adw.ApplicationWindow):
             GLib.idle_add(self.on_width, width)
 
 
-class AgentsMap(SettingsPages, ThemeCss, InstallDialog, AddonsPage, Adw.Application):
+class AgentsMap(SettingsPages, ThemeCss, InstallDialog, SetupPage, AddonsPage, Adw.Application):
     def __init__(self):
         super().__init__(application_id=desktop.app_id())
         self.window = None
@@ -294,7 +295,6 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, AddonsPage, Adw.Applicat
         self.split = False         # wide overview: cards left, map right
         self.sidebar_visible = True  # the cards beside the map (header toggle, Ctrl+B); shown on every open
         self.sessions = {}           # agent command -> terminal_pane.TerminalPane (an agent started here)
-        self.scope = self.start_scope()  # "mine": only what is installed and set up; "all": what could be added too
         # Downloads and installs run on as background jobs when their page is left (jobs.py).
         self.jobs = jobs.Jobs(lambda job: GLib.idle_add(self.job_changed, job))
         self.job_rows = {}           # job id -> (row, detail label, progress bar)
@@ -306,6 +306,10 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, AddonsPage, Adw.Applicat
 
     def do_activate(self):
         if self.window is None:
+            try:
+                ai_core.drop_retired_settings()
+            except OSError:
+                pass
             self.load_addons()
             self.build_window()
             self.hold()  # Keep the singleton alive while its popup is hidden.
@@ -349,7 +353,7 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, AddonsPage, Adw.Applicat
     def look_for_addons(self):
         """In the background: the signed add-on catalog (cached, read again every few hours) and its
         detect hints (read-only) → add-ons whose agent or provider is on this PC but not shown yet:
-        a hint line, a dashed map box, "Suggested for this PC" on the Add-ons page."""
+        a hint line, a card on My setup, "Suggested for this PC" on the Add-ons page."""
         if addons is None or getattr(self, "addons_looking", False):
             return
         self.addons_looking = True
@@ -527,9 +531,9 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, AddonsPage, Adw.Applicat
         stack.add_named(self.build_settings_page(), "settings")
         stack.add_named(self.build_help_page(), "help")
         stack.add_named(self.build_reorganize_page(), "reorganize")
+        stack.add_named(self.build_setup_page(), "setup")
         if hasattr(self, "build_addons_page"):
             stack.add_named(self.build_addons_page(), "addons")
-            stack.add_named(self.build_setup_page(), "setup")
             self.setup_addon_drop(self.window)
         # Details and the pages that change something open right of the cards, where the map is.
         right = self.right_stack
@@ -543,7 +547,7 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, AddonsPage, Adw.Applicat
         right.add_named(self.build_health_page(), "health")
         right.connect("notify::visible-child-name", lambda *_: self.update_header())
         self.guard_text_fields_in(window)
-        stack.connect("notify::visible-child-name", lambda *_: self.update_header())
+        stack.connect("notify::visible-child-name", lambda *_: (self.update_header(), self.on_setup_shown()))
         card.append(stack)
         self.stack = stack
 
@@ -574,7 +578,7 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, AddonsPage, Adw.Applicat
         sidebar_button.connect("toggled", lambda b: self.set_sidebar(b.get_active()))
         header.append(sidebar_button)
         self.sidebar_button = sidebar_button
-        title = Gtk.Label(label=self.scope_title(), xalign=0)
+        title = Gtk.Label(label=_("My AI Agents Map"), xalign=0)
         title.add_css_class("am-title")
         title.set_ellipsize(Pango.EllipsizeMode.END)
         title.set_max_width_chars(30)
@@ -595,24 +599,17 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, AddonsPage, Adw.Applicat
         header.append(self.widen_hint)
         # One view (the cards with the map beside them): no view switch any more.
         self.view_buttons = {}
-        # My setup (installed and set up) or also what could be added; Settings › Start with.
-        self.scope_switch = Gtk.Box(spacing=0, valign=Gtk.Align.CENTER)
-        self.scope_switch.add_css_class("am-segmented")
-        self.scope_buttons = {}
-        scope_tips = {"mine": _("Only your agents, local LLMs and MCP servers: installed and set up"),
-                      "all": _("Also what you could add: agents and local LLMs that are not installed, "
-                               "MCP servers no agent uses")}
-        group = None
-        for scope, label in (("mine", _("My setup")), ("all", _("+ Available"))):
-            button = Gtk.ToggleButton(label=label, group=group)
-            group = group or button
-            button.add_css_class("am-segment")
-            button.set_tooltip_text(scope_tips[scope])
-            button.connect("toggled", lambda b, s=scope: b.get_active() and self.set_scope(s))
-            self.scope_switch.append(button)
-            self.scope_buttons[scope] = button
-        self.scope_buttons[self.scope].set_active(True)
-        header.append(self.scope_switch)
+        # My setup: what is on the map is set up, updated and removed there (setup_page.py).
+        self.setup_button = Gtk.Button(valign=Gtk.Align.CENTER)
+        content = Gtk.Box(spacing=6)
+        content.append(Gtk.Image.new_from_icon_name("view-grid-symbolic"))
+        content.append(Gtk.Label(label=_("My setup")))
+        self.setup_button.set_child(content)
+        self.setup_button.add_css_class("am-small-btn")
+        self.setup_button.set_tooltip_text(_("Agents, LLMs, MCP servers, skills and models: add, update or remove "
+                                             "them; the map shows what is set up"))
+        self.setup_button.connect("clicked", lambda *_: self.open_my_setup())
+        header.append(self.setup_button)
         # Which setup to show, for the cards and the map alike: everything, only online
         # providers (no local LLMs), or only local LLMs (and the agents that can use them).
         self.view_switch = Gtk.Box(spacing=0, valign=Gtk.Align.CENTER)
@@ -853,12 +850,6 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, AddonsPage, Adw.Applicat
         for key, button in self.sidebar_buttons.items():
             button.connect("toggled", lambda b, k=key: b.get_active() and self.set_sidebar_style(k))
         top.append(style)
-        self.card_filter = Gtk.Button()
-        self.card_filter.add_css_class("am-small-btn")
-        self.card_filter.add_css_class("am-filter-btn")
-        self.card_filter.set_tooltip_text(_("Choose which cards the overview shows"))
-        self.card_filter.connect("clicked", lambda b: self.show_card_list(b))
-        top.append(self.card_filter)
         self.list_pane.append(top)
         self.list_pane.append(scroller)
         # Hints get their own place at the bottom, outside the category cards.
@@ -940,10 +931,8 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, AddonsPage, Adw.Applicat
         self.side_map.on_link = self.on_map_link
         self.side_map.on_relink = self.on_map_relink
         self.side_map.on_pick_model = self.on_map_pick_model
-        self.side_map.on_add = self.on_map_add
         self.side_map.on_failed_edge = self.show_link_hints
         self.side_map.on_context = lambda node_id, rect, v=self.side_map: self.show_context(v, node_id, rect)
-        self.side_map.on_header = lambda column, rect: self.show_column_list(self.side_map, column, rect)
         map_scroller = self.page_scroller(self.side_map.with_flow_layer(), bar_room=False)   # the lights on running agents' paths on top
         map_scroller.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)   # zoomed in: sideways too
         side.append(map_scroller)
@@ -1327,24 +1316,14 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, AddonsPage, Adw.Applicat
         self.hint_buttons = Gtk.SizeGroup(mode=Gtk.SizeGroupMode.HORIZONTAL)   # one width for the hints' buttons
         self.detail_boxes = {}
         self.card_widgets = {}
-        off, mode_hidden = self.mode_rules()
-        hidden = self.card_hidden() | mode_hidden
-        put_away = self.hidden_now()
-        installed = [a for a in self.agent_list if a.installed and f"agent:{a.command}" not in hidden
-                     and f"agent:{a.command}" not in put_away]
-        # Hidden with Hide: only in + Available, in a section of their own above Not installed.
-        self.put_away_ids = [] if self.scope == "mine" else \
-            [f"agent:{a.command}" for a in self.agent_list if a.installed and f"agent:{a.command}" in put_away
-             and f"agent:{a.command}" not in hidden] + \
-            sorted(i for i in put_away if not i.startswith("agent:") and i not in hidden)
-        missing = [a for a in self.agent_list if not a.installed and f"agent:{a.command}" not in hidden]
+        # Only what is set up: the rest is added, updated and removed on My setup (setup_page.py).
+        off, hidden = self.mode_rules()
+        installed = [a for a in self.agent_list if a.installed and f"agent:{a.command}" not in hidden]
         inv = self.inventory
         names = self.agent_names()
-        self.update_card_filter()
 
         runtimes = [] if "local" in off else \
-            [rt for rt in sorted(inv.runtimes, key=lambda r: not r.installed)
-             if f"runtime:{rt.key}" not in hidden and f"runtime:{rt.key}" not in put_away]
+            [rt for rt in inv.runtimes if rt.installed and f"runtime:{rt.key}" not in hidden]
         servers = [m for m in inv.mcp if f"mcp:{m.name}" not in hidden]
         skill_sets = [s for s in inv.skill_sets if f"skills:{s.path}" not in hidden]
         self.tree_list = None
@@ -1366,13 +1345,15 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, AddonsPage, Adw.Applicat
             empty.append(row)
             box.append(empty)
         if self.sidebar_tree():
-            self.render_tree(self.tree_nodes(installed, runtimes, servers, skill_sets, missing, names))
+            self.render_tree(self.tree_nodes(installed, runtimes, servers, skill_sets, names))
             new_mcp, new_skills = self.new_found()
         else:
-            new_mcp, new_skills = self.overview_cards(installed, runtimes, servers, skill_sets, missing, names)
+            new_mcp, new_skills = self.overview_cards(installed, runtimes, servers, skill_sets, names)
         self.overview_hints(new_mcp, new_skills)
+        if getattr(self, "stack", None) is not None and self.page_name() == "setup":
+            GLib.idle_add(self.refresh_setup)       # My setup's cards follow too (a removal, an update)
 
-    def overview_cards(self, installed, runtimes, servers, skill_sets, missing, names):
+    def overview_cards(self, installed, runtimes, servers, skill_sets, names):
         """The sidebar as cards, in categories (Settings › Sidebar: Cards)."""
         inv = self.inventory
         if installed:
@@ -1427,30 +1408,7 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, AddonsPage, Adw.Applicat
         add.connect("clicked", lambda *_: self.open_add_skills())
         group.set_header_suffix(add)
 
-        if self.put_away_ids:
-            group = self.section(_("Hidden ({0})").format(len(self.put_away_ids)))
-            for node_id in self.put_away_ids:
-                group.add(self.hidden_card(node_id, names))
-        if missing:
-            group = self.section(_("Not installed ({0})").format(len(missing)))
-            for agent in missing:
-                group.add(self.agent_card(agent))
         return new_mcp, new_skills
-
-    def hidden_card(self, node_id: str, names) -> Gtk.Widget:
-        """A hidden agent or provider in + Available › Hidden, grey, with Show again."""
-        key, _sep, ident = node_id.partition(":")
-        if key == "agent":
-            return self.agent_card(next(a for a in self.agent_list if a.command == ident))
-        if key == "runtime":
-            rt = next((r for r in self.inventory.runtimes if r.key == ident), None)
-            if rt is not None:
-                return self.expandable_card(node_id, "\U000F061A", "", rt.name, _("Local LLM"),
-                                            lambda b, rt=rt: self.fill_runtime(b, rt, names), dim=True)
-        model = key == "model"
-        return self.expandable_card(node_id, "\U000F01A7" if model else "\U000F0163", "", self.item_name(node_id),
-                                    _("Model") if model else _("Online provider"),
-                                    lambda b: b.append(self.hide_button(node_id)), dim=True)
 
     def overview_hints(self, new_mcp, new_skills):
         """The hint area at the bottom of the sidebar (cards or tree)."""
@@ -1463,13 +1421,15 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, AddonsPage, Adw.Applicat
                       ([(_("Add skills…"), self.open_add_skills)] if new_skills else [])
             self.hint_line(_("New on this PC: {0}").format(
                 listed([c.name for c in new_mcp] + [s.origin for s in new_skills], 5)), buttons)
-        for entry, state in getattr(self, "addon_suggestions", []):
-            if state == "off":
-                self.hint_line(_("{0} is on this PC; its add-on is off").format(entry.name),
-                               [(_("Switch on"), lambda e=entry: self.open_addons(select=e.id))])
-            else:
-                self.hint_line(_("{0} is on this PC; an add-on shows it here").format(entry.name),
-                               [(_("Get add-on"), lambda e=entry: self.open_addons(select=e.id))])
+        # Agents and local LLMs on this PC that are not on the map: their add-on is off (My setup
+        # switches it on) or not installed yet (the Add-ons page gets it). One line each.
+        for state, opener, button in (("off", self.open_my_setup, _("My setup")),
+                                      ("new", lambda: self.open_addons(), _("Get add-ons"))):
+            waiting = [entry.name for entry, s in getattr(self, "addon_suggestions", []) if s == state]
+            if waiting:
+                self.hint_line(ngettext("{0} is on this PC but not on the map", "{1} are on this PC but not on the map",
+                                        len(waiting)).format(listed(waiting, 1), listed(waiting, 3)),
+                               [(button, opener)])
         versions = getattr(self, "new_versions", [])
         if versions:
             self.hint_line(_("New version found: {0} · + MCP server › Look inside… to use it").format(
@@ -1479,13 +1439,6 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, AddonsPage, Adw.Applicat
             self.hint_line(_("{0} {1} is available (you have {2})").format(update.name, update.available, update.current),
                            [(_("Update"), lambda u=update: self.run_update(u))])
 
-        # My setup: what else could be added, one click away (Settings › Show what you could set up).
-        more = self.scope_more() if ai_core.load_settings().get("show_more_hint", True) else 0
-        if more:
-            self.hint_line(ngettext("1 more you could set up", "{0} more you could set up", more).format(more),
-                           [(_("Show"), lambda: self.set_scope("all"))],
-                           tip=_("Agents and local LLMs that are not installed, MCP servers no agent uses "
-                                 "(+ Available in the header)"))
 
     # --- the sidebar as a tree (Settings › Sidebar: Tree) ---------------------------------------
 
@@ -1504,7 +1457,7 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, AddonsPage, Adw.Applicat
             button.set_active(True)
         self.refresh_overview()
 
-    def tree_nodes(self, installed, runtimes, servers, skill_sets, missing, names) -> list:
+    def tree_nodes(self, installed, runtimes, servers, skill_sets, names) -> list:
         """The categories and their boxes; what a box holds is made when it opens (tree_children)."""
         T = side_tree.TreeNode
         sections = []
@@ -1532,22 +1485,6 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, AddonsPage, Adw.Applicat
             T(f"skills:{s.path}", s.path, ngettext("1 skill", "{0} skills", len(s.skills)).format(len(s.skills))
               + " · " + ", ".join(names.get(a, a) for a in s.agents), kind="skills", icon="\U000F0EB3", lazy=True)
             for s in skill_sets]))
-        put_away = getattr(self, "put_away_ids", [])
-        if put_away:
-            agents = {f"agent:{a.command}": a for a in self.agent_list}
-            sections.append(T("section:hidden", _("Hidden ({0})").format(len(put_away)), kind="section", children=[
-                T(i, agents[i].name, self.agent_subtitle(agents[i]), kind="agent", icon=agents[i].icon,
-                  icon_font=agents[i].icon_font, dim=True, lazy=True) if i in agents else
-                T(i, self.item_name(i), _("Local LLM") if i.startswith("runtime:") else
-                  _("Model") if i.startswith("model:") else _("Online provider"),
-                  kind="runtime" if i.startswith("runtime:") else "model" if i.startswith("model:") else "cloud",
-                  icon="\U000F061A" if i.startswith("runtime:") else "\U000F01A7" if i.startswith("model:")
-                  else "\U000F0163", dim=True, lazy=True)
-                for i in put_away]))
-        if missing:
-            sections.append(T("section:missing", _("Not installed ({0})").format(len(missing)), kind="section",
-                              children=[T(f"agent:{a.command}", a.name, _("Not installed"), kind="agent", icon=a.icon,
-                                          icon_font=a.icon_font, dim=True, lazy=True) for a in missing]))
         return sections
 
     def agent_subtitle(self, agent) -> str:
@@ -1584,7 +1521,7 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, AddonsPage, Adw.Applicat
                             info(_("MCP servers"), ", ".join(inv.agent_mcp.get(ident, []))),
                             info(_("Skills"), ngettext("1 skill", "{0} skills", count).format(count) if count else ""),
                             info(_("Last used"), when(details.last_used))]
-                actions = (["start"] if terminal_pane.program(ident) else []) + ["details", "hide"]
+                actions = (["start"] if terminal_pane.program(ident) else []) + ["details"]
             else:
                 children = [info(_("Status"), _("Not installed"))]
                 actions = ["details"]
@@ -1595,7 +1532,7 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, AddonsPage, Adw.Applicat
             children = [info(_("Address"), rt.address), info(_("Used by"), ", ".join(names.get(a, a) for a in rt.agents)),
                         info(_("Models folder"), inventory.tilde(rt.models_dir) if rt.models_dir else "")]
             children += side_tree.limited([T(f"{node.id}/model/{m}", m, kind="item") for m in rt.models], 12, more)
-            actions = ["details"] + (["models"] if rt.installed and rt.key != "vllm" else []) + ["hide"]
+            actions = ["details"] + (["models"] if rt.installed and rt.key != "vllm" else [])
         elif key == "mcp":
             server = next((s for s in inv.mcp if s.name == ident), None)
             if server is None:
@@ -1612,8 +1549,6 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, AddonsPage, Adw.Applicat
             children += side_tree.limited([T(f"{node.id}/skill/{getattr(s, 'name', s)}", str(getattr(s, "name", s)),
                                              kind="item") for s in skill_set.skills], 15, more)
             actions = ["details"]
-        elif key in ("cloud", "model"):
-            actions = ["hide"]
         else:
             return []
         return [c for c in children if c is not None] + [T(f"{node.id}/actions", "", kind="actions", actions=actions)]
@@ -1769,8 +1704,6 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, AddonsPage, Adw.Applicat
         if action == "start":
             agent = next(a for a in self.agent_list if a.command == ident)
             return self.start_button(agent)
-        if action == "hide":
-            return self.hide_button(owner)
         if action == "models":
             rt = next(r for r in self.inventory.runtimes if r.key == ident)
             button = Gtk.Button(label=_("Models…"), halign=Gtk.Align.START)
@@ -2139,7 +2072,7 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, AddonsPage, Adw.Applicat
         if agent.installed and self.instance_label(agent):
             subtitle = " · ".join(filter(None, [agent.version, self.instance_label(agent)]))
         card = self.expandable_card(key, agent.icon, agent.icon_font, agent.name, subtitle,
-                         lambda b, a=agent: self.fill_agent(b, a), dim=not agent.installed or key in self.hidden_now(),
+                         lambda b, a=agent: self.fill_agent(b, a), dim=not agent.installed,
                          badge=_("Default") if agent.default else "", badge_tip=_("Omarchy's default agent"),
                          highlight=agent.default,
                          status="running" if agent.installed and self.running.get(agent.command) else "")
@@ -2307,8 +2240,6 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, AddonsPage, Adw.Applicat
             if agent.installed and terminal_pane.program(agent.command):
                 buttons.append(self.start_button(agent))
             buttons.append(self.details_button(lambda *_: self.open_agent_status(agent)))
-            if agent.installed:
-                buttons.append(self.hide_button(f"agent:{agent.command}"))
             box.append(buttons)
 
     # --- runtime, MCP and skill cards ----------------------------------------------------
@@ -2341,7 +2272,6 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, AddonsPage, Adw.Applicat
         if not summary:
             buttons = Gtk.Box(spacing=8)
             buttons.append(self.details_button(lambda *_: self.open_runtime_status(rt.key)))
-            buttons.append(self.hide_button(f"runtime:{rt.key}"))
             box.append(buttons)
 
     def fill_mcp(self, box, server, names):
@@ -2582,7 +2512,7 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, AddonsPage, Adw.Applicat
 
     def close_status(self):
         self.status_showing = None
-        self.show_view("main", save=False)
+        self.show_view(self.view, save=False)
 
     def open_agent_status(self, agent):
         """Usage over time, whether it is set up (and what to do if not), its configuration."""
@@ -4948,59 +4878,12 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, AddonsPage, Adw.Applicat
 
     def mode_rules(self, mode: str | None = None) -> tuple[set, set]:
         """(map categories left out, node ids left out) for a setup choice."""
-        off, hidden = self.mode_base(mode)
-        return off, hidden | self.scope_hidden()
-
-    def mode_base(self, mode: str | None = None) -> tuple[set, set]:
-        """mode_rules without My setup's filter."""
         mode = mode or self.setup_mode()
         if mode == "online":
             return {"local"}, set()
         if mode == "local":
             return {"online"}, {f"agent:{a.command}" for a in self.agent_list if not self.local_capable(a)}
         return set(), set()
-
-    # --- My setup · + Available (Settings › Start with is the choice on open) ------------------
-
-    def start_scope(self) -> str:
-        scope = ai_core.load_settings().get("start_scope", "mine")
-        return scope if scope in graph.SCOPES else "mine"
-
-    def scope_title(self) -> str:
-        return _("My AI Agents Map") if self.scope == "mine" else "AI Agents Map"
-
-    def scope_hidden(self) -> set:
-        """In My setup: agents and local LLMs that are not installed, MCP servers no agent uses."""
-        built = getattr(getattr(self, "side_map", None), "graph", None)
-        if getattr(self, "scope", "mine") != "mine":
-            return {graph.FOLDERS_BOX}
-        hidden = graph.scope_extras(self.agent_list, self.inventory) | self.hidden_now()
-        if built is not None and not getattr(self, "folders_open", False):
-            # Model folders no agent uses a model from: folded behind one box.
-            for ids in graph.idle_folders(built).values():
-                hidden |= ids
-        return hidden
-
-    def scope_more(self) -> int:
-        """How many cards + Available would add (not those the setup choice or Show leaves out)."""
-        off, base = self.mode_base()
-        if getattr(self, "scope", "mine") != "mine":
-            return 0
-        ids = graph.scope_extras(self.agent_list, self.inventory) - base - self.card_hidden()
-        return len([i for i in ids if not ("local" in off and i.startswith("runtime:"))])
-
-    def set_scope(self, scope: str):
-        if scope not in graph.SCOPES or scope == self.scope:
-            return
-        self.scope = scope
-        button = getattr(self, "scope_buttons", {}).get(scope)
-        if button is not None and not button.get_active():
-            button.set_active(True)         # its toggled handler comes back here and returns
-        self.title_label.set_label(self.scope_title())
-        if getattr(self, "side_map", None) is None:
-            return
-        self.apply_setup_mode()
-        self.refresh_overview()
 
     def set_setup_mode(self, mode: str):
         if getattr(self, "side_map", None) is None:
@@ -5023,48 +4906,17 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, AddonsPage, Adw.Applicat
             self.gpu_line.set_visible("local" not in off)
         self.set_selection([i for i in self.selection if i not in hidden])
 
-    # --- the overview's own filter (like the map's column lists) ------------------------------
-
-    # --- Hide: agents and providers left out of My setup (+ Available › Hidden shows them) -------
-
-    def hidden_items(self) -> set:
-        """What Hide put away, as box ids: agent:…, runtime:… (local LLMs), cloud:… (online providers),
-        model:… (models)."""
-        value = ai_core.load_settings().get("hidden_items", [])
-        return {str(v) for v in value[:300] if str(v).partition(":")[0] in ("agent", "runtime", "cloud", "model")} \
-            if isinstance(value, list) else set()
-
-    def provider_users(self) -> dict:
-        """Provider id -> names of the shown (not hidden) agents fully connected to it: a line to the
-        provider and one of its models in use. Such a provider cannot be hidden (a line without a model,
-        as Hermes → Ollama, does not count)."""
-        built = getattr(getattr(self, "side_map", None), "graph", None)
-        if built is None:
-            return {}
-        hidden = self.hidden_items()
-        shown = {f"agent:{a.command}": a.name for a in self.agent_list
-                 if a.installed and f"agent:{a.command}" not in hidden}
-        return graph.provider_users(built, shown)
-
     def model_users(self) -> dict:
-        """Model box id -> names of the shown (not hidden) agents that use it: such a model cannot be hidden."""
+        """Model box id -> names of the agents that use it (their default model)."""
         built = getattr(getattr(self, "side_map", None), "graph", None)
         if built is None:
             return {}
-        hidden = self.hidden_items()
-        shown = {f"agent:{a.command}": a.name for a in self.agent_list
-                 if a.installed and f"agent:{a.command}" not in hidden}
+        agents = {f"agent:{a.command}": a.name for a in self.agent_list if a.installed}
         users = {}
         for edge in built.edges:
-            if edge.kind == "default" and edge.source in shown:
-                users.setdefault(edge.target, []).append(shown[edge.source])
+            if edge.kind == "default" and edge.source in agents:
+                users.setdefault(edge.target, []).append(agents[edge.source])
         return users
-
-    def hidden_now(self) -> set:
-        """hidden_items, less the providers a shown agent is fully connected to (again) and the models
-        a shown agent uses: a connection beats Hide, so nothing in use is ever out of sight."""
-        hidden = self.hidden_items()
-        return hidden - set(self.provider_users()) - set(self.model_users()) if hidden else hidden
 
     def item_name(self, node_id: str) -> str:
         key, _sep, ident = node_id.partition(":")
@@ -5075,93 +4927,6 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, AddonsPage, Adw.Applicat
         built = getattr(self.side_map, "graph", None)
         node = next((n for n in built.nodes if n.id == node_id), None) if built is not None else None
         return node.label if node is not None else ident
-
-    def set_hidden(self, node_id: str, hide: bool, undo: bool = True):
-        hidden = self.hidden_items()
-        hidden = hidden | {node_id} if hide else hidden - {node_id}
-        self.save_setting(hidden_items=sorted(hidden))
-        self.apply_setup_mode()
-        self.refresh_overview()
-        if undo:
-            name = self.item_name(node_id)
-            message = _("{0} is hidden: + Available › Hidden shows it again") if hide else _("{0} is shown again")
-            self.toast(message.format(name), 6, _("Undo"), lambda: self.set_hidden(node_id, not hide, undo=False))
-
-    def hide_state(self, node_id: str) -> tuple[str, str, bool]:
-        """(label, tip, clickable) of the Hide / Show again control for this box."""
-        name = self.item_name(node_id)
-        if node_id in self.hidden_now():
-            return _("Show again"), _("Show {0} in My setup again").format(name), True
-        if node_id.startswith("model:"):
-            users = self.model_users().get(node_id)
-            if users:
-                return _("Hide"), _("{0} uses {1}: hide that agent first, or choose another model").format(
-                    ", ".join(users), name), False
-            return _("Hide"), _("Leave {0} out of My setup (+ Available › Hidden shows it)").format(name), True
-        users = self.provider_users().get(node_id) if not node_id.startswith("agent:") else None
-        if users:
-            return _("Hide"), _("{0} uses a model of {1}: hide that agent first, or disconnect it").format(
-                ", ".join(users), name), False
-        return _("Hide"), _("Leave {0} out of My setup (+ Available › Hidden shows it)").format(name), True
-
-    def hide_button(self, node_id: str) -> Gtk.Widget:
-        """Hide (an agent, or a provider no shown agent uses a model of) or, once hidden, Show again."""
-        label, tip, clickable = self.hide_state(node_id)
-        hidden = node_id in self.hidden_now()
-        button = Gtk.Button(halign=Gtk.Align.START)
-        content = Gtk.Box(spacing=6)
-        content.append(Gtk.Image.new_from_icon_name("view-reveal-symbolic" if hidden else "view-conceal-symbolic"))
-        content.append(Gtk.Label(label=label))
-        button.set_child(content)
-        button.add_css_class("flat")
-        button.add_css_class("am-small-btn")
-        button.set_tooltip_text(tip)
-        button.set_sensitive(clickable)
-        button.connect("clicked", lambda *_: self.set_hidden(node_id, not hidden))
-        return button
-
-    def hide_menu_item(self, node_id: str, popover) -> Gtk.Widget:
-        """The same in a box's right-click menu on the map."""
-        label, tip, clickable = self.hide_state(node_id)
-        hidden = node_id in self.hidden_now()
-        return self.menu_item(label, popover, lambda: self.set_hidden(node_id, not hidden), tip, clickable)
-
-    def card_hidden(self) -> set:
-        value = ai_core.load_settings().get("card_hidden", [])
-        return {str(v) for v in value[:500]} if isinstance(value, list) else set()
-
-    def card_groups(self) -> list:
-        """(heading, [(card id, label)]) of every card the overview can show."""
-        inv, names = self.inventory, self.agent_names()
-        off, mode_hidden = self.mode_rules()
-        agents = [a for a in self.agent_list if a.installed and f"agent:{a.command}" not in mode_hidden]
-        groups = [(_("Agents"), [(f"agent:{a.command}", a.name) for a in agents])]
-        if "local" not in off:
-            groups.append((_("Local LLMs"), [(f"runtime:{rt.key}", rt.name) for rt in
-                                             sorted(inv.runtimes, key=lambda r: not r.installed)
-                                             if f"runtime:{rt.key}" not in mode_hidden]))
-        groups.append((_("MCP servers"), [(f"mcp:{m.name}", m.name) for m in inv.mcp
-                                          if f"mcp:{m.name}" not in mode_hidden]))
-        groups.append((_("Skills"), [(f"skills:{s.path}", s.path) for s in inv.skill_sets]))
-        missing = [a for a in self.agent_list if not a.installed and f"agent:{a.command}" not in mode_hidden]
-        if missing:
-            groups.append((_("Not installed"), [(f"agent:{a.command}", a.name) for a in missing]))
-        return groups
-
-    def update_card_filter(self):
-        hidden = self.card_hidden()
-        ids = {i for _title, items in self.card_groups() for i, _label in items}
-        count = len(hidden & ids)
-        self.card_filter.set_label(_("Show") + " ▾" if not count else
-                                   ngettext("Show · 1 hidden", "Show · {0} hidden", count).format(count) + " ▾")
-
-    def show_card_list(self, button):
-        def changed(ids, shown):
-            hidden = self.card_hidden()
-            hidden.difference_update(ids) if shown else hidden.update(ids)
-            self.save_setting(card_hidden=sorted(hidden))
-            self.refresh_overview()
-        self.tick_list(button, None, self.card_groups(), self.card_hidden(), changed)
 
     def update_layer_toggles(self):
         """Pressed = switched on; greyed out while what it needs is off."""
@@ -5191,183 +4956,6 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, AddonsPage, Adw.Applicat
         self.update_layer_toggles()
         self.save_setting(map_layers=[l for l in graph.LAYERS if l in layers])
 
-    def on_map_add(self, kind: str, node, rect):
-        """A dashed "+" box on the map: add an MCP server, skills, or a model into that folder."""
-        if kind == "mcp":
-            self.open_add_mcp()
-        elif kind == "skills":
-            self.open_add_skills()
-        elif kind == "folders":
-            self.folders_open = not getattr(self, "folders_open", False)
-            self.refresh_map()
-        elif kind == "addon" and hasattr(self, "open_addons"):
-            self.open_addons(select=node.id.split(":", 2)[2])
-        elif kind == "model":
-            runtimes = {f"runtime:{rt.key}": rt for rt in self.inventory.runtimes if rt.installed}
-            owners = [runtimes[o] for o in node.owners if o in runtimes]
-            if len(owners) == 1:
-                self.open_models(owners[0])
-            elif owners:
-                self.pick_model_runtime(owners, rect)
-
-    def pick_model_runtime(self, owners, rect):
-        """Several local LLMs share the folder: which one downloads the model."""
-        popover = Gtk.Popover()
-        popover.set_parent(self.side_map)
-        area = Gdk.Rectangle()
-        area.x, area.y, area.width, area.height = (int(v) for v in rect)
-        popover.set_pointing_to(area)
-        popover.set_position(Gtk.PositionType.BOTTOM)
-        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
-        box.add_css_class("am-provider-list")
-        heading = Gtk.Label(label=_("Download with"), xalign=0)
-        heading.add_css_class("am-group-heading")
-        box.append(heading)
-        for rt in owners:
-            button = Gtk.Button(label=rt.name)
-            button.add_css_class("am-small-btn")
-            button.connect("clicked", lambda _b, r=rt: (popover.popdown(), self.open_models(r)))
-            box.append(button)
-        popover.set_child(box)
-        popover.connect("closed", lambda p: GLib.idle_add(p.unparent))
-        popover.popup()
-
-    def column_list_groups(self, graph_now, column: int) -> list:
-        """(heading, [(node, label)]) for a column's list: MCP servers and skill
-        sets, agents, online and local providers, models by the folder they live in."""
-        boxes = graph.listable(graph_now, column)
-        by_name = lambda items: sorted(items, key=lambda item: item[1].lower())
-        if column == 0:
-            return [(_("MCP servers"), by_name((n, n.label) for n in boxes if n.kind == "mcp")),
-                    (_("Skills"), by_name((n, n.label) for n in boxes if n.kind == "skills"))]
-        if column == 1:
-            return [(_("Agents"), by_name((n, n.label) for n in boxes))]
-        if column == 2:
-            def state(node):
-                text = {"running": _("running"), "stopped": _("installed, not running"),
-                        "missing": _("not installed")}.get(node.status, "")
-                return f"{node.label}  ·  {text}" if text else node.label
-            return [(_("Online"), by_name((n, state(n)) for n in boxes if n.kind == "cloud")),
-                    (_("Local"), by_name((n, state(n)) for n in boxes if n.kind == "runtime"))]
-        # Models: one group per folder (several local LLMs can share one), online ones together.
-        by_id = {n.id: n for n in graph_now.nodes}
-        provider = {e.target: by_id[e.source] for e in graph_now.edges if e.kind == "serves" and e.source in by_id}
-        folders = {}
-        for node in boxes:
-            folders.setdefault(node.group, []).append(node)
-        groups = []
-        for folder in sorted(folders, key=lambda f: (not f, f.lower())):
-            nodes = folders[folder]
-            names = sorted({provider[n.id].label for n in nodes if n.id in provider}, key=str.lower)
-            heading = " · ".join([folder] + names) if folder else _("Online")
-            several = len(names) > 1 or not folder
-            groups.append((heading, sorted(
-                ((n, f"{n.label}  ·  {provider[n.id].label}" if several and n.id in provider else n.label)
-                 for n in nodes), key=lambda item: (item[0].kind == "more", item[1].lower()))))
-        return groups
-
-    def show_column_list(self, view, column: int, rect):
-        """A column heading's list: tick the boxes the map shows, a group at a time or one by one."""
-        graph_now = view.graph
-        if graph_now is None:
-            return
-        groups = [(title, [(node.id, label) for node, label in items])
-                  for title, items in self.column_list_groups(graph_now, column)]
-        self.tick_list(view, rect, groups, set(view.hidden_ids), self.set_nodes_shown)
-
-    def tick_list(self, parent, rect, groups, hidden: set, changed):
-        """A popover of tick boxes in groups (a group's own box ticks all of it), with
-        All and None: the map's column lists and the overview's Show list.
-        changed(ids, shown) is called for every change."""
-        popover = Gtk.Popover()
-        popover.set_parent(parent)
-        if rect is not None:
-            area = Gdk.Rectangle()
-            area.x, area.y, area.width, area.height = (int(v) for v in rect)
-            popover.set_pointing_to(area)
-        popover.set_position(Gtk.PositionType.BOTTOM)
-        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
-        box.add_css_class("am-provider-list")
-        checks = {}
-        headings = []          # (heading check, member ids)
-        syncing = [False]
-
-        def sync_heading(heading, members):
-            on = [checks[i].get_active() for i in members]
-            syncing[0] = True
-            heading.set_inconsistent(any(on) and not all(on))
-            heading.set_active(all(on))
-            syncing[0] = False
-
-        def on_heading(heading, members):
-            if syncing[0]:
-                return
-            shown = heading.get_active()
-            syncing[0] = True
-            heading.set_inconsistent(False)
-            for i in members:
-                checks[i].set_active(shown)
-            syncing[0] = False
-            changed(members, shown)
-
-        def on_check(item_id, shown, heading, members):
-            if syncing[0]:
-                return
-            changed([item_id], shown)
-            sync_heading(heading, members)
-
-        for title, items in groups:
-            if not items:
-                continue
-            members = [item_id for item_id, _label in items]
-            heading = Gtk.CheckButton(label=title)
-            heading.add_css_class("am-list-group")
-            box.append(heading)
-            for item_id, label in items:
-                check = Gtk.CheckButton(label=label, margin_start=18)
-                check.set_active(item_id not in hidden)
-                check.connect("toggled", lambda b, i=item_id, h=heading, m=members: on_check(i, b.get_active(), h, m))
-                box.append(check)
-                checks[item_id] = check
-            sync_heading(heading, members)
-            heading.connect("toggled", lambda h, m=members: on_heading(h, m))
-            headings.append((heading, members))
-
-        def set_all(shown):
-            syncing[0] = True
-            for check in checks.values():
-                check.set_active(shown)
-            syncing[0] = False
-            for heading, members in headings:
-                sync_heading(heading, members)
-            changed(list(checks), shown)
-
-        row = Gtk.Box(spacing=6, halign=Gtk.Align.END, margin_top=6)
-        for label, value in ((_("All"), True), (_("None"), False)):
-            button = Gtk.Button(label=label)
-            button.add_css_class("am-small-btn")
-            button.connect("clicked", lambda _b, v=value: set_all(v))
-            row.append(button)
-        scroller = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER, propagate_natural_height=True,
-                                      propagate_natural_width=True, max_content_height=520)
-        scroller.set_child(box)
-        outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        outer.append(scroller)
-        outer.append(row)
-        popover.set_child(outer)
-        popover.connect("closed", lambda p: GLib.idle_add(p.unparent))
-        popover.popup()
-
-    def set_nodes_shown(self, node_ids, shown: bool):
-        hidden = set(self.map_view.hidden_ids)
-        hidden.difference_update(node_ids) if shown else hidden.update(node_ids)
-        for view in (self.side_map,):
-            view.set_hidden_ids(hidden)
-        self.set_selection([i for i in self.selection if i not in self.map_view.hidden()])
-        # Only ids still on the map are kept (a removed model does not linger in the settings).
-        ids = {n.id for n in self.map_view.graph.nodes} if self.map_view.graph else set()
-        self.save_setting(hidden_nodes=sorted(i for i in hidden if i in ids), hidden_providers=None)
-
     def on_map_selection(self, nodes):
         """A click in either map."""
         self.set_selection([n.id for n in nodes])
@@ -5393,25 +4981,13 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, AddonsPage, Adw.Applicat
                   "more": lambda n: _("+{0} more").format(n),
                   "running": lambda n: _("running") if n == 1 else _("{0} running").format(n),
                   "in_use": lambda names: _("in use · {0}").format(names)}
-        new_mcp, new_skills = self.new_found()
-        labels["unused"] = _("not used by any agent")
-        labels["add_mcp"] = _("+ MCP server") + (" · " + _("{0} new").format(len(new_mcp)) if new_mcp else "")
-        labels["add_skills"] = _("+ Skills") + (" · " + _("{0} new").format(len(new_skills)) if new_skills else "")
-        labels["add_model"] = _("+ Model")
-        labels["folders"] = (lambda n: _("− Fold unused folders")) if getattr(self, "folders_open", False) else \
-            (lambda n: ngettext("+ 1 folder with unused models", "+ {0} folders with unused models", n).format(n))
-        # Dashed boxes show one line: the name and what is missing.
-        suggested = [(entry.id, f"{entry.name} · " + (_("add-on off") if state == "off" else _("add-on available")),
-                      "", entry.kind) for entry, state in getattr(self, "addon_suggestions", [])]
-        built = graph.build(self.agent_list, details, self.inventory, labels, link_hints.load(), self.running,
-                            suggested)
+        # Only what is set up: adding, updating and removing happen on My setup.
+        built = graph.build(self.agent_list, details, self.inventory, labels, link_hints.load(), self.running)
         headers = [_("MCP servers · skills"), _("Agents"), _("LLM providers"), _("Models")]
-        hidden = set(ai_core.hidden_nodes())
         for view in (self.side_map,):
             view.group_titles = {"mcp": _("MCP servers"), "skills": _("Skills"), "online": _("Online")}
             view.set_graph(built, headers)
             view.set_layers(self.map_view.layers)
-            view.set_hidden_ids(hidden)
         self.apply_setup_mode()
         ids = {n.id for n in built.nodes}
         self.set_selection([i for i in self.selection if i in ids])
@@ -5453,7 +5029,7 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, AddonsPage, Adw.Applicat
                                "addmcp", "addskills", "health")
         # Faded out rather than hidden: the header keeps its height, so the
         # card does not jump when the settings page opens.
-        for widget in [self.settings_button, self.help_button, self.view_switch, self.scope_switch] + \
+        for widget in [self.settings_button, self.help_button, self.view_switch, self.setup_button] + \
                 ([self.addons_button] if self.addons_button is not None else []):
             widget.set_opacity(0 if on_settings else 1)
             widget.set_can_target(not on_settings)
@@ -8100,12 +7676,12 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, AddonsPage, Adw.Applicat
             details.append(self.menu_item(_("Details"), popover, lambda: self.open_skills_details(ident)))
         return starts, details
 
-    def show_context(self, view, node_id: str, rect):
+    def show_context(self, view, node_id: str, rect, extra=()):
         """A box's right-click menu: what only it has (a local LLM's install, start and stop, an
-        agent's install or web look-up), its card's actions, then Details and Hide / Show again
-        (agents, providers, models), each group set off by a line."""
+        agent's install or web look-up), an update when there is one, its card's actions, then
+        Details and what removes it, each group set off by a line. My setup's cards use it too."""
         kind, _sep, ident = node_id.partition(":")
-        title, own, hideable = self.item_name(node_id), [], kind in ("runtime", "cloud", "model")
+        title, own = self.item_name(node_id), []
         popover = self.context_popover(view, rect)
         if kind == "runtime":
             rt = next((r for r in self.inventory.runtimes if r.key == ident), None)
@@ -8120,12 +7696,9 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, AddonsPage, Adw.Applicat
                 return
             if agent.command in install_ctl.AGENT_INSTALLERS:
                 title, own = self.install_agent_menu(agent, popover)
-                hideable = True
             else:
-                if agent.installed:
-                    if self.is_new_agent(agent.command):
-                        own = self.research_menu(agent, popover)
-                    hideable = True
+                if agent.installed and self.is_new_agent(agent.command):
+                    own = self.research_menu(agent, popover)
                 adapter = harnesses.get(agent.command)
                 if adapter is not None and adapter.install:
                     action = "uninstall" if agent.installed else "install"
@@ -8134,9 +7707,10 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, AddonsPage, Adw.Applicat
         danger = []
         if kind == "model":
             own, danger = self.model_menu(view, rect, node_id, popover)
+        update = self.item_update(node_id)
+        newer = [self.menu_item(update[0], popover, update[1])] if update else []
         starts, details = self.card_actions(node_id, popover)
-        hide = [self.hide_menu_item(node_id, popover)] if hideable else []
-        self.show_menu(popover, title, [own, starts, details, hide, danger])
+        self.show_menu(popover, title, [newer, own, starts, details, [e(popover) for e in extra], danger])
 
     # --- a model: move to another local LLM's folder, delete -----------------------------------
 
@@ -8147,9 +7721,12 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, AddonsPage, Adw.Applicat
             return None, ""
         key = rest.split(":")[1]
         rt = next((r for r in self.inventory.runtimes if r.key == key and r.installed), None)
-        built = getattr(self.side_map, "graph", None)
-        node = next((n for n in built.nodes if n.id == node_id), None) if built is not None else None
-        return (rt, node.label) if rt is not None and node is not None else (None, "")
+        if rt is None:
+            return None, ""
+        # Every model of the local LLM, also those past the map's ten (My setup lists them all).
+        wanted = rest.split(":", 2)[2] if rest.count(":") >= 2 else ""
+        name = next((m for m in rt.models if m.lower() == wanted), None)
+        return (rt, name) if name is not None else (None, "")
 
     def folder_owners(self, folder: str) -> list:
         """The installed local LLMs (that read GGUF files) whose model folder this is."""
@@ -8622,7 +8199,7 @@ class AgentsMap(SettingsPages, ThemeCss, InstallDialog, AddonsPage, Adw.Applicat
             self.close_addons()
             return True
         if page == "setup" and keyval == Gdk.KEY_Escape:
-            self.back_to_last_page()
+            self.close_setup()
             return True
         if page == "reorganize" and keyval == Gdk.KEY_Escape:
             self.close_reorganize()

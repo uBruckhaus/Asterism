@@ -55,7 +55,6 @@ NODE_W_MIN = 120
 PIN_W = 14               # the pin's square at a box's top right
 PIN, PIN_OUTLINE = "\U000F0403", "\U000F0931"   # Nerd Font pin, pin-outline
 # The categories whose boxes each column holds (a column with none of them on is gone).
-COLUMN_LAYERS = {0: {"mcp", "skills"}, 1: {"agents"}, 2: {"online", "local"}, 3: {"models"}}
 # Categories: selecting in one hides that category's other boxes.
 CATEGORY = {"agent": "agent", "cloud": "provider", "runtime": "provider", "model": "model", "more": "model",
             "mcp": "tool", "skills": "tool"}
@@ -104,12 +103,8 @@ class MapView(Gtk.DrawingArea):
         self.marker_points = []    # ((source, target), x, y) of the "!" on failed lines, for clicks
         self.shift = False       # Shift held: hidden boxes come back to be added
         self.layers = set(graph_model.LAYERS)   # categories switched on
-        self.hidden_ids = set()  # node ids unticked in the column headings' lists
         self.mode_off = set()    # categories the header's setup choice (All · Online · Local LLMs) leaves out
         self.mode_hidden = set() # boxes it leaves out (agents that cannot use local LLMs)
-        self.on_header = None    # callback(column, (x, y, w, h)) for a click on a column heading
-        self.on_add = None       # callback(kind, node, (x, y, w, h)): a dashed "+" box clicked (mcp, skills, model)
-        self.header_rects = {}   # column -> heading rectangle, for clicks
         self.column_x = {}       # column -> x of its boxes, for the headings
         self.zoom = 1.0          # drawing scale (ZOOM_STEPS)
         self.on_zoom = None      # callback(zoom) after Ctrl+scroll
@@ -180,13 +175,12 @@ class MapView(Gtk.DrawingArea):
         skill sets, column 3 one group per model folder ("+ Model" box last)."""
         nodes = self.shown(column)
         if column == 0:
-            mcp = ("mcp", "add-mcp")
-            return [g for g in ([n for n in nodes if n.kind in mcp], [n for n in nodes if n.kind not in mcp]) if g]
+            return [g for g in ([n for n in nodes if n.kind == "mcp"], [n for n in nodes if n.kind != "mcp"]) if g]
         if column == 3:
             folders = {}
             for node in nodes:
                 folders.setdefault(node.group, []).append(node)
-            return [sorted(g, key=lambda n: n.kind == "add-model") for g in folders.values()]
+            return list(folders.values())
         return [nodes] if nodes else []
 
     def titled(self, column: int) -> bool:
@@ -195,12 +189,9 @@ class MapView(Gtk.DrawingArea):
 
     def group_title(self, nodes) -> str:
         first = nodes[0]
-        if first.kind == "add-folders":
-            return ""                  # the folded-away folders' box: no heading of its own
         if first.column == 3:
             return first.group or self.group_titles.get("online", "").upper()
-        kind = {"add-mcp": "mcp", "add-skills": "skills"}.get(first.kind, first.kind)
-        return self.group_titles.get(kind, "")
+        return self.group_titles.get(first.kind, "")
 
     def column_height(self, column: int) -> int:
         groups = self.groups(column)
@@ -223,12 +214,6 @@ class MapView(Gtk.DrawingArea):
             return 0, 0
         # Only columns with something to show take room; they share the width.
         active = [c for c in range(4) if self.shown(c)]
-        # A column keeps its heading (and its list) when every box in it is unticked.
-        layers = graph_model.effective_layers(self.layers)
-        for column, needs in COLUMN_LAYERS.items():
-            if column not in active and needs & layers and \
-                    any(n.id in self.hidden_ids for n in self.graph.column(column)):
-                active = sorted(active + [column])
         count = max(1, len(active))
         node_w = max(NODE_W_MIN, min(NODE_W_MAX, (width - 2 * PAD - (count - 1) * COLUMN_GAP_MIN) // count))
         gap = max(COLUMN_GAP_MIN, (width - 2 * PAD - count * node_w) // max(1, count - 1))
@@ -265,7 +250,7 @@ class MapView(Gtk.DrawingArea):
         if self.graph is None:
             return set()
         off = graph_model.hidden_by_layers(self.graph, self.layers - self.mode_off,
-                                           self.hidden_ids | self.mode_hidden)
+                                           self.mode_hidden)
         if not self.selected or self.shift:
             return off
         return off | self.selection_hidden()
@@ -275,14 +260,6 @@ class MapView(Gtk.DrawingArea):
         picked = {CATEGORY.get(by_id[i].kind) for i in self.selected if i in by_id}
         return {n.id for n in self.graph.nodes
                 if CATEGORY.get(n.kind) in picked and n.id not in self.selected}
-
-    def set_hidden_ids(self, ids):
-        self.hidden_ids = set(ids)
-        off = self.hidden()
-        if any(i in off for i in self.selected):
-            self.selected = [i for i in self.selected if i not in off]
-            self.selection_changed()
-        self.relayout()
 
     def set_mode(self, off_layers, hidden_ids):
         """The header's setup choice: categories and boxes left out, on top of the
@@ -294,7 +271,7 @@ class MapView(Gtk.DrawingArea):
         self.layers = set(layers)
         if self.graph is not None:
             off = graph_model.hidden_by_layers(self.graph, self.layers - self.mode_off,
-                                               self.hidden_ids | self.mode_hidden)
+                                               self.mode_hidden)
             if any(i in off for i in self.selected):
                 self.selected = [i for i in self.selected if i not in off]
                 self.selection_changed()
@@ -624,8 +601,7 @@ class MapView(Gtk.DrawingArea):
         x, y = x / self.zoom, y / self.zoom
         self.set_shift(bool(controller.get_current_event_state() & Gdk.ModifierType.SHIFT_MASK))
         found = self.node_at(x, y)
-        on_heading = any(hx <= x <= hx + hw and hy <= y <= hy + hh for hx, hy, hw, hh in self.header_rects.values())
-        self.set_cursor_from_name("pointer" if found or on_heading else None)
+        self.set_cursor_from_name("pointer" if found else None)
         self.set_hover(found)
         pin = self.pin_at(x, y)
         if pin is not None:
@@ -725,10 +701,6 @@ class MapView(Gtk.DrawingArea):
         if pin is not None:
             self.toggle_pin(pin)
             return
-        for column, (hx, hy, hw, hh) in self.header_rects.items():
-            if hx <= x <= hx + hw and hy <= y <= hy + hh and self.on_header is not None:
-                self.on_header(column, self.to_pixels((hx, hy, hw, hh)))
-                return
         node_id = self.node_at(x, y)
         edge = self.edge_at(x, y) if node_id is None else None
         # A "!" clicked: its own line, even where other lines cross it.
@@ -744,11 +716,6 @@ class MapView(Gtk.DrawingArea):
                     self.on_failed_edge(edge, self.to_pixels((x - 4, y - 4, 8, 8)))
                 return
         if node_id is None:
-            return
-        if (self.kind_of(node_id) or "").startswith("add-"):
-            if self.on_add is not None:
-                node = next(n for n in self.graph.nodes if n.id == node_id)
-                self.on_add(node.kind[4:], node, self.to_pixels(self.boxes[node_id]))
             return
         pick = self.model_pick(node_id)
         if pick is not None and self.on_pick_model is not None:
@@ -978,16 +945,11 @@ class MapView(Gtk.DrawingArea):
         layout = PangoCairo.create_layout(cr)
 
         # Column headings.
-        self.header_rects = {}
         for column, title in enumerate(self.headers):
             if column not in self.column_x:
                 continue
             x = self.column_x[column]
             text = title.upper()
-            # A list to choose the boxes shown in this column.
-            boxes = graph_model.listable(self.graph, column)
-            shown = len([n for n in boxes if n.id not in self.hidden_ids])
-            text += f" ({shown}/{len(boxes)}) ▾" if shown < len(boxes) else " ▾"
             layout.set_font_description(Pango.FontDescription.from_string("Sans Bold 8"))
             layout.set_text(text, -1)
             layout.set_width(node_w * Pango.SCALE)
@@ -995,8 +957,6 @@ class MapView(Gtk.DrawingArea):
             cr.set_source_rgba(*self.color("accent"))
             cr.move_to(x, 6)
             PangoCairo.show_layout(cr, layout)
-            text_w, text_h = layout.get_pixel_size()
-            self.header_rects[column] = (x - 4, 2, text_w + 8, text_h + 8)
 
         # Small headings above the groups of column 0.
         layout.set_font_description(Pango.FontDescription.from_string("Sans Bold 7"))
@@ -1077,41 +1037,6 @@ class MapView(Gtk.DrawingArea):
             x, y, w, h = self.boxes[node.id]
             faded = lit_nodes is not None and node.id not in lit_nodes
             alpha = 0.25 if faded else (0.55 if node.dim or node.status == "missing" else 1.0)
-            if node.kind.startswith("add-"):
-                # Dashed, empty: a place to add something, not a thing.
-                self.rounded(cr, x, y, w, h, self.radius)
-                cr.set_dash([5, 4])
-                cr.set_source_rgba(*self.color("accent" if node.id == self.hover else "fg",
-                                               0.9 if node.id == self.hover else 0.35 * (0.4 if faded else 1)))
-                cr.set_line_width(1.2)
-                cr.stroke()
-                cr.set_dash([])
-                # Its icon tile: dashed too, with a +.
-                size = h - 14
-                tx, ty = x + 7, y + (h - size) / 2
-                tone = "accent" if node.id == self.hover else "fg"
-                self.rounded(cr, tx, ty, size, size, min(self.radius, 7))
-                cr.set_dash([3, 3])
-                cr.set_source_rgba(*self.color(tone, 0.9 if node.id == self.hover else 0.3 * (0.4 if faded else 1)))
-                cr.set_line_width(1)
-                cr.stroke()
-                cr.set_dash([])
-                layout.set_font_description(Pango.FontDescription.from_string("Sans 12"))
-                layout.set_width(-1)
-                layout.set_text("+", -1)
-                plus_w, plus_h = layout.get_pixel_size()
-                cr.set_source_rgba(*self.color("accent" if node.id == self.hover else "dim"))
-                cr.move_to(tx + (size - plus_w) / 2, ty + (size - plus_h) / 2)
-                PangoCairo.show_layout(cr, layout)
-                layout.set_font_description(Pango.FontDescription.from_string("Sans 9"))
-                layout.set_width(int((x + w - tx - size - 19) * Pango.SCALE))
-                layout.set_ellipsize(Pango.EllipsizeMode.END)
-                label = node.label[2:] if node.label.startswith("+ ") else node.label
-                layout.set_text(label, -1)
-                cr.set_source_rgba(*self.color("accent" if node.id == self.hover else "dim"))
-                cr.move_to(tx + size + 9, y + (h - layout.get_pixel_size()[1]) / 2)
-                PangoCairo.show_layout(cr, layout)
-                continue
             selected = node.id in self.selected
             # A card: the theme's background, a light tint (stronger for agents), a thin frame.
             self.rounded(cr, x, y, w, h, self.radius)
