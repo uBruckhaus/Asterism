@@ -7,7 +7,9 @@ import sys
 import zipfile
 from pathlib import Path
 
-NAME = re.compile(r"[a-z][a-z0-9-]{1,40}/(addon\.json|addon\.py|MANIFEST\.sha256|SIGNATURE|translations/[a-z]{2}\.json)")
+# The files an add-on may have (addons.verify allows the same, and checks each against the signed list).
+NAME = re.compile(r"[a-z][a-z0-9-]{1,40}/(addon\.json|addon\.py|agent\.toml|hooks\.py|icon\.svg|MANIFEST\.sha256|"
+                  r"SIGNATURE|translations/[a-z]{2}\.json)")
 archive, target = Path(sys.argv[1]), Path(sys.argv[2])
 with zipfile.ZipFile(archive) as zf:
     infos = [i for i in zf.infolist() if not i.is_dir()]

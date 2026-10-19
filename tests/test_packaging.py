@@ -1,5 +1,6 @@
 """The packages carry what the app reads next to its modules at run time: a folder left out (as
 adapters/ was once) makes the packaged app fail although every source test passes."""
+import ast
 import re
 import unittest
 from pathlib import Path
@@ -26,6 +27,13 @@ class PackagesCarryTheAppTest(unittest.TestCase):
         found = re.search(r"^_adapters=(\S+)", PKGBUILD, re.M)
         self.assertEqual(found.group(1), addons.ASTERISM_VERSION)
         self.assertEqual(re.search(r"^pkgver=(\S+)", PKGBUILD, re.M).group(1), addons.ASTERISM_VERSION)
+
+    def test_unpacker_takes_every_file_an_add_on_may_have(self):
+        source = (ROOT / "packaging/unpack-adapters.py").read_text()
+        allowed = re.search(r'allowed = (\{[^}]*\})', (ROOT / "addons.py").read_text()).group(1)
+        for name in ast.literal_eval(allowed):         # addons.verify's set of file names
+            with self.subTest(name=name):
+                self.assertIn(re.escape(name), source)
 
 
 if __name__ == "__main__":
