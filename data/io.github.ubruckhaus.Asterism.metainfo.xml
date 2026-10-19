@@ -25,6 +25,16 @@
   <url type="bugtracker">https://github.com/uBruckhaus/Asterism/issues</url>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.7.2" date="2026-10-19">
+      <description>
+        <p>My setup: one page of cards for everything the map shows. Agents, local LLMs and online
+        providers are switched on and off there; MCP servers, skill folders and models each have a card
+        with a menu to update, start, open, uninstall, remove or move, and a card to add more. Cards with
+        an update waiting show the new version. The map now shows only what is set up: no dashed boxes,
+        no Hide and no "+ Available" any more. Lists of MCP servers, models and skills and the map's
+        boxes are cards with icons, and the user manual is new.</p>
+      </description>
+    </release>
     <release version="0.7.1" date="2026-10-18">
       <description>
         <p>A welcome page for a new Asterism: the agents, local LLMs and online providers as cards with
