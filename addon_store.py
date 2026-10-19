@@ -68,6 +68,7 @@ class Entry:
     url: str = ""
     size: int = 0
     sha256: str = ""
+    needs: str = ""                  # the oldest Asterism it works with ("" = any)
 
 
 def _text(value, limit: int) -> str:
@@ -94,6 +95,11 @@ def entry_from(data) -> Entry | None:
     caps = data.get("capabilities", [])
     if not isinstance(caps, list) or not all(c in addon_api.CAPABILITIES for c in caps):
         return None
+    needs = data.get("needs", "")
+    m = addons._NEEDS.fullmatch(needs.strip()) if isinstance(needs, str) else None
+    if needs and m is None:
+        return None
+    needs = m.group(1) if m else ""
     commands, paths = addons.detect_hints(data.get("detect"))
     icon = data.get("icon") if isinstance(data.get("icon"), str) and _ICON.fullmatch(data.get("icon")) else ""
     return Entry(aid, _text(data.get("name"), 80) or aid, version,
@@ -101,11 +107,13 @@ def entry_from(data) -> Entry | None:
                  _text(data.get("summary"), 200), _text(data.get("description"), 2000),
                  addon_api.PRIVACY.get(data.get("privacy"), addon_api.PRIVACY["numbers"]), sorted(set(caps)),
                  _texts(data.get("harnesses")), _texts(data.get("reads")), _texts(data.get("sends")),
-                 commands, paths, addons.homepage(data.get("homepage")), url, size, sha)
+                 commands, paths, addons.homepage(data.get("homepage")), url, size, sha, needs)
 
 
 def parse_catalog(text: bytes, signature: bytes, signers: str = addons.ALLOWED_SIGNERS) -> list | None:
-    """The catalog's entries when its signature verifies; None when it does not."""
+    """The catalog's entries when its signature verifies; None when it does not. Per add-on the newest
+    version this Asterism can load: the catalog keeps older versions for older Asterism releases (which
+    take the first entry of an add-on, so those come first)."""
     if len(text) > MAX_CATALOG or not addons.signature_ok(text, signature, signers):
         return None
     try:
@@ -115,11 +123,15 @@ def parse_catalog(text: bytes, signature: bytes, signers: str = addons.ALLOWED_S
     if not isinstance(data, dict) or data.get("catalog") != 1 or not isinstance(data.get("addons"), list):
         return None
     found = {}
+    this = addons.version_tuple(addons.ASTERISM_VERSION)
     for raw in data["addons"][:MAX_ENTRIES]:
         entry = entry_from(raw)
-        if entry is not None and entry.id not in found:
+        if entry is None or (entry.needs and addons.version_tuple(entry.needs) > this):
+            continue
+        known = found.get(entry.id)
+        if known is None or addons.version_tuple(entry.version) > addons.version_tuple(known.version):
             found[entry.id] = entry
-    return list(found.values())
+    return list(found.values())            # in the order the add-ons first appear
 
 
 def catalog(online: bool, fetch=None, cache: Path = CACHE, now: float | None = None,
