@@ -6,11 +6,21 @@ a breaking change; additions keep it.
 
 Hook points (the only places an add-on appears):
     api.add_session_titles(command, reader)       reader() -> {session id: title}   (TITLES)
-    api.add_details_section(builder, privacy)     builder(ui, box, harness, sessions, since)
+    api.add_details_section(builder, privacy, card="topics", page="agent")
+                                                  a section in the details card `card` ("statistics",
+                                                  "topics" (agents only), "health" or a key of its own: a
+                                                  card it names with its first ui.heading); page "agent":
+                                                  builder(ui, box, harness, sessions, since); page "llm"
+                                                  (a local LLM's page): builder(ui, box, provider, runtime)
     api.add_help_card(builder)                    builder(ui, box)
     api.add_settings_group(builder)               builder(ui, box)
     api.add_harness(api.Harness(...))             a new agent: cards, map, details     ("agent")
     api.add_provider(api.Provider(...))           a new local LLM or online provider    ("provider")
+    api.extend_harness(command, **fields)         facts added to an existing agent      (kind "extension",
+                                                  the command in its "extends"; harnesses.EXTENDABLE
+                                                  fields only, used where the agent left them empty)
+    api.extend_provider(key, **fields)            facts added to an existing provider   (kind "extension",
+                                                  the key in its "extends"; providers.EXTENDABLE fields)
 
 Agents and providers need the capability in quotes declared in addon.json ("capabilities"), and
 one that brings an installer also "installer". A built-in id cannot be replaced, and an add-on's
@@ -23,6 +33,7 @@ an add-on that fails is reported in Settings, the page goes on without it.
 
 from __future__ import annotations
 
+import re
 import threading
 import traceback
 from dataclasses import dataclass, field
@@ -42,7 +53,7 @@ class AddonError(Exception):
 @dataclass
 class Hooks:
     titles: dict = field(default_factory=dict)        # command -> [(addon id, reader)]
-    details: list = field(default_factory=list)       # [(addon id, builder, privacy)]
+    details: list = field(default_factory=list)       # [(addon id, builder, privacy, card, page)]
     help: list = field(default_factory=list)          # [(addon id, builder)]
     settings: list = field(default_factory=list)      # [(addon id, builder)]
     privacy: dict = field(default_factory=dict)       # addon id -> level of a loaded add-on
@@ -81,10 +92,13 @@ class AddonAPI:
     NUMBERS, TITLES, SUMMARY = _edition.NUMBERS, _edition.TITLES, _edition.SUMMARY
 
     def __init__(self, addon_id: str, privacy: int, strings: dict | None = None, hooks: Hooks = HOOKS,
-                 capabilities=()):
+                 capabilities=(), kind: str = "feature", extends=(), icon: str = ""):
         self.addon_id = addon_id
         self.privacy = privacy
         self.capabilities = frozenset(capabilities)
+        self.kind = kind
+        self.extends = frozenset(extends)          # agent commands an extension add-on may add to
+        self.icon = icon                           # its icon.svg as an icon name, or "" (icons.py)
         self._strings = strings or {}       # language -> {English text: translation}
         self._hooks = hooks
 
@@ -162,9 +176,24 @@ class AddonAPI:
         self._allow(_edition.TITLES, "add_session_titles")
         self._hooks.titles.setdefault(command, []).append((self.addon_id, reader))
 
-    def add_details_section(self, builder, privacy: int = _edition.NUMBERS):
+    CARDS = ("statistics", "topics", "health")      # the details page's cards an add-on can add to
+
+    PAGES = ("agent", "llm")                     # agents' details pages, local LLMs' details pages
+
+    def add_details_section(self, builder, privacy: int = _edition.NUMBERS, card: str = "topics",
+                            page: str = "agent"):
+        """A section on details pages (`page`: "agent" or "llm"), in the card `card`: one of CARDS
+        ("topics" on agents' pages only), or a key of the add-on's own ("[a-z0-9-]", a card of its
+        own that its first ui.heading names)."""
         self._allow(privacy, "add_details_section")
-        self._hooks.details.append((self.addon_id, builder, privacy))
+        if not isinstance(card, str) or not card or len(card) > 40 or \
+                not all(c.islower() or c.isdigit() or c == "-" for c in card):
+            raise AddonError("card must be a short key like \"statistics\"")
+        if page not in self.PAGES:
+            raise AddonError("page must be \"agent\" or \"llm\"")
+        if page == "llm" and card == "topics":
+            raise AddonError("Topics is on agents' pages only")
+        self._hooks.details.append((self.addon_id, builder, privacy, card, page))
 
     def add_help_card(self, builder):
         self._hooks.help.append((self.addon_id, builder))
@@ -173,7 +202,7 @@ class AddonAPI:
         self._hooks.settings.append((self.addon_id, builder))
 
     # --- new agents and providers ---
-    from harnesses import Harness, LocalLlm, Mcp, Sessions, Skills   # noqa: E402  (classes for add-ons)
+    from harnesses import Download, Harness, LocalLlm, Mcp, Sessions, Skills, Way   # noqa: E402  (classes for add-ons)
     from providers import Provider                                 # noqa: E402
 
     @staticmethod
@@ -191,19 +220,66 @@ class AddonAPI:
         if capability not in self.capabilities:
             raise AddonError(f"{what} needs \"{capability}\" in {self.addon_id}'s capabilities")
 
+    @staticmethod
+    def _check_commands(download, ways, self_update):
+        """What an add-on declares to install, update and remove its program is data the app runs:
+        it must be of the expected form (install_ctl.check_download; plain words, as
+        install_recipes runs them)."""
+        import install_ctl
+        import install_recipes
+        if download is not None:
+            try:
+                install_ctl.check_download(download)
+            except (ValueError, re.error) as error:
+                raise AddonError(f"download: {error}") from error
+        for way in ways or ():
+            for argv in (way.argv, way.update):
+                if argv and install_recipes._plain(argv) is None:
+                    raise AddonError(f"{' '.join(map(str, argv))[:80]}: only plain words can run")
+        if self_update and install_recipes._plain(self_update) is None:
+            raise AddonError("self_update: only plain words can run")
+
     def add_harness(self, harness):
         self._need("agent", "add_harness")
-        if harness.installer is not None:
+        if harness.installer is not None or harness.download is not None:
             self._need("installer", "an agent with an installer")
+        self._check_commands(harness.download, harness.install, harness.self_update)
+        if self.icon and not harness.icon:
+            # The add-on's own icon.svg for its agent (cards and its box on the map).
+            import dataclasses
+            harness = dataclasses.replace(harness, icon=self.icon, icon_font="icon")
         updates = bool(harness.self_update or harness.latest is not None)
         if updates:
             self._need("updater", "an agent with an updater of its own")
         harnesses.add(harness, self.addon_id, updates=updates)
 
+    def extend_harness(self, command: str, **fields):
+        """Facts for an agent another add-on (or the app) brings: only for an extension add-on and
+        an agent its addon.json "extends"; only harnesses.EXTENDABLE fields."""
+        if self.kind != "extension":
+            raise AddonError("extend_harness needs kind \"extension\"")
+        if command not in self.extends:
+            raise AddonError(f"{command} is not in {self.addon_id}'s \"extends\"")
+        refused = harnesses.extend(command, fields, self.addon_id)
+        if refused:
+            raise AddonError(f"cannot extend {', '.join(sorted(refused))}")
+
+    def extend_provider(self, key: str, **fields):
+        """Facts for a provider another add-on (or the app) brings, as extend_harness for agents."""
+        if self.kind != "extension":
+            raise AddonError("extend_provider needs kind \"extension\"")
+        if key not in self.extends:
+            raise AddonError(f"{key} is not in {self.addon_id}'s \"extends\"")
+        import providers
+        refused = providers.extend(key, fields, self.addon_id)
+        if refused:
+            raise AddonError(f"cannot extend {', '.join(sorted(refused))}")
+
     def add_provider(self, provider):
         self._need("provider", "add_provider")
-        if provider.installer is not None:
+        if provider.installer is not None or provider.download is not None:
             self._need("installer", "a provider with an installer")
+        self._check_commands(provider.download, provider.install, ())
         import providers
         providers.add(provider, self.addon_id)
 
@@ -216,6 +292,10 @@ class UI:
         self.addon_id = addon_id
 
     def heading(self, box, text: str):
+        """A heading. The first one inside a card the add-on fills (Topics on a details page) names
+        that card instead."""
+        if getattr(self._app, "name_group", None) is not None and self._app.name_group(box, text):
+            return
         self._app.settings_heading(box, text)
 
     def boxed_list(self):

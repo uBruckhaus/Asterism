@@ -98,8 +98,23 @@ add-ons.
 ## Development
 
 `python3 -m unittest discover -s tests`. `ASTERISM_DESKTOP=omarchy|generic` picks the desktop
-integration. `tools/vendor-into-plugin.sh <plugin checkout>` copies a release into the Omarchy
-plugin.
+integration.
+
+This tree is the one source of both editions: the Omarchy plugin (AI Agents Map) gets its shared
+files (the Python modules but the add-on ones, `tests/`, `icons/`, `translations/`, the manuals)
+from here and keeps only its own (`BarWidget.qml`, `I18n.js`, `manifest.json`, its README and
+assets). Never edit a shared file in the plugin:
+
+- `tools/sync-plugin.py <plugin checkout>` copies what changed and removes what is gone here
+  (`--release`: only from a committed tree);
+- `tools/sync-plugin.py --check <plugin checkout>` lists every difference;
+- `tools/sync-plugin.py --install-hook <plugin checkout>` makes the plugin refuse commits whose
+  shared files differ from this tree.
+
+The user manual is `docs/manual/manual.html` (English) and `manual.<lang>.html` (the translations);
+`python3 docs/manual/build.py --all` makes the PDFs. After an edit of the English one,
+`docs/manual/translations.py check` names the parts each translation still has in the earlier
+English; translate those, then `docs/manual/translations.py stamp <lang> <part id …>`.
 
 ## License
 

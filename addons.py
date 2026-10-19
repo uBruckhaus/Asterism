@@ -47,8 +47,8 @@ USER_DIR = Path(os.environ.get("XDG_DATA_HOME") or Path.home() / ".local/share")
 # addons from the package, inside the AppImage; a newer copy in USER_DIR (from the catalog) wins.
 SYSTEM_DIR = Path(__file__).resolve().parent / "addons"
 
-ASTERISM_VERSION = "0.7.2"       # an add-on whose "needs" names a newer Asterism is refused
-KINDS = ("feature", "agent", "provider")
+ASTERISM_VERSION = "0.7.3"       # an add-on whose "needs" names a newer Asterism is refused
+KINDS = ("feature", "agent", "provider", "extension")
 MAX_FILES = 64
 MAX_FILE = 1024 * 1024
 MAX_TOTAL = 4 * 1024 * 1024
@@ -78,7 +78,8 @@ class Addon:
     reads: list = field(default_factory=list)
     sends: list = field(default_factory=list)
     capabilities: list = field(default_factory=list)    # "agent", "provider", "installer", "updater"
-    kind: str = "feature"            # feature | agent | provider
+    kind: str = "feature"            # feature | agent | provider | extension
+    extends: list = field(default_factory=list)         # extension: agent commands it adds facts to
     icon: str = ""                   # an icon name
     summary: str = ""
     description: str = ""
@@ -90,6 +91,11 @@ class Addon:
     state: str = "refused"           # refused | verified | loaded | failed
     reason: str = ""
     files: dict = field(default_factory=dict, repr=False)    # path -> verified bytes
+
+    @property
+    def brings_code(self) -> bool:
+        """An agent described only by agent.toml runs nothing of its own (the Add-ons page says so)."""
+        return "addon.py" in self.files or "hooks.py" in self.files
 
 
 def _refuse(addon: Addon, reason: str) -> Addon:
@@ -201,7 +207,7 @@ def verify(folder: Path, signers: str = ALLOWED_SIGNERS, uid: int | None = None)
     names = _files(folder, uid)
     if isinstance(names, str):
         return _refuse(addon, names)
-    allowed = {"addon.json", "addon.py", "MANIFEST.sha256", "SIGNATURE"}
+    allowed = {"addon.json", "addon.py", "agent.toml", "hooks.py", "MANIFEST.sha256", "SIGNATURE", "icon.svg"}
     strange = [n for n in names if n not in allowed and not _LANG.fullmatch(n)]
     if strange:
         return _refuse(addon, f"unexpected file {strange[0]}")
@@ -240,8 +246,12 @@ def verify(folder: Path, signers: str = ALLOWED_SIGNERS, uid: int | None = None)
         return _refuse(addon, "addon.json is missing or not JSON")
     if not isinstance(meta, dict) or meta.get("id") != folder.name:
         return _refuse(addon, "addon.json does not name this add-on")
-    if "addon.py" not in files:
-        return _refuse(addon, "addon.py is missing")
+    if "addon.py" not in files and "agent.toml" not in files:
+        return _refuse(addon, "addon.py (or an agent's agent.toml) is missing")
+    if "agent.toml" in files and meta.get("kind") != "agent":
+        return _refuse(addon, "agent.toml belongs only in an agent add-on")
+    if "hooks.py" in files and "agent.toml" not in files:
+        return _refuse(addon, "hooks.py belongs beside an agent.toml")
     version, api, privacy = meta.get("version"), meta.get("api"), meta.get("privacy")
     if not isinstance(version, str) or not _VERSION.fullmatch(version):
         return _refuse(addon, "the version is not x.y.z")
@@ -268,13 +278,22 @@ def verify(folder: Path, signers: str = ALLOWED_SIGNERS, uid: int | None = None)
     addon.commands, addon.paths = detect_hints(meta.get("detect"))
     provides = meta.get("provides", [])
     addon.provides = [p for p in provides[:40] if isinstance(p, str) and _COMMAND.fullmatch(p)] \
-        if isinstance(provides, list) and kind != "feature" else []
+        if isinstance(provides, list) and kind in ("agent", "provider") else []
+    extends = meta.get("extends", [])
+    addon.extends = [c for c in extends[:40] if isinstance(c, str) and _COMMAND.fullmatch(c)] \
+        if isinstance(extends, list) and kind == "extension" else []
+    if kind == "extension" and not addon.extends:
+        return _refuse(addon, "an extension names no agent in \"extends\"")
     capabilities = meta.get("capabilities", [])
     if not isinstance(capabilities, list) or not all(c in addon_api.CAPABILITIES for c in capabilities):
         return _refuse(addon, "unknown capabilities")
     addon.harnesses, addon.reads, addon.sends = (_texts(meta.get("harnesses")), _texts(meta.get("reads")),
                                                  _texts(meta.get("sends")))
     addon.capabilities = sorted(set(capabilities))
+    if "icon.svg" in files:
+        import icons
+        if not icons.safe_svg(files["icon.svg"]):
+            return _refuse(addon, "icon.svg may only hold shapes (no scripts, links, images or styles)")
     addon.files, addon.state, addon.reason = files, "verified", ""
     return addon
 
@@ -300,13 +319,24 @@ def load(addon: Addon, hooks: addon_api.Hooks = addon_api.HOOKS) -> Addon:
         return addon
     module = types.ModuleType(f"asterism_addon_{addon.id.replace('-', '_')}")
     module.__file__ = str(addon.folder / "addon.py")
-    api = addon_api.AddonAPI(addon.id, addon.privacy, strings(addon), hooks, addon.capabilities)
+    api = addon_api.AddonAPI(addon.id, addon.privacy, strings(addon), hooks, addon.capabilities, addon.kind,
+                             addon.extends, icon=addon.icon if addon.icon.startswith("am-addon-") else "")
     try:
-        exec(compile(addon.files["addon.py"], module.__file__, "exec"), module.__dict__)
-        register = getattr(module, "register", None)
-        if not callable(register):
-            raise addon_api.AddonError("addon.py has no register(api)")
-        register(api)
+        if "agent.toml" in addon.files:
+            # The agent's facts, from the verified bytes (never read again from disk): no code runs.
+            import tomllib
+
+            import adapter_data
+            facts = tomllib.loads(addon.files["agent.toml"].decode("utf-8"))
+            hooks_file = addon.files.get("hooks.py")      # its code, from the verified bytes too
+            agent_hooks = adapter_data.hooks_from(hooks_file, f"{addon.id}/hooks.py") if hooks_file else None
+            api.add_harness(adapter_data.harness(facts, f"{addon.id}/agent.toml", agent_hooks))
+        if "addon.py" in addon.files:
+            exec(compile(addon.files["addon.py"], module.__file__, "exec"), module.__dict__)
+            register = getattr(module, "register", None)
+            if not callable(register):
+                raise addon_api.AddonError("addon.py has no register(api)")
+            register(api)
     except Exception as error:          # a broken add-on must not stop the app
         addon_api.failed(addon.id, error, hooks)
         addon.state, addon.reason = "failed", hooks.errors[addon.id]
@@ -344,6 +374,11 @@ def load_all(enabled, dirs=(USER_DIR, SYSTEM_DIR), signers: str = ALLOWED_SIGNER
     harnesses.remove_added()
     providers.remove_added()
     result = [verify(folder, signers) for folder in find(dirs)]
+    for addon in result:
+        # Its own icon (checked in verify): kept in the cache, used for its card and its agent.
+        if addon.state == "verified" and "icon.svg" in addon.files:
+            import icons
+            addon.icon = icons.add_addon_icon(addon.id, addon.files["icon.svg"]) or addon.icon
     # An agent or provider that comes as an add-on is shown only through it (when switched on).
     harnesses.hide_built_in({p for a in result if a.state == "verified" and a.kind == "agent" for p in a.provides})
     providers.hide_built_in({p for a in result if a.state == "verified" and a.kind == "provider" for p in a.provides})

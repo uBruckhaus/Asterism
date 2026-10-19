@@ -27,7 +27,7 @@ import setup_page
 from i18n import _
 
 KIND_ICONS = {"agent": "system-users-symbolic", "provider": "network-server-symbolic",
-              "feature": "application-x-addon-symbolic"}
+              "feature": "application-x-addon-symbolic", "extension": "list-add-symbolic"}
 FILTERS = ("all", "agent", "provider", "feature", "installed", "updates")
 
 
@@ -35,7 +35,7 @@ FILTERS = ("all", "agent", "provider", "feature", "installed", "updates")
 class Item:
     id: str
     name: str
-    kind: str                         # agent | provider | feature
+    kind: str                         # agent | provider | feature | extension
     state: str                        # builtin | on | off | failed | available | suggested
     summary: str = ""
     description: str = ""
@@ -57,6 +57,7 @@ class Item:
     key: str = ""                     # the agent command or provider key install_dialog gets (else id)
     here: bool = False                # an add-on (off) whose program is on this PC: suggested
     words: str = ""                   # what search looks through
+    extends: list = field(default_factory=list)   # an extension: the agent commands it adds to
 
 
 def privacy_name(level: int) -> str:
@@ -98,6 +99,7 @@ def build_items(installed: list, entries: list, agent_list=(), runtimes=(), glyp
                     (entry.description if entry else "") or addon.description, addon.version,
                     (entry.icon if entry else "") or addon.icon or KIND_ICONS[kind], privacy=addon.privacy or 1,
                     capabilities=list(addon.capabilities), reads=list(addon.reads), sends=list(addon.sends),
+                    extends=list(getattr(addon, "extends", [])),
                     reason=addon.reason, entry=entry, addon=addon,
                     update=bool(entry and addon.version and addon_store.newer(entry.version, addon.version)),
                     homepage=(entry.homepage if entry else "") or addon.homepage)
@@ -142,7 +144,7 @@ def visible(item: Item, flt: str, query: str) -> bool:
         return item.state in ("on", "off", "failed")
     if flt == "updates":
         return item.update
-    return flt == "all" or item.kind == flt
+    return flt == "all" or item.kind == flt or flt == "feature" and item.kind == "extension"
 
 
 class AddonsPage:
@@ -241,7 +243,7 @@ class AddonsPage:
         count); then only the add-ons switched on are loaded again."""
         import agents
         import inventory
-        enabled = ai_core.load_settings().get("addons_enabled", [])
+        enabled = ai_core.setting("addons_enabled")
         enabled = {e for e in enabled if isinstance(e, str)} if isinstance(enabled, list) else set()
         found = set()
         self.setup_glyphs = {}
@@ -288,7 +290,7 @@ class AddonsPage:
         self.setup_glyphs = {}
         if not adapters:
             return self.setup_glyphs
-        enabled = ai_core.load_settings().get("addons_enabled", [])
+        enabled = ai_core.setting("addons_enabled")
         enabled = {e for e in enabled if isinstance(e, str)} if isinstance(enabled, list) else set()
         try:
             addons.load_all(enabled | {a.id for a in adapters})
@@ -362,31 +364,42 @@ class AddonsPage:
         shown = [i for i in self.addons_items if visible(i, self.addons_filter, query)]
         updates = sum(1 for i in self.addons_items if i.update)
         self.addons_chips["updates"].set_label(_("Updates") + (f" {updates}" if updates else ""))
-        sections = ((_("Suggested for this PC"), [i for i in shown if i.state == "suggested" or i.here]),
-                    (_("Installed add-ons"), [i for i in shown if i.state in ("on", "off", "failed") and not i.here]),
-                    (_("Available"), [i for i in shown if i.state == "available"]),
-                    (_("Built into Asterism"), [i for i in shown if i.state == "builtin"]))
-        for title, items in sections:
+        sections = (("suggested", _("Suggested for this PC"), "list-add-symbolic",
+                     [i for i in shown if i.state == "suggested" or i.here]),
+                    ("installed", _("Installed add-ons"), "application-x-addon-symbolic",
+                     [i for i in shown if i.state in ("on", "off", "failed") and not i.here]),
+                    ("available", _("Available"), "web-browser-symbolic", [i for i in shown if i.state == "available"]),
+                    ("builtin", _("Built into Asterism"), "emblem-system-symbolic",
+                     [i for i in shown if i.state == "builtin"]))
+        for key, title, icon, items in sections:
             if not items:
                 continue
-            heading = Gtk.Label(label=title, xalign=0)
-            heading.add_css_class("heading")
-            box.append(heading)
-            flow = Gtk.FlowBox(selection_mode=Gtk.SelectionMode.NONE, homogeneous=True, column_spacing=ai_core.GAP,
-                               row_spacing=ai_core.GAP, min_children_per_line=1, max_children_per_line=4)
-            for item in items:
-                flow.append(self.addon_card(item))
-            box.append(flow)
+            # A category as a group card: open, folds away with a click on its heading (remembered).
+            group = self.group_card(box, f"addons-{key}", title, icon, str(len(items)), default_open=True)
+            # Installed add-ons: agents, then providers, then the rest, a line between them.
+            parts = [[i for i in items if i.kind == "agent"], [i for i in items if i.kind == "provider"],
+                     [i for i in items if i.kind not in ("agent", "provider")]] if key == "installed" else [items]
+            first = True
+            for part in parts:
+                if not part:
+                    continue
+                if not first:
+                    group.append(Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL))
+                first = False
+                # One width for every part's cards (at most three a row), so the parts line up.
+                flow = Gtk.FlowBox(selection_mode=Gtk.SelectionMode.NONE, homogeneous=True,
+                                   column_spacing=ai_core.GAP, row_spacing=ai_core.GAP, min_children_per_line=1,
+                                   max_children_per_line=3)
+                for item in part:
+                    flow.append(self.addon_card(item))
+                group.append(flow)
         if not shown:
             self.note(box, _("Nothing matches."))
 
     def addon_icon(self, item: Item, size: int = 24) -> Gtk.Widget:
         if item.glyph:
-            label = Gtk.Label(label=item.glyph)
-            label.add_css_class("am-agent-icon")
-            if item.glyph_font == "omarchy":
-                label.add_css_class("am-agent-icon-omarchy")
-            return label
+            from ui_helpers import glyph_widget
+            return glyph_widget(item.glyph, item.glyph_font, size, ("am-agent-icon",))
         image = Gtk.Image.new_from_icon_name(item.icon or KIND_ICONS.get(item.kind, KIND_ICONS["feature"]))
         image.set_pixel_size(size)
         return image
@@ -416,7 +429,8 @@ class AddonsPage:
         name = Gtk.Label(label=item.name, xalign=0, ellipsize=3)
         name.add_css_class("am-addon-name")
         names.append(name)
-        kind = {"agent": _("Agent"), "provider": _("Provider"), "feature": _("Feature")}[item.kind]
+        kind = {"agent": _("Agent"), "provider": _("Provider"), "feature": _("Feature"),
+                "extension": _("Extension")}.get(item.kind, _("Feature"))
         if item.installed is not None and (item.target or item.key):
             kind += " · " + (_("installed") if item.installed else _("not installed"))
         sub = Gtk.Label(label=kind + (f" · {item.version}" if item.version else ""), xalign=0)
@@ -525,7 +539,8 @@ class AddonsPage:
         name = Gtk.Label(label=item.name, xalign=0)
         name.add_css_class("title-2")
         names.append(name)
-        kind = {"agent": _("Agent"), "provider": _("Provider"), "feature": _("Feature")}[item.kind]
+        kind = {"agent": _("Agent"), "provider": _("Provider"), "feature": _("Feature"),
+                "extension": _("Extension")}.get(item.kind, _("Feature"))
         line = Gtk.Label(label=kind + (f" · {item.version}" if item.version else ""), xalign=0)
         line.add_css_class("am-agent-detail")
         names.append(line)
@@ -551,6 +566,19 @@ class AddonsPage:
                 self.note(box, (_("{0} is installed on this PC.") if item.installed else
                                 _("{0} is not installed on this PC.")).format(item.name)
                           + ("" if item.state == "on" else " " + _("Switch the add-on on to install or remove it here.")))
+            if item.extends:
+                # An extension: which agents it adds to, and what it adds that is not used.
+                self.settings_heading(box, _("Adds to"))
+                rows = self.boxed_list()
+                for command in item.extends:
+                    h = harnesses.get(command)
+                    rows.append(self.plain_row(h.full_name or h.name if h else command,
+                                               "" if h else _("Not on the map now: its add-on is off.")))
+                box.append(rows)
+                unused = harnesses.conflicts().get(item.id, [])
+                if unused:
+                    self.note(box, _("Not used, because the agent or an earlier extension has it already: {0}")
+                              .format(", ".join(unused)))
             self.settings_heading(box, _("What it reads"))
             rows = self.boxed_list()
             for text in item.reads or [_("Nothing beyond what Asterism shows anyway.")]:
@@ -566,6 +594,13 @@ class AddonsPage:
             rows.append(self.plain_row(_("Privacy level: {0}").format(privacy_name(item.privacy))))
             for capability in item.capabilities:
                 rows.append(self.plain_row(capability_text(capability)))
+            addon = item.addon
+            if addon is not None and addon.state in ("verified", "loaded"):     # its files are known then
+                files = addon.files
+                text = (_("Brings code of its own (addon.py)") if "addon.py" in files else
+                        _("Facts about the agent, and a little code for what facts cannot say (hooks.py)")
+                        if "hooks.py" in files else _("Brings no code: only facts about the agent (agent.toml)"))
+                rows.append(self.plain_row(text))
             box.append(rows)
             self.note(box, _("Signed by Uwe Bruckhaus (key {0}). Asterism checks the signature and every file "
                              "before anything of it runs.").format("SHA256:e5cC634Ke3Our5LAeSc88qs22NKZEHTncBW5Ig3amWQ"))

@@ -54,6 +54,8 @@ class AddonsTest(unittest.TestCase):
         info.update(meta or {})
         files = {"addon.json": json.dumps(info), "addon.py": code,
                  "translations/de.json": json.dumps({"Topics": "Themen"}), **(extra or {})}
+        if code is None:                                   # a data-only add-on (agent.toml)
+            del files["addon.py"]
         for name, text in files.items():
             (folder / name).write_text(text)
         manifest = "".join(f"{hashlib.sha256((folder / n).read_bytes()).hexdigest()}  {n}\n" for n in sorted(files))
@@ -81,6 +83,45 @@ class AddonsTest(unittest.TestCase):
         self.assertEqual(self.hooks.privacy, {"insights": edition.TITLES})
         api = addon_api.AddonAPI("other", edition.NUMBERS, hooks=self.hooks)
         self.assertEqual(api.session_titles("opencode"), {"a": "A title"})
+
+    def agent_addon(self, toml_text, meta=None):
+        gemini = (Path(__file__).resolve().parent.parent / "adapters/gemini.toml").read_text()
+        gemini = gemini.replace('command = "gemini"', 'command = "gemini-test"')   # not the built-in one
+        return self.build("agent-gemini", code=None, extra={"agent.toml": toml_text if toml_text else gemini},
+                          meta={"kind": "agent", "capabilities": ["agent"], "provides": ["gemini-test"],
+                                "privacy": "numbers", **(meta or {})})
+
+    def test_a_data_only_agent_addon_brings_no_code(self):
+        import harnesses
+        addon = self.verify(self.agent_addon(None))
+        self.assertEqual((addon.state, addon.brings_code), ("verified", False))
+        addons.load(addon, self.hooks)
+        self.addCleanup(harnesses.remove_added, "agent-gemini")
+        self.assertEqual((addon.state, addon.reason), ("loaded", ""))
+        self.assertIn("gemini-test", [h.command for _id, h in harnesses._ADDED])
+
+    def test_a_broken_agent_toml_fails_with_its_reason(self):
+        addon = self.verify(self.agent_addon('command = "gemini"\nname = "Gemini"\nhomepgae = "x"\n'))
+        addons.load(addon, self.hooks)
+        self.assertEqual(addon.state, "failed")
+        self.assertIn("homepgae", addon.reason)
+
+    def test_agent_toml_only_in_an_agent_addon(self):
+        addon = self.verify(self.agent_addon(None, meta={"kind": "feature"}))
+        self.assertEqual((addon.state, addon.reason), ("refused", "agent.toml belongs only in an agent add-on"))
+
+    def test_hooks_only_beside_an_agent_toml(self):
+        folder = self.build("agent-x", code="def register(api):\n    pass\n", extra={"hooks.py": "x = 1\n"},
+                            meta={"kind": "agent", "capabilities": ["agent"], "privacy": "numbers"})
+        addon = self.verify(folder)
+        self.assertEqual((addon.state, addon.reason), ("refused", "hooks.py belongs beside an agent.toml"))
+
+    def test_capabilities_still_apply_to_facts(self):
+        claude = (Path(__file__).resolve().parent.parent / "adapters/claude.toml").read_text()
+        addon = self.verify(self.agent_addon(claude.replace('command = "claude"', 'command = "gemini-test"')))
+        addons.load(addon, self.hooks)                     # it has an updater, but no "updater" capability
+        self.assertEqual(addon.state, "failed")
+        self.assertIn("updater", addon.reason)
 
     def test_only_uwes_key(self):
         addon = addons.verify(self.build())          # the built-in key, not the test key
@@ -252,6 +293,60 @@ def register(api):
         self.assertIn("exists already", found[0].reason)
         self.assertEqual(providers.get("ollama").name, "Ollama")
 
+    def test_its_own_icon(self):
+        import icons
+        svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path d="M0 0h16v16z"/></svg>'
+        self.build(extra={"icon.svg": svg})
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.object(icons, "ADDON_DIR", Path(tmp)):
+            found = addons.load_all(set(), dirs=(self.root,), signers=self.signers)
+            self.assertEqual((found[0].state, found[0].icon), ("verified", "am-addon-insights-symbolic"))
+            self.assertTrue((Path(tmp) / "am-addon-insights-symbolic.svg").is_file())
+
+    def test_an_icon_that_could_load_anything_is_refused(self):
+        self.build(extra={"icon.svg": '<svg><image href="https://x/y.png"/></svg>'})
+        self.assertIn("icon.svg may only hold shapes", self.verify(self.root / "insights").reason)
+
+    def test_declared_commands_must_be_plain_words(self):
+        self.registries_reset()
+        code = """
+def register(api):
+    api.add_harness(api.Harness("plainx", "Plain X", install=(api.Way("command", argv=("sh", "-c", "curl x | sh")),)))
+"""
+        self.build(code=code, meta={"privacy": "numbers", "capabilities": ["agent"]})
+        found = addons.load_all({"insights"}, dirs=(self.root,), signers=self.signers)
+        self.assertIn("only plain words", found[0].reason)
+
+    def test_a_download_needs_the_installer_capability_and_good_data(self):
+        self.registries_reset()
+        code = """
+def register(api):
+    api.add_harness(api.Harness("dl", "DL", download=api.Download(repo="acme/dl", assets=(("", "dl-x64"),),
+                                                                   binary="dl", command="dl", single_file=True)))
+"""
+        self.build(code=code, meta={"privacy": "numbers", "capabilities": ["agent"]})
+        found = addons.load_all({"insights"}, dirs=(self.root,), signers=self.signers)
+        self.assertIn("installer", found[0].reason)
+        self.registries_reset()
+        bad = code.replace('binary="dl"', 'binary="../dl"')
+        self.build(addon_id="bad", code=bad, meta={"id": "bad", "privacy": "numbers", "capabilities": ["agent", "installer"]})
+        found = {a.id: a for a in addons.load_all({"bad"}, dirs=(self.root,), signers=self.signers)}
+        self.assertIn("download", found["bad"].reason)
+
+    def test_an_updater_with_its_capability_is_allowed(self):
+        self.registries_reset()
+        code = """
+def register(api):
+    api.add_harness(api.Harness("upd2", "Upd", self_update=("upd2", "update")))
+"""
+        self.build(code=code, meta={"privacy": "numbers", "capabilities": ["agent", "updater"]})
+        found = addons.load_all({"insights"}, dirs=(self.root,), signers=self.signers)
+        self.assertEqual(found[0].state, "loaded", found[0].reason)
+        import agent_updates
+        self.assertTrue(agent_updates._allowed(["upd2", "update"]))
+        import harnesses
+        harnesses.remove_added()
+        self.assertFalse(agent_updates._allowed(["upd2", "update"]))
+
     def test_no_updater_and_no_unknown_capabilities(self):
         self.registries_reset()
         code = """
@@ -262,7 +357,7 @@ def register(api):
         found = addons.load_all({"insights"}, dirs=(self.root,), signers=self.signers)
         self.assertIn("updater", found[0].reason)
         import agent_updates
-        self.assertEqual(agent_updates.SELF_UPDATES, (["claude", "update"],))
+        self.assertEqual(agent_updates.self_updates(), (["claude", "update"],))   # refused: nothing added
         self.assertEqual(self.verify(self.build(addon_id="other", meta={"id": "other", "capabilities": ["root"]})).reason,
                          "unknown capabilities")
 
@@ -273,6 +368,85 @@ class HookCallTest(unittest.TestCase):
         with mock.patch.object(addon_api, "HOOKS", hooks):
             self.assertIsNone(addon_api.call("x", lambda: 1 / 0))
             self.assertIn("ZeroDivisionError", hooks.errors["x"])
+
+
+EXTENSION = '''
+def register(api):
+    api.extend_harness("opencode", limits=lambda: ("Plan X", []))
+    api.add_details_section(lambda ui, box, harness, sessions, since: None, card="statistics")
+'''
+
+
+@unittest.skipUnless(shutil.which("ssh-keygen"), "needs OpenSSH's ssh-keygen")
+class ExtensionAddonTest(AddonsTest):
+    """An extension add-on adds facts to an agent another add-on (or the app) brings."""
+
+    def tearDown(self):
+        import harnesses
+        harnesses.remove_added()
+
+    def ext(self, code=EXTENSION, meta=None):
+        info = {"kind": "extension", "extends": ["opencode"], "privacy": "numbers"}
+        info.update(meta or {})
+        return self.verify(self.build("ext-limits", code, info))
+
+    def test_it_fills_an_empty_fact_and_names_its_card(self):
+        import harnesses
+        addon = self.ext()
+        self.assertEqual((addon.state, addon.kind, addon.extends), ("verified", "extension", ["opencode"]))
+        addons.load(addon, self.hooks)
+        self.assertEqual(addon.state, "loaded", addon.reason)
+        self.assertEqual(harnesses.get("opencode").limits(), ("Plan X", []))
+        self.assertEqual([h[3] for h in self.hooks.details], ["statistics"])
+
+    def test_without_extends_it_is_refused(self):
+        self.assertEqual(self.ext(meta={"extends": []}).reason, "an extension names no agent in \"extends\"")
+
+    def test_only_the_agents_it_names(self):
+        addon = self.ext(code='''
+def register(api):
+    api.extend_harness("claude", limits=lambda: ("x", []))
+''')
+        addons.load(addon, self.hooks)
+        self.assertEqual(addon.state, "failed")
+        self.assertIn("not in", addon.reason)
+
+    def test_never_what_installs_or_updates(self):
+        addon = self.ext(code='''
+def register(api):
+    api.extend_harness("opencode", installer=lambda: None)
+''')
+        addons.load(addon, self.hooks)
+        self.assertEqual(addon.state, "failed")
+        self.assertIn("cannot extend installer", addon.reason)
+
+    def test_it_extends_a_provider_and_its_page(self):
+        import providers
+        addon = self.ext(code='''
+def register(api):
+    api.extend_provider("llamacpp", usage=lambda rt: None)
+    api.add_details_section(lambda ui, box, provider, runtime: None, card="health", page="llm")
+''', meta={"extends": ["llamacpp"]})
+        addons.load(addon, self.hooks)
+        self.assertEqual(addon.state, "loaded", addon.reason)
+        self.assertIsNotNone(providers.get("llamacpp").usage)
+        self.assertEqual([(h[3], h[4]) for h in self.hooks.details], [("health", "llm")])
+        providers.remove_added()
+
+    def test_no_topics_on_llm_pages(self):
+        addon = self.ext(code='''
+def register(api):
+    api.add_details_section(lambda ui, box, provider, runtime: None, card="topics", page="llm")
+''')
+        addons.load(addon, self.hooks)
+        self.assertEqual(addon.state, "failed")
+        self.assertIn("agents' pages only", addon.reason)
+
+    def test_a_feature_addon_cannot_extend(self):
+        addon = self.verify(self.build(code=EXTENSION, meta={"privacy": "numbers"}))
+        addons.load(addon, self.hooks)
+        self.assertEqual(addon.state, "failed")
+        self.assertIn("kind", addon.reason)
 
 
 if __name__ == "__main__":

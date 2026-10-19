@@ -77,6 +77,12 @@ h3 { font-size: 11pt; color: var(--ink); margin: 1.4em 0 0.5em; }
 .figure.narrow img { width: 40%; margin: 0 auto; }
 .caption { font-size: 8.6pt; color: var(--muted); margin-top: 2mm; }
 .caption::before { content: "Figure " counter(figure) " · "; color: var(--accent); font-weight: 600; }
+:lang(de) .caption::before { content: "Abbildung " counter(figure) " · "; }
+:lang(es) .caption::before, :lang(pt) .caption::before { content: "Figura " counter(figure) " · "; }
+:lang(fr) .caption::before, :lang(it) .caption::before { content: "Figure " counter(figure) " · "; }
+:lang(it) .caption::before { content: "Figura " counter(figure) " · "; }
+:lang(nl) .caption::before { content: "Afbeelding " counter(figure) " · "; }
+:lang(pl) .caption::before { content: "Rysunek " counter(figure) " · "; }
 body { counter-reset: figure; }
 .figure { counter-increment: figure; }
 .shot { position: relative; }

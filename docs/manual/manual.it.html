@@ -1,0 +1,961 @@
+<!doctype html>
+<html lang="it">
+<!-- en-sections: {"cover":"9516ade577b5","about":"24ef624376f3","contents":"21ea3e57c9da","introduction":"313f8fe9cb9d","what-it-does":"ed3064a11d43","key-ideas":"0dc7c4d398f5","safety-promise":"334a9139e547","installation":"adcdc36e3a21","install-asterism":"b945afc8d543","install-plugin":"fc323032a506","first-start":"5579a2415653","remove":"8c1886fef87f","window":"35666f690d1d","my-setup":"81678a2ddc24","views":"bd4f2056edcb","map":"128c58421c9d","health":"eef2a00936de","hints":"24f2192e5f85","agents":"725cacb072f7","agent-cards":"354d56561701","running-agents":"a2f1a14ecc25","sign-in":"ea6d1e3e72ac","agent-updates":"01bef9527c31","installed-agents":"110cc3d880c6","new-agents":"fb16b013258a","local-llms":"e2be23aaaf47","install-runtime":"eabcd3a2b7f3","start-with-agents":"809020136522","llm-details":"b75c476f9a86","gpu":"1f2d352d51f9","outside-use":"86a1bab35faa","models":"b4d5fe299a8c","get-models":"af6188c5aa99","installed-models":"f110e8230bbe","context":"68d7514720cb","on-this-pc":"55bee8ede689","move-models":"d71891f4f901","reorganize":"1114fcad96d5","connecting":"4e3dccd115f3","connect-llm":"db8991c4c5d9","connect-mcp":"b468e04a9fac","connect-skills":"9fce5a98b968","failed":"7ac7d4b2bc76","mcp":"cc5a616e0263","mcp-sources":"51a66027d60a","mcp-setup":"0cb066c1a008","mcp-manage":"24427ff7c541","skills":"7903d52383fc","skills-sources":"2603211f99b7","skills-details":"d4adf096db78","settings":"70e44dac2d67","settings-list":"15eef231709e","help":"ac583f9720ec","disk-space":"5ee741e044cc","security":"e9ecce23da38","security-card":"ac6936e999ff","security-change":"8154c861d65e","security-agents":"f40610c167dd","security-risks":"3dd9a2ca7708","security-words":"3d1a5d5bd8fd","addons":"f591de0e2f7a","addons-setup":"a5215a8cc855","addons-page":"2ca8de053256","addons-install":"be9cb02485ce","addons-privacy":"cc399d559003","addons-kinds":"fed9f935ab09","addons-new-harness":"249c6447b88f","privacy":"f5e1418490cf","troubleshooting":"294f235649d4","reference":"6ac732d0e888","shortcuts":"742009011fac","files":"3afed2ea2663","glossary":"0ce132e36d9f"} -->
+<head>
+<meta charset="utf-8">
+<title>Asterism &amp; AI Agents Map — Manuale utente</title>
+<link rel="stylesheet" href="manual.css">
+</head>
+<body>
+<!-- Italian translation of manual.html: same markup and ids, only the text translated. -->
+
+<!-- ============================== Cover ============================== -->
+<section class="cover">
+  <img class="cover-icon" src="images/icon.svg" alt="Icona dell'app Asterism">
+  <p class="cover-kicker">Manuale utente</p>
+  <h1 class="cover-title">Asterism<br><span>&amp; AI Agents Map</span></h1>
+  <p class="cover-sub">I tuoi agenti IA, modelli locali, server MCP e skill su un'unica mappa</p>
+  <div class="cover-meta">
+    <p>Asterism {{ASTERISM_VERSION}} · AI Agents Map {{PLUGIN_VERSION}}</p>
+    <p>{{DATE}}</p>
+  </div>
+</section>
+
+<!-- ============================== About ============================== -->
+<section class="front" id="about">
+  <h2 class="front-title">Informazioni su questo manuale</h2>
+  <p>Questo manuale descrive un'applicazione disponibile in due edizioni:</p>
+  <table class="editions">
+    <thead><tr><th scope="col">Edizione</th><th>Asterism</th><th>AI Agents Map</th></tr></thead>
+    <tbody>
+      <tr><th>Che cos'è</th><td>Un'app autonoma GTK&nbsp;4 / libadwaita per qualsiasi desktop Linux</td>
+          <td>Un plugin per il desktop Omarchy, aperto da un pulsante nella barra</td></tr>
+      <tr><th>Si installa da</th><td>AUR, AppImage o codice sorgente</td><td>L'Omarchy Plugin Marketplace</td></tr>
+      <tr><th>Aspetto</th><td>Segue la modalità chiara/scura e il colore d'accento del sistema</td>
+          <td>I colori del tema di Omarchy o l'aspetto Adwaita di GNOME</td></tr>
+      <tr><th>Cartella delle impostazioni</th><td><code>~/.config/asterism/</code></td><td><code>~/.config/omarchy/ai-agents-map/</code></td></tr>
+    </tbody>
+  </table>
+  <p>Tutto il resto — Setup, la mappa, il collegamento disegnando, gli LLM locali, i modelli, i server MCP e le
+  skill — è uguale in entrambe. Ciò che vale per una sola edizione è contrassegnato con
+  <span class="badge">Asterism</span> o <span class="badge omarchy">Omarchy</span>.</p>
+
+  <h3>Convenzioni</h3>
+  <table class="conventions">
+    <tbody>
+      <tr><th scope="row"><b>Aggiungi</b></th><td>Un pulsante, una scheda o una voce di menu della finestra.</td></tr>
+      <tr><th scope="row">Impostazioni › <b>Aspetto</b></th><td>Un percorso nell'interfaccia: apri le impostazioni, poi <b>Aspetto</b>.</td></tr>
+      <tr><th scope="row"><code>~/.agents/skills</code></th><td>Un file, una cartella o un comando. <code>~</code> è la tua cartella personale.</td></tr>
+      <tr><th scope="row"><kbd>Ctrl</kbd>+<kbd>,</kbd></th><td>Una scorciatoia da tastiera.</td></tr>
+    </tbody>
+  </table>
+  <div class="note"><p><b>Nota</b> Le note danno un contesto utile.</p></div>
+  <div class="tip"><p><b>Suggerimento</b> I suggerimenti mostrano una via più rapida o una buona abitudine.</p></div>
+  <div class="warn"><p><b>Attenzione</b> I riquadri di attenzione segnalano qualcosa di difficile da annullare.</p></div>
+</section>
+
+<!-- ============================== Contents (filled by the build) ============================== -->
+<section class="front toc" id="contents">
+  <h2 class="front-title">Indice</h2>
+  <!-- TOC -->
+</section>
+
+<!-- ============================== 1 Introduction ============================== -->
+<section class="chapter" id="introduction">
+  <h1>Introduzione</h1>
+  <p class="lead">Asterism mostra la configurazione IA del tuo computer come schede e come mappa: quali agenti di
+  programmazione sono installati, quali modelli linguistici usano — servizi cloud e motori locali —, quali modelli questi
+  servono e quali server MCP e skill ha ogni agente. E ti permette di cambiare questa configurazione disegnando linee.</p>
+
+  <div class="figure wide">
+    <img src="images/main-window.jpg" alt="La finestra principale: nell'intestazione Setup, Mappa e un ! rosso per i problemi aperti; la scheda GPU e la mappa a tutta larghezza: server MCP e skill, agenti con un pulsante di avvio, fornitori di LLM e modelli">
+    <p class="caption">La finestra principale: la mappa a tutta larghezza, sopra la scheda GPU, nell'intestazione il ! dei problemi aperti.</p>
+  </div>
+
+  <h2 id="what-it-does">Che cosa fa</h2>
+  <ul>
+    <li><b>Agenti di programmazione</b> — Claude Code, Codex, GitHub Copilot, Cursor CLI, Gemini, OpenCode, Pi, Hermes e
+      altri: la loro versione, il piano, i limiti e l'utilizzo, e ciò che manca a ciascuno, con il comando che lo risolve.</li>
+    <li><b>LLM locali</b> — llama.cpp, Ollama, LM Studio, vLLM, Jan e KoboldCpp: installarli, scaricare modelli, impostare
+      la dimensione di contesto adatta alla tua scheda grafica e avviarli insieme agli agenti che li usano.</li>
+    <li><b>Server MCP e skill</b> — trovati sul tuo computer o sul web, con server consigliati e una ricerca nel registro
+      MCP ufficiale.</li>
+    <li><b>Problemi aperti</b> — un ! nell'intestazione quando c'è qualcosa da sistemare, ogni problema con la strada fino a dove si sistema, e a cosa serve il tuo setup.</li>
+  </ul>
+
+  <h2 id="key-ideas">Concetti chiave</h2>
+  <dl>
+    <dt>Agente</dt><dd>Un programma con cui parli e che scrive codice o svolge compiti, come Claude Code.</dd>
+    <dt>Provider di LLM</dt><dd>Dove gira il modello di un agente: un servizio cloud (Anthropic, OpenAI, …) o un motore di
+      LLM locale su questo computer (llama.cpp, Ollama, …).</dd>
+    <dt>Modello</dt><dd>Il modello linguistico vero e proprio. I modelli locali sono file, di solito in formato GGUF.</dd>
+    <dt>Server MCP</dt><dd>Un piccolo programma o servizio web che dà agli agenti strumenti in più — leggere file, cercare
+      sul web, controllare un browser. MCP è il Model Context Protocol.</dd>
+    <dt>Skill</dt><dd>Una cartella di istruzioni (un <code>SKILL.md</code>) e a volte script, che insegna a un agente un
+      compito preciso.</dd>
+  </dl>
+
+  <h2 id="safety-promise">Nulla cambia senza anteprima</h2>
+  <p>Ogni modifica alle impostazioni di un agente viene mostrata prima, riga per riga, prima di scrivere qualsiasi cosa.
+  Il vecchio file viene conservato come backup, e la barra che compare dopo la modifica offre <b>Annulla</b>. L'app non
+  chiede mai i permessi di amministratore.</p>
+</section>
+
+<!-- ============================== 2 Installation ============================== -->
+<section class="chapter" id="installation">
+  <h1>Installazione</h1>
+
+  <h2 id="install-asterism">Asterism <span class="badge">Asterism</span></h2>
+  <p>Scegli uno di questi modi:</p>
+  <ul>
+    <li><b>Arch Linux (AUR):</b> installa il pacchetto <code>asterism</code> con il tuo helper AUR.</li>
+    <li><b>AppImage:</b> scarica <code>Asterism-&lt;versione&gt;-x86_64.AppImage</code> dalla pagina delle release su
+      <code>github.com/uBruckhaus/Asterism</code>, rendilo eseguibile e avvialo. L'AppImage usa il Python&nbsp;3 della tua
+      distribuzione con PyGObject, GTK&nbsp;4 e libadwaita:
+      <table class="compact">
+        <tbody>
+          <tr><th scope="row">Fedora</th><td><code>sudo dnf install python3-gobject gtk4 libadwaita</code></td></tr>
+          <tr><th scope="row">Ubuntu / Debian</th><td><code>sudo apt install python3-gi gir1.2-gtk-4.0 gir1.2-adw-1</code></td></tr>
+          <tr><th scope="row">Arch</th><td><code>sudo pacman -S python-gobject gtk4 libadwaita</code></td></tr>
+        </tbody>
+      </table></li>
+    <li><b>Dal codice sorgente:</b> esegui <code>bin/asterism</code> in un clone del repository.</li>
+  </ul>
+  <p>L'app porta con sé le proprie icone, quindi non serve alcun font di icone. Per eseguire agenti dentro la finestra,
+  installa anche VTE per GTK&nbsp;4 (<code>vte4</code>).</p>
+
+  <h2 id="install-plugin">AI Agents Map su Omarchy <span class="badge omarchy">Omarchy</span></h2>
+  <p>Installa il plugin dall'Omarchy Plugin Marketplace o in un terminale:</p>
+  <pre>omarchy plugin add https://github.com/uBruckhaus/omarchy-ai-agents-map.git --enable</pre>
+  <p>Nella barra compare un pulsante con un robot. Tutto il resto che serve è incluso in una normale installazione di
+  Omarchy. Per eseguire agenti dentro la finestra, installa VTE: <code>sudo pacman -S vte4</code>.</p>
+
+  <h2 id="first-start">Primo avvio</h2>
+  <p>Alla prima apertura l'app chiede se aggiungersi al lanciatore di applicazioni. Lì non viene scritto nulla finché non
+  dici di sì; puoi cambiarlo in seguito in Impostazioni › <b>Nel lanciatore</b>.</p>
+  <p>La finestra è una normale finestra d'applicazione: può essere affiancata, flottante, spostata su un altro spazio di
+  lavoro e raggiunta con <kbd>Alt</kbd>+<kbd>Tab</kbd>. <span class="badge">Asterism</span> Un Asterism nuovo si apre
+  sulla sua <b>pagina di benvenuto</b>: gli agenti e gli LLM locali installati su questo computer sono schede già
+  spuntate, e <b>Attiva</b> li mette sulla mappa (vedi <a href="#addons-setup">Configurare Asterism</a>).
+  <span class="badge omarchy">Omarchy</span> Il pulsante della barra apre la finestra, la porta in primo piano o la
+  nasconde se è già davanti. Chiudere nasconde la finestra; il programma resta in background per riaprirsi all'istante.</p>
+  <div class="note"><p><b>Nota</b> Se un agente è in esecuzione dentro la finestra, alla chiusura viene chiesto prima:
+  <b>Ferma e chiudi</b> (che ferma anche l'LLM locale dell'agente e libera la sua memoria grafica) o
+  <b>Lascialo in esecuzione</b>.</p></div>
+
+  <h2 id="remove">Rimuovere l'app</h2>
+  <p><span class="badge omarchy">Omarchy</span> <code>omarchy plugin remove ubruckhaus.ai-agents-map</code>.
+  <span class="badge">Asterism</span> Rimuovi il pacchetto o elimina l'AppImage.</p>
+  <p>Prima disattiva Impostazioni › <b>Avvia gli LLM locali con i loro agenti</b>, così viene rimosso anche il guardiano in
+  background, e Impostazioni › <b>Nel lanciatore</b> per eliminare la voce del lanciatore. Ciò che hai cambiato con l'app
+  resta: impostazioni degli agenti, server MCP, skill e LLM locali installati. Disinstalla prima un LLM locale (clic
+  destro › <b>Disinstalla…</b>) se vuoi che sparisca. Per eliminare anche lo stato dell'app stessa:</p>
+  <pre>rm -rf ~/.config/omarchy/ai-agents-map ~/.config/asterism \
+       ~/.local/state/ai-agents-map ~/.cache/ai-agents-map</pre>
+</section>
+
+<!-- ============================== 3 The window ============================== -->
+<section class="chapter" id="window">
+  <h1>La finestra in breve</h1>
+
+  <div class="figure wide annotated">
+    <div class="shot">
+      <img src="images/main-window.jpg" alt="La finestra principale con aree numerate">
+      <span class="pin" style="left:71.1%;top:2.6%">1</span>
+      <span class="pin" style="left:80.6%;top:2.6%">2</span>
+      <span class="pin" style="left:1.3%;top:12.9%">3</span>
+      <span class="pin" style="left:0.6%;top:27.9%">4</span>
+      <span class="pin" style="left:50.0%;top:34.9%">5</span>
+      <span class="pin" style="left:40.7%;top:46.2%">6</span>
+    </div>
+    <p class="caption">La finestra principale. I numeri corrispondono all'elenco sottostante.</p>
+  </div>
+
+  <ol class="legend-list">
+    <li><b>Setup</b> e <b>Mappa</b> — le due viste, su ogni pagina; quella visibile è evidenziata. Setup ha ogni agente, LLM locale, server MCP, cartella di skill e modello come scheda: installare, aggiornare, accedere, rimuovere (vedi sotto).</li>
+    <li>I simboli dell'intestazione: <b>!</b> problemi aperti e aggiornamenti (rosso: qualcosa da sistemare; il colore d'accento: solo aggiornamenti e suggerimenti; assente quando non c'è nulla), <b>ⓘ</b> la legenda (cosa significa ogni punto, linea e segno della mappa), i componenti <span class="badge">Asterism</span>, <b>?</b> Aiuto (<kbd>F1</kbd>) e l'ingranaggio delle Impostazioni (<kbd>Ctrl</kbd>+<kbd>,</kbd>).</li>
+    <li><b>GPU</b> — memoria GPU e attività GPU: come viene usata la scheda grafica in questo momento, in una scheda che si richiude (chiusa, la sua riga mantiene i numeri).</li>
+    <li>Interruttori <b>Mostra</b> — riducono la mappa alle parti su cui lavori.</li>
+    <li><b>La mappa</b> — server MCP e skill ← agenti → fornitori di LLM → modelli, a tutta larghezza, sotto il titolo <b>MAPPA</b> con il simbolo di aggiornamento (<kbd>F5</kbd>) a destra.</li>
+    <li><b>▶</b> nel riquadro di un agente lo avvia in un terminale dentro la finestra; mentre gira lì, il pulsante
+      riporta il suo terminale.</li>
+  </ol>
+
+  <h2 id="my-setup">Setup</h2>
+  <p>La mappa mostra solo ciò che è configurato: agenti e LLM locali installati, i server MCP e le cartelle
+  di skill che gli agenti usano, e i modelli. Tutto il resto si fa su <b>Setup</b> (il pulsante
+  nell'intestazione accanto a <b>Mappa</b>), una scheda per elemento, in sezioni che si richiudono con un clic
+  sulla loro barra:</p>
+  <ul>
+    <li><b>Come le cose arrivano sulla tua mappa</b> — una scheda chiusa in cima; aprila per cinque passi numerati: attivare (o trovare) ciò che usi, installare ciò che manca, accedere a un agente online, collegare disegnando, e ciò che compare da solo.</li>
+    <li><b>Cosa puoi farci</b> — a cosa serve il setup (aiuto quotidiano, programmazione, immagini, voce, ricerca e scrittura), una tessera ciascuno con ciò che c'è e il passo successivo; chiusa, la sua riga dice quanti sono pronti.</li>
+    <li><b>Agenti IA, LLM locali</b> — tutti quelli che l'app conosce. Una scheda con bordo blu è installata su questo PC;
+      una grigia no, e ha <b>Installa</b> dove quelle installate hanno <b>Disinstalla</b>.
+      <span class="badge omarchy">Omarchy</span> Un clic su una scheda installata apre i suoi dettagli.
+      <span class="badge">Asterism</span> Un clic spunta o toglie la spunta (✓), poi <b>Applica</b> attiva o disattiva il
+      suo componente. Disattivarlo lo toglie dalla mappa; non viene eliminato nulla.</li>
+    <li><b>Provider online</b> <span class="badge">Asterism</span> — il componente dei provider online; il suo menu ha
+      <b>Accedi a …</b> per ogni agente installato che li usa.</li>
+    <li><b>Server MCP, Skill, Modelli</b> — una scheda per ogni elemento installato. Un clic apre i suoi dettagli (per un
+      modello, il suo menu). La scheda <b>+</b> alla fine di una sezione ne aggiunge uno: <b>Aggiungi server MCP</b>,
+      <b>Aggiungi skill</b>, <b>Aggiungi modello</b>, <b>Ottieni componenti aggiuntivi</b>.</li>
+    <li><b>⋯</b> o un clic destro su una scheda apre lo stesso menu del suo riquadro sulla mappa: aggiornare, accedere,
+      avviare o fermare, dettagli, disinstallare o rimuovere, spostare un modello.</li>
+    <li>Un <b>↑ versione</b> giallo su una scheda indica che c'è un aggiornamento; il suo menu ha <b>Aggiorna</b>.</li>
+    <li>Un <b>!</b> rosso su una scheda indica un problema aperto lì; passaci sopra col mouse per vedere quale.</li>
+    <li>Una piccola batteria sulla scheda di un agente online mostra cosa resta dei suoi limiti (una sessione, una settimana): conta il più stretto, gialla a un quarto o meno, rossa sotto un decimo; passaci sopra col mouse per ogni limite e quando si azzera. Sulla scheda di un LLM locale in esecuzione la batteria è la memoria GPU ancora libera, con gli stessi colori; passaci sopra per vedere quanta ne usa quel LLM locale.</li>
+    <li>Il simbolo di aggiornamento (<kbd>F5</kbd>) a destra del titolo guarda di nuovo cosa è installato, configurato e con accesso effettuato.</li>
+  </ul>
+  <div class="figure">
+    <img src="images/my-setup.jpg" alt="Setup: le schede chiuse Come le cose arrivano sulla tua mappa e Cosa puoi farci (4 di 5 pronti), la barra Agenti IA 16, poi gli agenti come schede con cornice blu e segno di spunta; Claude Code e DeepSeek Harness con un badge giallo di aggiornamento, Claude Code e Codex con una batteria per i loro limiti, Cursor CLI e Hermes con un ! rosso; il menu di Claude Code è aperto con Aggiorna a 2.1.303, Disinstalla, Aggiorna, Accedi, Avvia qui, Avvia nel terminale, Dettagli e Componente">
+    <p class="caption">Setup: gli agenti installati hanno una cornice blu, quelli attivati un ✓, gli aggiornamenti un badge giallo e i problemi uno rosso; il menu di Claude Code.</p>
+  </div>
+  <div class="figure">
+    <img src="images/my-setup-tools.jpg" alt="Setup più in basso: server MCP e cartelle di skill come schede con gli agenti che li usano, e le schede Aggiungi server MCP e Aggiungi skill">
+    <p class="caption">Server MCP e skill, ogni sezione con una scheda per aggiungere.</p>
+  </div>
+  <p>Non c'è niente da nascondere: ciò che non vuoi sulla mappa si disattiva o si rimuove qui. Quando un'installazione o
+  un accesso gira in un terminale dentro la finestra, <b>Indietro</b> (o <b>×</b> sulla sua scheda) riporta alla pagina da
+  cui è partito.</p>
+
+  <h2 id="views">Scegliere cosa mostra la mappa</h2>
+  <p>La mappa mostra tutto ciò che è configurato. Gli interruttori <b>Mostra</b> sotto la scheda GPU lasciano
+  fuori intere aree — per esempio tutte le skill, o i LLM locali e i loro modelli — e vengono ricordati.</p>
+  <p>In una finestra stretta (metà schermo o meno) la mappa li sceglie da sé, e una riga accanto agli
+  interruttori lo dice: finché un agente è in esecuzione, agenti e fornitori (chi lavora tramite cosa); finché
+  nessuno lo è, fornitori e modelli. Un interruttore cliccato lì resta finché questo non cambia e non viene
+  ricordato; la finestra a dimensione piena mantiene la tua scelta.</p>
+
+  <h2 id="map">Lavorare con la mappa</h2>
+  <ul>
+    <li><b>Passa il mouse</b> su un riquadro per evidenziarlo con tutto ciò a cui è collegato.</li>
+    <li><b>Fai clic</b> su un riquadro per selezionarlo (✓); <kbd>Maiusc</kbd>+clic ne aggiunge altri.
+      <kbd>Esc</kbd> o <b>Annulla selezione</b> la toglie.</li>
+    <li>La <b>puntina</b> in alto a destra di un riquadro mantiene evidenziati i suoi collegamenti mentre guardi altrove.</li>
+    <li><b>Clic destro</b> su un riquadro per tutto ciò che offre la sua scheda su Setup: avviare o fermare,
+      dettagli, installare, accedere, modelli, aggiornare, rimuovere e altro.</li>
+    <li><b>▶</b> nel riquadro di un agente lo avvia in un terminale dentro la finestra.</li>
+    <li>Gli agenti restano sempre al centro della parte visibile della mappa mentre scorri.</li>
+    <li>Il percorso attivo di ogni agente — agente → il provider che usa → il suo modello — è disegnato in grassetto.
+      Mentre un agente lavora, una luce percorre quella linea.</li>
+    <li>Una linea rossa tratteggiata collega un agente a un fornitore per cui è configurato ma che ora non usa (nessun suo modello in uso).</li>
+    <li>Il riquadro di un agente online ha la stessa batteria della sua scheda su Setup: cosa resta dei suoi limiti; il riquadro di un LLM locale in esecuzione, la memoria GPU ancora libera.</li>
+    <li>Quando un programma che non è sulla mappa usa un LLM locale, la linea da quell'LLM al suo modello diventa spessa e
+      di un colore proprio (viola o ciano, quello che risalta sugli altri colori del tema), e una luce la percorre. Vedi
+      <a href="#outside-use">Usato da altre app</a>.</li>
+    <li>Il simbolo di aggiornamento (<kbd>F5</kbd>) a destra del titolo guarda di nuovo cosa è installato, configurato e con accesso effettuato.</li>
+    <li>Finché non è tracciata la prima linea, una scheda sopra la mappa mostra come in tre passi; <b>Guarda come</b> riproduce l'animazione dell'Aiuto. Dopo il primo collegamento, o con ×, sparisce per sempre.</li>
+    <li>Zoom con <b>− 100&nbsp;% +</b>, <kbd>Ctrl</kbd>+rotellina o <kbd>Ctrl</kbd>+<kbd>+</kbd> / <kbd>−</kbd> / <kbd>0</kbd>.</li>
+  </ul>
+  <div class="tip"><p><b>Suggerimento</b> In una finestra stretta (meno di circa 1300 pixel, più o meno mezzo schermo) la
+  mappa scorre di lato, e <b>Massimizza per più spazio</b> nell'intestazione le dà tutto lo schermo (Impostazioni ›
+  <b>Troppo stretta per la mappa</b> sceglie cosa fa quel pulsante).</p></div>
+
+  <h2 id="health">Problemi aperti</h2>
+  <p>Quando c'è qualcosa da sistemare, tra i simboli dell'intestazione compare un <b>!</b> rosso; il suo
+  suggerimento dice quanti, per esempio <i>2 problemi aperti · 4 suggerimenti</i>. Un clic apre <b>Problemi
+  aperti</b>: una riga ciascuno — un agente senza accesso, un LLM locale senza modelli, un collegamento che
+  non funziona, poco spazio libero per i modelli — con un pulsante fino a dove si sistema (i dettagli
+  dell'agente o del LLM locale, la mappa con quella linea evidenziata, Setup, Riordina). Gli stessi problemi
+  compaiono come un <b>!</b> rosso sulle loro schede in Setup. I consigli e ciò che funziona sono sulle schede
+  e sulle pagine di dettaglio stesse, e a cosa serve il setup è su Setup (<b>Cosa puoi farci</b>). Il
+  controllo legge soltanto; non cambia, non avvia e non invia mai nulla, e non mostra nulla finché la mappa è
+  vuota.</p>
+
+  <h2 id="hints">Aggiornamenti e suggerimenti</h2>
+  <p>Sotto i problemi, sulla stessa pagina, <b>Aggiornamenti e suggerimenti</b> elenca ciò che c'è da dire:
+  nuovi programmi o skill su questo PC, ciò che è su questo PC ma non sulla mappa, e gli aggiornamenti per gli
+  agenti e i LLM locali installati, ciascuno con il suo pulsante (<b>Aggiungi server MCP…</b>, <b>Setup</b>,
+  <b>Aggiorna</b>). Quando ci sono solo questi e nessun problema, il <b>!</b> dell'intestazione appare nel
+  colore d'accento. Gli aggiornamenti vengono cercati in background all'apertura della finestra, al massimo ogni
+  sei ore. La ricerca in sé non installa nulla; un aggiornamento parte solo quando fai clic su
+  <b>Aggiorna</b>.</p>
+</section>
+
+<!-- ============================== 4 Agents ============================== -->
+<section class="chapter" id="agents">
+  <h1>Agenti</h1>
+
+  <h2 id="agent-cards">I dettagli di un agente</h2>
+  <p>Ogni agente di programmazione ha una scheda su Setup, quelli installati con la loro versione. Fai clic sulla
+  scheda di un agente installato (<span class="badge">Asterism</span> o <b>⋯</b> › <b>Dettagli</b>), o clic destro sul
+  suo riquadro della mappa › <b>Dettagli</b>. In alto una riga dice se l'agente è pronto (e se no, perché) e se è in
+  esecuzione ora o quando è stato usato l'ultima volta. Sotto, ogni parte è una scheda che si chiude: un clic sul titolo
+  la apre o la chiude. Iniziano chiuse, ognuna con un riassunto di una riga e dei badge; una parte che apri resta aperta
+  anche nelle pagine di dettaglio successive.</p>
+  <div class="figure wide">
+    <img src="images/agent-details.jpg" alt="La pagina dei dettagli di OpenCode: Configurato e pronto, poi le schede chiuse Utilizzo e token, Progetti degli ultimi 30 giorni, Argomenti con il badge Privacy, Stato con In salute, Impostazioni di sicurezza e Gestione dei rischi con Rischio alto, Cosa significano le parole e Configurazione, ognuna con un riassunto">
+    <p class="caption">I dettagli di un agente: ogni parte chiusa, con il suo riassunto e i suoi badge.</p>
+  </div>
+  <table>
+    <thead><tr><th>Scheda</th><th>Cosa mostra</th></tr></thead>
+    <tbody>
+      <tr><td><b>Utilizzo e token</b></td><td>Ciò che l'agente registra: token e sessioni di oggi e degli ultimi sette giorni, il piano, un grafico dei token al giorno, i limiti con l'orario di azzeramento e i token per modello.</td></tr>
+      <tr><td><b>Progetti, ultimi 30 giorni</b></td><td>Per cartella di progetto: tempo di lavoro, sessioni, token, esecuzioni di sottoagenti, righe cambiate e il valore API.</td></tr>
+      <tr><td><b>Argomenti</b> (Privacy)</td><td>Di cosa parlavano le sessioni. Va oltre i numeri, perciò è contrassegnata con <b>Privacy</b> e la riempie solo un componente aggiuntivo (vedi sotto); il componente dà il nome alla scheda e il suo badge dice quanto legge.</td></tr>
+      <tr><td><b>Stato</b></td><td>Ogni controllo della configurazione con una ✓, o cosa fare dopo: accedere, installare o avviare il suo LLM locale, scaricare un modello, aggiungere server MCP o skill.</td></tr>
+      <tr><td><b>Impostazioni di sicurezza</b>, <b>Gestione dei rischi</b>, <b>Cosa significano le parole</b></td><td>Cosa può fare l'agente senza chiederti e cosa riduce il rischio (vedi <a href="#security">Controllo di salute e sicurezza</a>).</td></tr>
+      <tr><td><b>Configurazione</b></td><td>Le impostazioni dell'agente, i server MCP, le skill e la sua cartella delle impostazioni.</td></tr>
+    </tbody>
+  </table>
+  <p>I progetti sono mostrati per Claude Code, OpenCode e Hermes: tempo di lavoro, sessioni, token, esecuzioni di
+  sottoagenti, righe cambiate e quanto costerebbero i token ai prezzi API. I numeri vengono dai file di sessione o dal
+  database di ciascun agente; nessun testo viene letto.</p>
+  <p><span class="badge">Asterism</span> Con il componente aggiuntivo <b>Insights</b> (vedi
+  <a href="#addons">Componenti aggiuntivi</a>) la scheda <b>Argomenti</b> elenca i titoli che l'agente stesso ha dato
+  alle sue sessioni, per progetto, e offre <b>Riassumi con Claude…</b> (se Claude Code è installato). Prima di inviare
+  qualcosa vedi esattamente cosa viene inviato: i titoli e i numeri, mai le conversazioni.</p>
+
+  <h2 id="running-agents">Avviare e fermare gli agenti</h2>
+  <ul>
+    <li><b>▶</b> nel riquadro dell'agente o <b>Avvia qui</b> nel suo menu avvia l'agente in un terminale dentro la
+      finestra, al posto della mappa. Serve VTE (<code>vte4</code>).</li>
+    <li><b>Avvia nel terminale</b> lo apre in una sua finestra di terminale.</li>
+    <li>Mentre gira dentro la finestra: <b>Mostra terminale</b> e <b>Ferma</b>. Ferma termina l'agente e tutto ciò che ha
+      avviato, come i suoi server MCP.</li>
+  </ul>
+  <p>Quando degli agenti hanno terminali dentro la finestra, una fila di schede sopra la mappa mostra una scheda per
+  terminale, con un punto per <i>al lavoro</i>, <i>in esecuzione</i> o <i>terminato</i>. Un clic su una scheda mostra
+  quel terminale; <b>×</b> chiude uno terminato.</p>
+  <p>Un agente aperto in qualsiasi punto del computer riceve un punto verde e <i>in esecuzione</i>, e il riquadro del
+  modello con cui gira dice <i>in uso · &lt;agente&gt;</i>.</p>
+
+  <h2 id="sign-in">Accedere</h2>
+  <p><b>Accedi…</b> nel menu di un agente (su Setup o sulla mappa) mostra ciò di cui l'agente ha bisogno e i suoi
+  modi di accedere:</p>
+  <ul>
+    <li><b>Un abbonamento o un account</b> — l'accesso dell'agente stesso gira in un terminale dentro la finestra (per
+      esempio <code>claude auth login</code> o <code>codex login</code>). La tua password o l'accesso nel browser restano
+      tra te e l'agente; l'app non li vede mai. Dove l'agente lo chiede, il terminale dice cosa digitare (Pi e Copilot:
+      <code>/login</code>).</li>
+    <li><b>Una chiave API</b> — per gli agenti che ne leggono una: la chiave va in un campo password, poi direttamente nel
+      comando dell'agente (Codex la salva da sé) o nel file che l'agente legge (Gemini: <code>~/.gemini/.env</code>,
+      leggibile solo da te). Non finisce mai in una riga di comando, in un log o nelle impostazioni dell'app, e l'app non
+      la conserva. La fatturazione API di Claude Code è il suo accesso alla Anthropic Console, quindi nessuna chiave passa
+      dall'app.</li>
+  </ul>
+  <div class="figure">
+    <img src="images/sign-in.jpg" alt="La finestra Accedi a Claude Code: ciò di cui Claude Code ha bisogno, una nota che l'accesso dell'agente stesso gira in un terminale, e i pulsanti Fatturazione API (Anthropic Console), Abbonamento Claude e Annulla">
+    <p class="caption">Accedere a Claude Code: un abbonamento o la fatturazione API, entrambi con l'accesso di Claude Code stesso.</p>
+  </div>
+  <p>Dopo, la mappa mostra il provider online dell'agente e i suoi modelli.</p>
+
+  <h2 id="agent-updates">Aggiornare gli agenti</h2>
+  <p>Quando esiste una versione più recente di un agente installato, la sua scheda su Setup riceve un
+  <b>↑ versione</b> giallo, e <b>Aggiornamenti e suggerimenti</b> (il <b>!</b> dell'intestazione) la segnala.
+  <b>Aggiorna</b> esegue l'aggiornamento nello stesso modo in cui l'agente è stato installato — per esempio
+  <code>mise upgrade &lt;strumento&gt;</code> o <code>claude update</code> — in una sua finestra di terminale, così
+  puoi seguirlo.</p>
+
+  <h2 id="installed-agents">Agenti che l'app può installare</h2>
+  <p>Tre agenti si possono installare, aggiornare e disinstallare dalla mappa (clic destro sull'agente ›
+  <b>Installa…</b>):</p>
+  <ul>
+    <li><b>DeepSeek Harness</b> (<code>dsh</code>, anteprima per sviluppatori), da npm. Può usare LLM locali.</li>
+    <li><b>Antigravity CLI</b> (<code>agy</code>, Google), dal manifesto delle release di Google; il download viene
+      verificato con la sua somma SHA-512.</li>
+    <li><b>LM Studio Bionic</b> non si può installare da qui (nessuna somma di controllo pubblicata); prendilo da
+      lmstudio.ai. Usa sempre il motore e i modelli di LM Studio.</li>
+  </ul>
+
+  <h2 id="new-agents">Nuovi agenti</h2>
+  <p>Quando compare un agente che l'app non conosce ancora, chiede una volta a un agente installato (Claude Code,
+  altrimenti Codex) di scoprire sul web dove quell'agente tiene le sue skill e i suoi server MCP. La risposta viene
+  controllata prima dell'uso, e nulla di essa viene mai eseguito. Impostazioni › <b>Cerca i nuovi agenti</b> lo disattiva.</p>
+</section>
+
+<!-- ============================== 5 Local LLMs ============================== -->
+<section class="chapter" id="local-llms">
+  <h1>LLM locali</h1>
+  <p class="lead">Un motore di LLM locale esegue modelli linguistici sulla tua scheda grafica, così le richieste non
+  lasciano mai il computer. L'app li installa, li avvia e li ferma per te.</p>
+
+  <h2 id="install-runtime">Installare un LLM locale</h2>
+  <p>Clic destro su un LLM locale grigio (non installato) sulla mappa › <b>Installa…</b>. Scegli la cartella del
+  programma, la cartella dei modelli (viene proposta quella usata dagli altri LLM locali) e se avviarlo all'accesso.
+  Viene installato solo per il tuo utente, con un servizio utente, quindi non serve una password. Ogni download deve
+  corrispondere alla somma SHA-256 pubblicata dalla sua release prima di essere estratto o eseguito.</p>
+  <table>
+    <thead><tr><th>Motore</th><th>Note</th></tr></thead>
+    <tbody>
+      <tr><td><b>Ollama</b></td><td>La release ufficiale (con ROCm per le schede AMD).</td></tr>
+      <tr><td><b>llama.cpp</b></td><td>La build che scegli (Vulkan, ROCm, CUDA, CPU), come router di modelli: qualsiasi GGUF nella cartella dei modelli, uno caricato alla volta.</td></tr>
+      <tr><td><b>LM Studio</b></td><td>Non si installa da qui (nessuna somma di controllo pubblicata); prendilo da lmstudio.ai. Una volta installato, viene mostrato e gestito.</td></tr>
+      <tr><td><b>vLLM</b></td><td>Per schede NVIDIA, in un suo ambiente Python.</td></tr>
+      <tr><td><b>Jan</b></td><td>Il suo AppImage, estratto, con il motore di Jan come servizio in background per gli agenti.</td></tr>
+      <tr><td><b>KoboldCpp</b></td><td>La build ufficiale in un unico file, come router di modelli.</td></tr>
+    </tbody>
+  </table>
+  <p>Installato così, un LLM locale offre anche <b>Aggiorna…</b> (la versione precedente resta come riserva),
+  <b>Cartella dei modelli…</b> e <b>Disinstalla…</b>, che rimuove programma, comando, servizio e impostazioni, ma mai i
+  modelli. Gli LLM locali che hai installato tu vengono mostrati, ma mai modificati.</p>
+
+  <h2 id="start-with-agents">Avvio e arresto con gli agenti</h2>
+  <p>Collega una volta un agente a un LLM locale, poi avvia semplicemente l'agente — anche con l'app chiusa o dopo un
+  riavvio. Il suo LLM locale parte con lui, e quando termina l'ultimo agente che lo usa, l'LLM si ferma circa cinque
+  secondi dopo, così la sua memoria grafica torna libera.</p>
+  <p>Se ne occupa un piccolo servizio in background, <code>ai-agents-map-providers.service</code>. Viene configurato con il
+  primo collegamento a un LLM locale e rimosso quando sparisce l'ultimo o quando disattivi Impostazioni ›
+  <b>Avvia gli LLM locali con i loro agenti</b>.</p>
+  <div class="note"><p><b>Nota</b> KoboldCpp impiega qualche secondo ad avviarsi, più di quanto aspettino alcuni agenti.
+  Perciò parte all'accesso, e quando termina l'ultimo agente viene solo scaricato il suo modello.</p></div>
+
+  <h2 id="llm-details">I dettagli di un LLM locale</h2>
+  <p>Fai clic sulla scheda di un LLM locale su Setup, o clic destro sul suo riquadro della mappa › <b>Dettagli</b>.
+  Sotto i riquadri (modelli, agenti, indirizzo) seguono le stesse schede richiudibili degli agenti: <b>Utilizzo e
+  token</b> — ciò che i tuoi agenti vi hanno inviato negli ultimi giorni, per agente e modello, dai numeri di sessione
+  degli agenti stessi e abbinato per nome del modello —, poi Stato, Gestione dei rischi, Cosa significano le parole e
+  Configurazione.</p>
+
+  <h2 id="gpu">Memoria GPU e liberare la memoria GPU</h2>
+  <p>Nella scheda <b>GPU</b> sopra la mappa, <b>Memoria GPU</b> mostra quanta è in uso, divisa tra LLM
+  locali, desktop e app, e libera; <b>Attività GPU</b> mostra carico, temperatura e potenza. Il riquadro di
+  ogni LLM locale mostra quanta memoria occupa, e i modelli caricati ricevono un punto verde.</p>
+  <p>Clic destro su un LLM locale per <b>Avvia</b>, <b>Ferma</b>, l'avvio all'accesso e <b>Libera memoria GPU</b>: i suoi
+  modelli vengono scaricati, continua a girare e ne ricarica uno quando gli viene chiesto.</p>
+
+  <h2 id="outside-use">Usato da altre app</h2>
+  <p>Gli LLM locali non sono usati solo dagli agenti. Anche un plugin come Video Trans, un'app di chat o un tuo script
+  possono inviare richieste. L'app se ne accorge e lo mostra:</p>
+  <div class="figure wide">
+    <img src="images/outside-use.jpg" alt="La mappa: una linea ciano con una luce da llama.cpp al modello gemma-4-12B-it-QAT-Q4_0, il cui riquadro dice in use · curl; sopra, la linea blu d'accento da Claude Code a opus">
+    <p class="caption">Un programma che non è sulla mappa (qui <code>curl</code>) che genera con llama.cpp: la linea e il riquadro ciano (tema Tokyo Night). Il percorso di Claude Code verso opus resta nel colore d'accento.</p>
+  </div>
+  <ul>
+    <li><b>Sulla mappa</b>, la linea dall'LLM locale al modello con cui genera diventa spessa e del suo colore, una luce la
+      percorre, e il riquadro del modello riceve bordo e punto di quel colore e dice chi lo usa, per esempio
+      <i>in uso · Video Trans</i>.</li>
+    <li><b>Il menu del clic destro dell'LLM locale</b> e la sua pagina <b>ⓘ Dettagli</b> dicono
+      <i>In uso da Video Trans · ora</i> o quanti secondi fa è stato usato l'ultima volta.</li>
+    <li>La legenda <b>ⓘ</b> mostra entrambi i segni.</li>
+  </ul>
+  <p>L'app guarda quali dei tuoi programmi hanno una connessione aperta verso l'LLM locale. Non legge mai cosa inviano. Un
+  plugin compare con il suo nome, un agente con il suo, e tutto il resto con il nome del suo programma. L'app stessa e LLM
+  Monitor, che leggono solo lo stato, non contano.</p>
+  <div class="note"><p><b>Nota</b> La luce si vede solo mentre il programma genera e si spegne circa dieci secondi dopo
+  la sua ultima richiesta. Un programma aperto ma inattivo — Video Trans senza parlato da tradurre — non mostra nulla. Un
+  programma resta nel menu per mezzo minuto dopo la sua ultima richiesta.</p></div>
+</section>
+
+<!-- ============================== 6 Models ============================== -->
+<section class="chapter" id="models">
+  <h1>Modelli</h1>
+  <p class="lead">Clic destro su un LLM locale installato › <b>Modelli…</b>, o fai clic su <b>Aggiungi modello</b> su
+  <b>Setup</b>. La pagina ha un elenco a sinistra e il modello scelto a destra, in tre schede.</p>
+
+  <div class="figure wide">
+    <img src="images/models-download.jpg" alt="La pagina dei modelli: risultati di ricerca e opzioni di download">
+    <p class="caption">Prendere da Hugging Face: cosa sa fare un modello e quale dimensione entra nella tua scheda grafica.</p>
+  </div>
+
+  <h2 id="get-models">Prendere da Hugging Face</h2>
+  <p>Sfoglia i modelli di chat GGUF più popolari o cerca. Ogni risultato mostra autore, dimensione, download, mi piace,
+  età e cosa sa fare: <b>Visione</b>, <b>Strumenti</b>, <b>Ragionamento</b>, <b>MTP</b>. La pagina del modello mostra
+  parametri, architettura, contesto, licenza e scheda del modello. <b>Cosa significa il nome</b> spiega le parti del nome,
+  come <i>35B-A3B</i> o <i>Q4_K_M</i>.</p>
+  <p><b>Opzioni di download</b> elenca ogni dimensione con come si adatta: nella scheda grafica, in parte nella memoria
+  (funziona, ma più lento) o probabilmente troppo grande. La scelta migliore è già fatta; <b>Scarica</b> la porta nella
+  cartella dei modelli.</p>
+  <p>I download girano in background e compaiono in una striscia in cima alla pagina principale. Se la connessione cade,
+  riprovano e riprendono. Se l'app è stata chiusa durante un download, compare come interrotto, con <b>Riprendi</b> o
+  <b>Scarta</b>.</p>
+
+  <h2 id="installed-models">Installati</h2>
+  <div class="figure wide">
+    <img src="images/models-installed.jpg" alt="La scheda Installati con le dimensioni di contesto di un modello e il suo nome spiegato">
+    <p class="caption">Installati: contesto attuale, migliore per la tua scheda e di addestramento; cosa significa il nome; Rimuovi.</p>
+  </div>
+  <p>Ogni modello mostra dimensione, file e contesto — <i>attuale</i>, <i>migliore per la tua scheda</i> e
+  <i>addestrato per</i>. <b>Rimuovi</b> chiede prima e sposta i file nel cestino, da cui puoi ripristinarli. Un modello
+  che è solo un collegamento perde solo il collegamento.</p>
+
+  <h2 id="context">Dimensione del contesto</h2>
+  <p>Il contesto è quanto testo il modello può tenere presente in una volta. L'app calcola, dal file del modello stesso,
+  il contesto più grande che entra nella tua scheda grafica. <b>Imposta contesto</b> lo scrive nelle impostazioni
+  dell'LLM locale, con backup e Annulla. Gli agenti hanno bisogno di un contesto piuttosto grande; quando colleghi un
+  agente a un modello di LM Studio senza contesto impostato, il migliore viene impostato nello stesso passo.</p>
+
+  <h2 id="on-this-pc">Su questo PC</h2>
+  <p>Elenca i file GGUF che l'LLM locale non legge ancora — nella sua cartella dei modelli, nelle cartelle degli altri LLM
+  locali, in <code>~/Downloads</code> e in <code>~/Models</code>. <b>Aggiungi</b> ne fa un suo modello senza una seconda
+  copia (tramite un collegamento), tranne per Ollama, che importa una sua copia.</p>
+
+  <h2 id="move-models">Spostare ed eliminare modelli</h2>
+  <p>Clic destro su un modello di llama.cpp, KoboldCpp o LM Studio › <b>Sposta in…</b>, o trascina il riquadro del modello
+  sulla cartella di un altro LLM locale. Prima vedi quanto viene spostato e quale agente usa il modello. Annulla rimette a
+  posto i file. <b>Elimina…</b> chiede prima e sposta i file nel cestino.</p>
+
+  <h2 id="reorganize">Un'unica cartella dei modelli</h2>
+  <p>Impostazioni › <b>Cartella dei modelli</b> fissa una cartella per i modelli di tutti gli LLM locali.
+  <b>Riordina i modelli…</b> mostra in anticipo come verrebbero ordinati i file
+  (<code>&lt;cartella&gt;/&lt;editore&gt;/&lt;modello&gt;/</code>), e nulla cambia finché non premi <b>Riordina</b>. Con
+  <b>I vecchi percorsi continuano a funzionare</b> (attivo per impostazione predefinita) resta un collegamento in ogni
+  vecchia posizione. <b>Annulla l'ultimo riordino</b> rimette tutto a posto.</p>
+  <div class="warn"><p><b>Attenzione</b> Spostando su un altro disco, i modelli vengono prima copiati e gli originali
+  rimossi solo quando la copia è completa. Assicurati che ci sia abbastanza spazio libero sulla destinazione; altrimenti
+  l'app rifiuta lo spostamento.</p></div>
+</section>
+
+<!-- ============================== 7 Connecting ============================== -->
+<section class="chapter" id="connecting">
+  <h1>Collegare disegnando</h1>
+  <p class="lead">Premi su un riquadro della mappa e trascina fino a un altro per collegarli. Ogni modifica mostra, prima
+  di scrivere, esattamente quali righe di quale file cambiano, fa un backup e si può annullare dalla barra che segue.</p>
+
+  <h2 id="connect-llm">Agente ↔ LLM locale</h2>
+  <p>Trascina da un agente a un LLM locale o viceversa. Scegli il modello e se l'agente lo usa subito. Per cambiare un
+  collegamento, fai clic sulla linea per selezionarla, poi trascina la sua estremità su un altro LLM locale — o nel vuoto
+  per rimuoverla. Con un agente selezionato, un clic su un modello di un LLM locale collegato rende quel modello il
+  modello dell'agente.</p>
+  <p>Agenti supportati: Hermes, Pi, OpenCode e DeepSeek Harness.</p>
+
+  <h2 id="connect-mcp">Agente ↔ server MCP</h2>
+  <p>Trascina da un agente a un server MCP. Le impostazioni del server vengono copiate nel formato proprio di
+  quell'agente. Supportati: Claude Code, Codex, Copilot, Crush, Cursor, Gemini, Grok, Hermes, Muse, Oh My Pi, OpenClaw,
+  OpenCode e Pi. I file di impostazioni che possono contenere chiavi vengono sempre scritti in modo che solo tu possa
+  leggerli.</p>
+
+  <h2 id="connect-skills">Agente ↔ cartella di skill</h2>
+  <p>Trascina da un agente a una cartella di skill. Pi e Hermes ricevono la cartella nelle loro impostazioni; ogni altro
+  agente riceve un collegamento per skill nella propria cartella di skill. Una cartella che un agente legge da sé (la
+  maggior parte legge <code>~/.agents/skills</code>) non può essere tolta solo a quell'agente.</p>
+
+  <h2 id="failed">Quando un collegamento fallisce</h2>
+  <p>Subito dopo aver scritto un collegamento, l'app controlla se funzionerà: se un LLM locale è installato e offre il
+  modello, se un server MCP risponde, se i collegamenti delle skill sono integri. Un collegamento fallito resta sulla
+  mappa come <span class="red">linea rossa tratteggiata</span> con un <b>!</b>; uno con solo avvisi è
+  <span class="yellow">giallo tratteggiato</span>. Fai clic sulla linea o sul suo <b>!</b> per i suggerimenti:</p>
+  <ul>
+    <li><b>Prova di nuovo</b> lo ricontrolla; se passa, la linea torna normale.</li>
+    <li><b>Riprova…</b> apre la pagina di collegamento per un collegamento che non è mai stato scritto.</li>
+    <li><b>Rimuovi collegamento</b> lo rimuove.</li>
+  </ul>
+</section>
+
+<!-- ============================== 8 MCP servers ============================== -->
+<section class="chapter" id="mcp">
+  <h1>Server MCP</h1>
+  <p class="lead">I server MCP danno agli agenti strumenti in più. <b>+ Server MCP</b> sulla mappa o sotto le schede apre
+  la pagina per aggiungerli: un elenco a sinistra, la pagina del server scelto a destra.</p>
+
+  <h2 id="mcp-sources">Da dove vengono i server</h2>
+  <table>
+    <thead><tr><th>Scheda</th><th>Contenuto</th></tr></thead>
+    <tbody>
+      <tr><td><b>Consigliati</b></td><td>I server di riferimento del progetto MCP (Filesystem, Fetch, Git, Memory, Sequential Thinking, Time, Everything) e server ufficiali di aziende note (GitHub, Playwright, Chrome DevTools, Brave Search, Context7), raggruppati per scopo e fissati alla versione più recente.</td></tr>
+      <tr><td><b>Registro MCP</b></td><td>Una ricerca nel registro MCP ufficiale. Ogni risultato indica il suo editore così come il registro lo ha verificato. La ricerca può richiedere dieci secondi o più.</td></tr>
+      <tr><td><b>Su questo PC</b></td><td>Programmi su questo computer che offrono un server MCP, trovati leggendo i loro file — non viene avviato nulla. Dentro gli AppImage si guarda solo quando fai clic su <b>Guarda dentro…</b>.</td></tr>
+      <tr><td><b>A mano</b></td><td>Una riga di comando o un indirizzo web con intestazioni.</td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="mcp-setup">Configurare un server</h2>
+  <p>La pagina del server dice chi l'ha fatto e quanto è verificato, cosa fa (con cose che puoi chiedere a un agente),
+  come gira — come programma tramite <code>npx</code>, <code>uvx</code> o Docker, o come servizio web — e cosa gli serve,
+  come una cartella o una chiave API con un link a dove ottenerla. Sotto, <b>Configura</b>:</p>
+  <ol>
+    <li>Compila i campi di cui il server ha bisogno.</li>
+    <li>Spunta gli agenti che devono riceverlo.</li>
+    <li>Fai clic su <b>Prova</b> per chiedere al server i suoi strumenti.</li>
+    <li>Fai clic su <b>Aggiungi</b>: tutti gli agenti spuntati vengono scritti in una volta, con anteprima e un Annulla.</li>
+  </ol>
+  <div class="note"><p><b>Nota</b> I valori segreti, come le chiavi API, vengono passati nell'ambiente o nelle
+  intestazioni, mai in una riga di comando dove altri utenti del computer potrebbero leggerli. Un server che avrebbe
+  bisogno di un segreto nella sua riga di comando va configurato a mano.</p></div>
+
+  <h2 id="mcp-manage">Gestire i server</h2>
+  <p><b>ⓘ Dettagli</b> sulla scheda di un server MCP mostra il file di impostazioni di ogni agente, il comando o
+  l'indirizzo e, su richiesta, gli strumenti del server; i valori delle chiavi non vengono mai mostrati. <b>Rimuovi</b>
+  lo toglie a tutti gli agenti. I server restano nell'elenco quando nessun agente li usa più, così una linea può
+  ricollegarli.</p>
+  <p>Quando in <code>~/Applications</code> compare una versione più recente di un'app che fornisce un server MCP, un
+  suggerimento lo segnala. <b>Aggiorna…</b> estrae la nuova versione, vi punta ogni agente e conserva la vecchia per sette
+  giorni come backup. <b>Cerca aggiornamenti</b> (sotto <b>Su questo PC</b>) lo fa per tutte queste app insieme dopo il
+  tuo clic: guarda dentro le nuove versioni, offre tutti gli aggiornamenti in un'anteprima con un backup e un Annulla, poi
+  prova ogni server aggiornato; un suggerimento indica quelli che non rispondono.</p>
+</section>
+
+<!-- ============================== 9 Skills ============================== -->
+<section class="chapter" id="skills">
+  <h1>Skill</h1>
+  <p class="lead">Una skill è una cartella di istruzioni che insegna a un agente un compito preciso. <b>+ Skill</b> apre
+  una pagina organizzata come quella degli MCP.</p>
+
+  <h2 id="skills-sources">Trovare skill</h2>
+  <ul>
+    <li><b>Su questo PC</b>: cartelle di skill portate dalle app e che nessun agente legge ancora.</li>
+    <li><b>Dal web</b>: una ricerca nella directory skills.sh, in un altro sito con la stessa API o in un repository GitHub
+      di skill. Una skill viene presa dal suo repository GitHub in una cartella a tua scelta, per impostazione predefinita
+      <code>~/.agents/skills</code>.</li>
+  </ul>
+  <div class="warn"><p><b>Attenzione</b> Le skill possono contenere script che un agente potrà eseguire in seguito. La
+  pagina mostra il repository ed elenca gli script prima di prendere qualsiasi cosa — dacci un'occhiata.</p></div>
+
+  <h2 id="skills-details">Cartelle di skill</h2>
+  <p>Ogni scheda di cartella di skill mostra le sue skill e gli agenti che la leggono. Una cartella condivisa tramite
+  collegamenti compare una sola volta, dove si trova davvero. <b>ⓘ Dettagli</b> elenca ogni skill con la sua descrizione e
+  come ogni agente riceve la cartella.</p>
+</section>
+
+<!-- ============================== 10 Settings ============================== -->
+<section class="chapter" id="settings">
+  <h1>Impostazioni e aiuto</h1>
+
+  <h2 id="settings-list">Impostazioni</h2>
+  <p>L'ingranaggio (<kbd>Ctrl</kbd>+<kbd>,</kbd>) apre le impostazioni. <kbd>Backspace</kbd> o <kbd>Esc</kbd> torna indietro.</p>
+  <table>
+    <thead><tr><th>Impostazione</th><th>Cosa fa</th></tr></thead>
+    <tbody>
+      <tr><td><b>Lingua</b></td><td>La lingua del sistema oppure English, Deutsch, Français, Español, Italiano, Português, Nederlands, Polski.</td></tr>
+      <tr><td><b>Aspetto</b> <span class="badge omarchy">Omarchy</span></td><td>I colori del tema di Omarchy o l'aspetto Adwaita di GNOME con la modalità chiara/scura e il colore d'accento del sistema.</td></tr>
+      <tr><td><b>Animazioni della mappa</b></td><td>Una luce percorre le linee della mappa: <b>Agenti e altri programmi</b> (la linea di un agente al lavoro e la linea di un LLM locale verso un modello usato da un altro programma), <b>Solo i miei agenti</b> o <b>Disattivo</b>. Una piccola mappa animata sotto l'impostazione mostra cosa muove ogni scelta.</td></tr>
+      <tr><td><b>Schede terminale sopra la mappa</b></td><td>Una scheda per ogni terminale di agente dentro la finestra.</td></tr>
+      <tr><td><b>Angoli</b></td><td>Come le finestre, arrotondati o squadrati.</td></tr>
+      <tr><td><b>Cerca i nuovi agenti</b></td><td>Chiedere a un agente installato dove un agente sconosciuto tiene le sue impostazioni.</td></tr>
+      <tr><td><b>Avvia gli LLM locali con i loro agenti</b></td><td>Il guardiano in background di <a href="#start-with-agents">Avvio e arresto con gli agenti</a>.</td></tr>
+      <tr><td><b>Troppo stretta per la mappa</b> <span class="badge omarchy">Omarchy</span></td><td>Cosa fa <b>Massimizza per più spazio</b>: spostare su uno spazio di lavoro libero, massimizzare sul posto o non mostrare alcun suggerimento.</td></tr>
+      <tr><td><b>Nel lanciatore</b></td><td>La voce del lanciatore; disattivato la rimuove.</td></tr>
+      <tr><td><b>Gli agenti partono in</b></td><td>La cartella in cui partono gli agenti.</td></tr>
+      <tr><td><b>Cartella dei modelli</b></td><td>Una cartella per tutti i modelli, con <b>Riordina i modelli…</b>.</td></tr>
+      <tr><td><b>Componenti aggiuntivi</b> <span class="badge">Asterism</span></td><td><b>Cerca componenti online</b>, la pagina dei componenti aggiuntivi e <b>Setup</b>.</td></tr>
+      <tr><td><b>Informazioni</b></td><td>La versione, l'autore e la licenza; <b>Sito web</b> apre il progetto su GitHub e <b>Segnala un problema</b> il suo elenco di segnalazioni.</td></tr>
+    </tbody>
+  </table>
+  <div class="figure narrow">
+    <img src="images/about.jpg" alt="La finestra Informazioni: l'icona di Asterism, il nome, Uwe Bruckhaus, versione 0.7.1 e le righe Sito web, Segnala un problema e Note legali">
+    <p class="caption">Impostazioni › Informazioni.</p>
+  </div>
+
+  <h2 id="help">Aiuto</h2>
+  <p><b>?</b> (<kbd>F1</kbd>) apre l'aiuto: <b>Apri il manuale</b> apre questo manuale (l'edizione arrivata con la tua
+  versione, nella tua lingua) nel tuo visualizzatore PDF; <b>Spazio su disco</b> (sotto); un'animazione sulla
+  configurazione disegnando; e LLM Monitor, un plugin di barra complementare che mostra cosa fa un LLM locale (una piccola
+  animazione della sua voce nella barra e del suo pannello). Entrambe le animazioni e quella in Impostazioni ›
+  <b>Animazioni della mappa</b> sono disegnate con i colori del tuo tema e seguono subito un cambio di tema. La legenda
+  <b>ⓘ</b> dell'intestazione spiega ogni punto, linea e segno della mappa.</p>
+
+  <h2 id="disk-space">Spazio su disco</h2>
+  <p><b>Spazio su disco: agenti, LLM locali e modelli</b> mostra quanto spazio occupa la tua configurazione IA e dove.
+  Viene misurato in background a ogni apertura dell'aiuto (di nuovo dopo dieci minuti o con <b>Misura di nuovo</b>) e solo
+  letto — da qui non viene eliminato nulla. Il titolo mostra sempre i totali su una riga
+  (<i>Agenti · LLM locali · Modelli · In totale</i>); un clic chiude la sezione. <b>Dischi</b>, <b>Agenti</b>,
+  <b>LLM locali</b> e <b>Cartelle dei modelli</b> iniziano chiusi, ognuno con il suo totale e gli elementi più grandi; un
+  clic li apre.</p>
+  <div class="figure wide">
+    <img src="images/disk-space.jpg" alt="Lo spazio su disco nell'aiuto: quattro riquadri (in totale, agenti, LLM locali, modelli), la riga 103,7 GB su 2,5 TB su questi 2 dischi per l'IA (4,1 %), una barra lungo tutto lo spazio dei dischi divisa in programmi degli agenti, dati degli agenti, LLM locali, modelli, altri file e spazio libero, e le sezioni chiuse con i loro totali">
+    <p class="caption">I totali, la quota dell'IA su tutto lo spazio su disco e le sezioni chiuse con i loro totali.</p>
+  </div>
+  <ul>
+    <li><b>Riquadri</b>: tutto insieme, poi programmi degli agenti, dati degli agenti (impostazioni, sessioni, cronologia),
+      LLM locali (programmi e i loro dati) e modelli.</li>
+    <li><b>Barra</b>: tutto lo spazio dei dischi su cui si trova la configurazione IA. Le parti colorate sono la
+      configurazione IA, il grigio è tutto il resto su quei dischi e il resto vuoto è libero; la riga sopra dà la quota
+      dell'IA in percentuale. Passa il mouse sulla barra per le dimensioni esatte.</li>
+    <li><b>Dischi</b>: ogni disco con quanto vi occupa la configurazione IA e quanto è libero.</li>
+    <li><b>Agenti</b>, <b>LLM locali</b>, <b>Cartelle dei modelli</b>: una riga ciascuno, i più grandi per primi. Apri una
+      riga per vedere ogni cartella con dimensione e numero di file e aprirla nel gestore di file. Una cartella di programma
+      dice quante versioni vengono conservate; per un agente con diverse vecchie versioni in mise, un suggerimento cita
+      <code>mise prune</code>, che rimuove quelle inutilizzate. Una cartella dei modelli dice quali LLM locali la usano, o
+      che contiene solo collegamenti a modelli di un'altra cartella.</li>
+  </ul>
+  <div class="tip"><p><b>Suggerimento</b> I programmi si possono reinstallare e i modelli riscaricare; i dati degli agenti
+  contengono le tue sessioni e impostazioni. Quando lo spazio scarseggia, guarda prima le vecchie versioni dei programmi e
+  i modelli che non usi più.</p></div>
+  <p>Le dimensioni sono spazio su disco: un file tenuto in due posti conta una volta, e i collegamenti non vengono seguiti.</p>
+</section>
+
+<!-- ============================== 11 Healthy & Security check ============================== -->
+<section class="chapter" id="security">
+  <h1>Controllo di salute e sicurezza</h1>
+  <p>Un agente di programmazione legge e scrive file ed esegue comandi sul tuo computer. Quanto può fare <i>senza
+  chiederti</i> sta nelle sue impostazioni, con parole diverse per ogni agente. Il <b>Controllo di salute e sicurezza</b>
+  mette tutto insieme: nella pagina dei dettagli di ogni agente e di ogni LLM locale, quattro schede mostrano se funziona,
+  cosa può fare, cosa significa in parole semplici e cosa riduce il rischio.</p>
+
+  <div class="figure wide">
+    <img src="images/security-check.jpg" alt="La scheda Impostazioni di sicurezza di OpenCode aperta con Rischio alto: Modificare file, Eseguire comandi aperto con le scelte Chiedi (consigliato), Consenti In uso con Rischio alto, Mai, poi Recuperare pagine web e Fuori dal progetto; sotto, la scheda Gestione dei rischi con i pulsanti Riducilo">
+    <p class="caption">Le impostazioni di sicurezza di OpenCode con <b>Eseguire comandi</b> aperto, e l'inizio della sua gestione dei rischi.</p>
+  </div>
+
+  <h2 id="security-card">Leggere le schede</h2>
+  <p>I badge sulle schede chiuse lo riassumono: <b>In salute</b>, <b>Da controllare</b> o <b>Non configurato</b> su Stato, e
+  <b>Rischio basso</b>, <b>Rischio medio</b> o <b>Rischio alto</b> su Impostazioni di sicurezza e Gestione dei rischi.
+  Apri una scheda per i dettagli:</p>
+  <table>
+    <thead><tr><th>Scheda</th><th>Cosa mostra</th></tr></thead>
+    <tbody>
+      <tr><td><b>Stato</b></td><td>Ogni controllo della configurazione con una ✓, o cosa fare dopo: installato, accesso effettuato, il suo modello e LLM locale, server MCP e skill.</td></tr>
+      <tr><td><b>Impostazioni di sicurezza</b></td><td>Le impostazioni dell'agente che decidono cosa può fare da solo, ognuna con il valore attuale e una frase su cosa significa. Il segno davanti indica il rischio: <b>✓</b> sicuro, <b>·</b> basso, un <b>!</b> giallo medio, un <b>!</b> rosso alto.</td></tr>
+      <tr><td><b>Gestione dei rischi</b></td><td>Cosa significano le impostazioni insieme, il più serio per primo, ognuno con il motivo e <b>→</b> cosa lo riduce. Le protezioni presenti compaiono con una ✓.</td></tr>
+      <tr><td><b>Cosa significano le parole</b></td><td>Sandbox, approvazione, regole di consenso e divieto e le altre parole delle schede, spiegate (vedi <a href="#security-words">Le parole spiegate</a>).</td></tr>
+    </tbody>
+  </table>
+  <p>Le regole di consenso e divieto e le cartelle attendibili dell'agente (per esempio l'elenco
+  <code>permissions.allow</code> di Claude Code) compaiono sotto le impostazioni, una regola per riga.</p>
+
+  <h2 id="security-change">Cambiare un'impostazione</h2>
+  <ol>
+    <li>Fai clic su un'impostazione per aprirla. Vedi cosa controlla e ogni scelta con il suo rischio; quella usata è contrassegnata con <b>In uso</b>, la scelta più sicura con <b>consigliato</b>.</li>
+    <li>Fai clic su <b>Usa …</b> accanto a una scelta o su <b>Riducilo …</b> accanto a un rischio. Una pagina mostra la modifica a parole (prima → dopo), il rischio prima e dopo, e <b>Cosa cambia</b>: le righe del file di impostazioni dell'agente.</li>
+    <li>Fai clic su <b>Cambia</b>. Il file viene salvato in backup e scritto; una notifica offre <b>Annulla</b> per 30 secondi. L'agente usa la nuova impostazione al prossimo avvio.</li>
+  </ol>
+  <div class="note"><p><b>Nota</b> Cambia solo quella chiave; i commenti e tutto il resto del file restano come sono.
+  Un'impostazione che richiede più di una riga in un file — come Hermes che esegue i comandi in Docker — viene mostrata e
+  spiegata, con dove cambiarla, ma non viene cambiata da qui.</p></div>
+
+  <h2 id="security-agents">Cosa viene controllato per ogni agente</h2>
+  <table>
+    <thead><tr><th>Agente</th><th>Impostazioni mostrate e modificabili</th><th>File</th></tr></thead>
+    <tbody>
+      <tr><td><b>Claude Code</b></td><td>Modalità dei permessi (Chiedi prima, Solo pianifica, Solo il consentito, Modifica senza chiedere, Revisione automatica, Salta tutti i controlli), sandbox per i comandi, bloccare la modalità di bypass; regole consenti/chiedi/vieta</td><td><code>~/.claude/settings.json</code></td></tr>
+      <tr><td><b>Codex</b></td><td>Quando chiede Codex, sandbox (sola lettura, cartella del progetto, nessuna), rete nella sandbox; cartelle attendibili</td><td><code>~/.codex/config.toml</code></td></tr>
+      <tr><td><b>GitHub Copilot</b></td><td>Modalità dei permessi (Chiedi prima, Revisione automatica, Consenti tutto); cartelle attendibili, siti senza chiedere</td><td><code>~/.copilot/settings.json</code></td></tr>
+      <tr><td><b>Cursor CLI</b></td><td>Approvazione, sandbox, rete nella sandbox, ricerca web senza chiedere; regole consenti/vieta</td><td><code>~/.config/cursor/cli-config.json</code></td></tr>
+      <tr><td><b>Hermes</b></td><td>Comandi pericolosi (chiedi sempre, revisione automatica, non chiedere mai), nascondere i segreti; dove girano i comandi (solo mostrato)</td><td><code>~/.hermes/config.yaml</code></td></tr>
+      <tr><td><b>OpenCode</b></td><td>Chiedi, consenti o mai per modificare file, eseguire comandi, recuperare pagine web e lavorare fuori dal progetto</td><td><code>~/.config/opencode/opencode.json</code></td></tr>
+      <tr><td><b>Pi</b></td><td>I suoi strumenti: leggere, scrivere ed eseguire comandi, o solo leggere. Pi per scelta non chiede mai, quindi i suoi strumenti sono i suoi permessi.</td><td><code>~/.pi/agent/settings.json</code></td></tr>
+    </tbody>
+  </table>
+  <p>Per gli altri agenti, la scheda mostra il loro stato e i loro server MCP e dice dove guardare nelle impostazioni
+  dell'agente. Per un <b>LLM locale</b> mostra chi può raggiungerlo: solo questo PC (<code>127.0.0.1</code>, come
+  dovrebbe essere) o qualsiasi dispositivo della tua rete.</p>
+
+  <h2 id="security-risks">Tenere sotto controllo il rischio</h2>
+  <p>Il livello di rischio è il punto più serio che la scheda trova:</p>
+  <ul>
+    <li><b>Rischio alto</b> — può fare cose serie senza chiedere: eseguire qualsiasi comando, o lavorare senza sandbox e
+      senza domande. Va bene in un container usa e getta o in una macchina virtuale; sul tuo PC, fallo chiedere prima.</li>
+    <li><b>Rischio medio</b> — alcune cose avvengono senza chiedere, come modificare file del progetto, oppure una revisione
+      automatica decide al posto tuo.</li>
+    <li><b>Rischio basso</b> — chiede prima di tutto ciò che conta, o non può farlo affatto.</li>
+  </ul>
+  <p>Buone abitudini, qualunque siano le impostazioni:</p>
+  <ul>
+    <li><b>Chiedi prima per i comandi</b> sul tuo computer; consenti singoli comandi innocui (come <code>git status</code>)
+      con una regola di consenso invece di tutta la shell.</li>
+    <li><b>Attiva la sandbox</b> dove l'agente ne ha una (Claude Code, Codex, Cursor CLI) e lascia disattivata la rete al
+      suo interno finché un compito non ne ha bisogno.</li>
+    <li><b>Avvia gli agenti nella cartella del progetto</b>, non nella tua cartella personale, e tieni lontane chiavi e password.</li>
+    <li><b>Pochi server MCP</b>: solo quelli che usi e di cui ti fidi. Ognuno gira con i tuoi permessi.</li>
+    <li><b>Il lavoro senza supervisione</b> (modalità di bypass, «YOLO», Pi con tutti gli strumenti) fallo girare in un container o in una macchina virtuale.</li>
+    <li><b>LLM locali su <code>127.0.0.1</code></b>: i loro server non hanno password.</li>
+  </ul>
+  <div class="warn"><p><b>Attenzione</b> Una revisione automatica (la modalità <i>auto</i> di Claude Code, <i>assisted</i>
+  di Copilot, <i>auto-review</i> di Cursor, <i>smart</i> di Hermes) è una seconda IA che giudica ogni passo. Risparmia
+  domande, ma è un giudizio, non un muro.</p></div>
+
+  <h2 id="security-words">Le parole spiegate</h2>
+  <div class="figure wide">
+    <img src="images/sandbox.svg" alt="Due riquadri. Senza sandbox l'agente raggiunge la cartella del progetto, le chiavi SSH e i documenti, i dati del browser e internet. Con la sandbox raggiunge solo la cartella del progetto; il resto è barrato.">
+    <p class="caption">Cosa cambia una sandbox: i comandi raggiungono solo la cartella del progetto e ciò che consenti.</p>
+  </div>
+  <dl>
+    <dt>Sandbox</dt><dd>Uno spazio isolato in cui girano i comandi dell'agente. Dentro, un comando può toccare solo la
+      cartella del progetto (e ciò che consenti) — non il resto della tua cartella personale, le chiavi SSH o i dati del
+      browser, e spesso nemmeno internet. Senza sandbox, un comando dell'agente può fare tutto ciò che puoi fare tu.</dd>
+    <dt>Approvazione (chiedi prima)</dt><dd>Prima che l'agente modifichi un file o esegua un comando, mostra cosa vuole fare
+      e aspetta il tuo sì o no. Meno può fare senza chiedere, più controllo mantieni — e più spesso ti chiede.</dd>
+    <dt>Regole di consenso e divieto</dt><dd>Elenchi di comandi o strumenti che l'agente può usare senza chiedere
+      (consenti) o mai (vieta). Il divieto vince sul consenso. Una regola che consente qualsiasi comando di shell disattiva
+      l'approvazione per la shell.</dd>
+    <dt>Cartella attendibile</dt><dd>Una cartella in cui hai detto che l'agente può lavorare. Lì usa anche le istruzioni e
+      le impostazioni della cartella stessa, che possono venire da qualcun altro quando cloni un progetto.</dd>
+    <dt>Accesso alla rete</dt><dd>Se i comandi possono raggiungere internet. Codice che legge i tuoi file e può inviare dati
+      potrebbe divulgarli; anche installare pacchetti richiede la rete.</dd>
+    <dt>Bypass («YOLO»)</dt><dd>Tutto senza chiedere e senza limiti. Solo per una VM o un container usa e getta.</dd>
+    <dt>Revisione automatica</dt><dd>Un secondo modello IA lascia passare le azioni innocue e chiede per il resto.</dd>
+    <dt>Prompt injection</dt><dd>Istruzioni nascoste in una pagina web, un file o la risposta di uno strumento, che cercano
+      di far fare all'agente qualcosa che non hai chiesto. Chiedere prima, una sandbox e nessuna rete le fermano.</dd>
+    <dt>Nascondere i segreti</dt><dd>Il testo che sembra una password, un token o una chiave viene mascherato prima che il modello lo veda o finisca in un log.</dd>
+    <dt>Strumenti</dt><dd>Ciò che l'agente può fare in assoluto: leggere, scrivere, eseguire comandi, cercare sul web. Uno strumento che non ha non può essere usato male.</dd>
+    <dt>Server MCP</dt><dd>Un piccolo programma che dà all'agente strumenti in più. Gira come te, con i tuoi permessi.</dd>
+    <dt>127.0.0.1 (localhost)</dt><dd>Un indirizzo che raggiungono solo i programmi di questo PC. Un server su
+      <code>0.0.0.0</code> è raggiungibile da qualsiasi dispositivo della tua rete.</dd>
+  </dl>
+</section>
+
+<!-- ============================== Add-ons ============================== -->
+<section class="chapter" id="addons">
+  <h1>Componenti aggiuntivi</h1>
+  <p>Tutto ciò che Asterism capisce di un agente o di un provider di LLM è un <b>adattatore</b>: come viene trovato e
+  installato, le sue sessioni, impostazioni di sicurezza, server MCP e skill. In Asterism ogni adattatore è un
+  <b>componente aggiuntivo</b>: i pacchetti li portano tutti, firmati e disattivati, e tu attivi quelli che usi. I
+  componenti portano anche nuovi agenti, nuovi provider e funzioni oltre i numeri, come <b>Insights</b> (argomenti delle
+  sessioni e un riassunto di Claude). Il plugin AI Agents Map ha gli adattatori integrati e nessun componente aggiuntivo.</p>
+
+  <h2 id="addons-setup">Configurare Asterism</h2>
+  <p>Un Asterism nuovo si apre sulla sua <b>pagina di benvenuto</b>. Ogni agente e LLM locale che Asterism conosce è una
+  scheda con la propria icona, in tre gruppi: <b>Agenti IA</b>, <b>LLM locali</b> e <b>Provider online</b> (i nomi di
+  Anthropic, OpenAI e degli altri sulla mappa). Ogni scheda dice se il programma è qui:</p>
+  <ul>
+    <li><b>Installato</b> (verde) — trovato nello stesso modo in cui lo trova la mappa; la scheda è già spuntata;</li>
+    <li><b>Usato in passato</b> — ora non installato, ma le sue impostazioni ci sono ancora;</li>
+    <li><b>Non installato</b> — spuntalo per installarlo poi dalla sua scheda.</li>
+  </ul>
+  <div class="figure wide">
+    <img src="images/setup-welcome.jpg" alt="La pagina di benvenuto: l'icona di Asterism e Benvenuto in Asterism, poi gli agenti IA come schede con le loro icone; dieci installati sono spuntati con bordo blu e spunta, quelli usati in passato o non installati in grigio; in basso Più tardi e Attiva 14">
+    <p class="caption">La pagina di benvenuto: i programmi trovati vengono prima e sono spuntati.</p>
+  </div>
+  <p>Fai clic su una scheda (o premi <kbd>Spazio</kbd> su di essa) per spuntarla o togliere la spunta; una scheda spuntata
+  ha un bordo blu e una spunta. <b>Attiva</b> (con il numero di schede spuntate) li carica e mostra la mappa; se hai
+  spuntato programmi non installati, si apre <b>Setup</b>: <b>⋯</b> sulle loro schede › <b>Installa…</b>.
+  <b>Più tardi</b> parte con una mappa vuota. Finché nulla è attivato, Asterism si riapre sulla pagina di benvenuto a ogni
+  avvio. Dopo, le stesse schede sono su <b>Setup</b> (il pulsante dell'intestazione), dove agenti e provider si
+  attivano e disattivano in qualsiasi momento.</p>
+
+  <h2 id="addons-page">La pagina dei componenti aggiuntivi</h2>
+  <p>Aprila con il pulsante a pezzo di puzzle nell'intestazione, da Impostazioni › <b>Componenti aggiuntivi</b> o da
+  qualsiasi suggerimento «componente disponibile». Mostra, in schede di gruppo richiudibili che iniziano aperte:</p>
+  <ul>
+    <li><b>Suggeriti per questo PC</b> — un componente il cui agente o provider è installato qui ma non ancora mostrato;</li>
+    <li><b>Componenti installati</b> — attivo, disattivo o <i>non caricato</i> con il motivo (per esempio un file
+      modificato); agenti e provider separati da una linea;</li>
+    <li><b>Disponibili</b> — il resto dei componenti del catalogo;</li>
+    <li><b>Incluso in Asterism</b> — agenti e provider che nessun componente installato porta (quando esegui Asterism dalla
+      sua cartella sorgente senza componenti).</li>
+  </ul>
+  <div class="figure wide">
+    <img src="images/addons-page.jpg" alt="La pagina dei componenti aggiuntivi: campo di ricerca, filtri Tutti, Agenti, Provider, Funzioni, Installati, Aggiornamenti e i componenti installati come schede; Claude Code, Codex, OpenCode, Pi, llama.cpp, LM Studio e Ollama attivi, con Installa in grigio e Disinstalla, gli altri disattivi con Attiva">
+    <p class="caption">Componenti installati: attivi o disattivi, con Installa e Disinstalla per il programma.</p>
+  </div>
+  <p>La scheda di un agente o LLM locale attivo ha <b>Installa</b> e <b>Disinstalla</b> per il programma stesso (quello che
+  non si applica è in grigio), e ogni scheda con una homepage ha un pulsante a globo che la apre nel tuo browser.</p>
+  <p>La ricerca trova nomi, descrizioni e ciò che un componente legge; i filtri sopra riducono l'elenco ad agenti,
+  provider, funzioni, a quelli installati o a quelli con un aggiornamento. Fai clic su una scheda per i dettagli: cosa
+  legge, cosa invia, cosa può fare e il suo livello di privacy.</p>
+
+  <h2 id="addons-install">Installare, attivare e disattivare, aggiornare, rimuovere</h2>
+  <p><b>Installa</b> (o <b>Ottieni il componente</b>) mostra prima cosa il componente legge, invia e può fare; solo dopo il
+  tuo OK viene scaricato, verificato e attivato. <b>Disattiva</b> e <b>Attiva</b> agiscono subito, senza riavvio: i suoi
+  agenti, provider, sezioni e schede compaiono o spariscono ovunque. <b>Aggiorna</b> lo sostituisce con la versione più
+  recente del catalogo dopo aver verificato la nuova; <b>Rimuovi</b> lo sposta nel cestino. <b>Installa da file…</b>
+  accetta uno zip di componente che hai scaricato tu; valgono gli stessi controlli.</p>
+
+  <div class="tip"><p><b>Solo dall'autore.</b> Asterism carica solo componenti firmati da Uwe Bruckhaus (impronta della
+  chiave <code>SHA256:e5cC634Ke3Our5LAeSc88qs22NKZEHTncBW5Ig3amWQ</code>). Prima che qualsiasi cosa di un componente
+  giri, la firma viene verificata con <code>ssh-keygen</code> di OpenSSH, ogni file viene confrontato con la sua somma
+  SHA-256 e nessun file deve essere stato aggiunto. Un download deve inoltre corrispondere alla somma SHA-256 nel
+  catalogo firmato.</p></div>
+
+  <h2 id="addons-privacy">Livelli di privacy</h2>
+  <table class="first-nowrap">
+    <thead><tr><th>Livello</th><th>Cosa può leggere o inviare il componente</th></tr></thead>
+    <tbody>
+      <tr><td><b>Solo numeri</b></td><td>Conteggi, tempi, token, righe cambiate, costo — ciò che Asterism mostra senza componenti.</td></tr>
+      <tr><td><b>Titoli delle sessioni</b></td><td>I titoli che un agente ha dato da sé alle sue sessioni (mai le conversazioni).</td></tr>
+      <tr><td><b>Titoli e un riassunto di Claude</b></td><td>Quei titoli e numeri, inviati al tuo Claude Code — solo con un clic, dopo un'anteprima di esattamente cosa viene inviato.</td></tr>
+    </tbody>
+  </table>
+  <p>Un componente non può mai fare più di quanto consente il suo livello. Aggiungere un agente o un provider, o installare
+  un programma, sono permessi separati che la sua scheda indica.</p>
+
+  <h2 id="addons-kinds">Tipi di componenti aggiuntivi</h2>
+  <table class="first-nowrap">
+    <thead><tr><th>Tipo</th><th>Cosa porta</th></tr></thead>
+    <tbody>
+      <tr><td><b>Agente</b></td><td>Un agente di programmazione: dove tiene impostazioni, sessioni, server MCP e skill, come si installa e come accede. Tutto il resto Asterism lo costruisce da questo — la scheda su Setup, il suo riquadro sulla mappa, Utilizzo e token, Progetti, Stato e Sicurezza.</td></tr>
+      <tr><td><b>Provider</b></td><td>Un programma di LLM locale o i provider online: come viene trovato e installato e come lo raggiungono gli agenti. Asterism costruisce la sua scheda, il suo riquadro sulla mappa e la sua pagina dei dettagli — compreso <b>Utilizzo e token</b>: ciò che i tuoi agenti vi hanno inviato, dai loro numeri di sessione.</td></tr>
+      <tr><td><b>Estensione</b></td><td>Più informazioni su un agente o provider portato da un altro componente, senza sostituirlo — per esempio il suo piano e i suoi limiti, o una scheda nella sua pagina dei dettagli. Riempie solo ciò che il componente dell'agente lascia vuoto; la pagina del componente dice cosa aggiunge e cosa non viene usato.</td></tr>
+      <tr><td><b>Funzione</b></td><td>Qualcosa che riguarda più agenti, come Insights (la scheda Argomenti).</td></tr>
+    </tbody>
+  </table>
+  <p>La sezione di un componente nella pagina dei dettagli di un agente o LLM locale va nella scheda di cui tratta:
+  Utilizzo e token, Stato, Argomenti (solo per gli agenti) o una scheda propria con il suo nome.</p>
+  <p>Un componente di agente descrive il suo agente come dati (un file chiamato <code>agent.toml</code>);
+  la maggior parte non porta alcun codice, e la pagina del componente lo dice: <i>Non porta codice</i> oppure,
+  per i pochi agenti che ne hanno bisogno (per esempio il loro database delle sessioni), <i>Dati sull'agente e
+  un po' di codice per ciò che i dati non possono dire</i>.</p>
+
+  <h2 id="addons-new-harness">Un nuovo agente sul tuo computer</h2>
+  <p>Quando installi un agente che Asterism non conosce ancora, guarda nel catalogo (Impostazioni ›
+  <b>Cerca componenti online</b>, attivo per impostazione predefinita: l'elenco viene letto da GitHub ogni poche
+  ore e viene inviata solo la richiesta). Se un componente conosce quell'agente, <b>Aggiornamenti e
+  suggerimenti</b> (il <b>!</b> dell'intestazione) lo dice (<i>«Kilo Code è su questo PC ma non sulla
+  mappa»</i>), e compare una scheda sotto <b>Suggeriti per questo PC</b>; un clic lo installa. Se non c'è
+  ancora un componente, i dettagli dell'agente lo dicono, con un link per richiederne uno.</p>
+</section>
+
+<section class="chapter" id="privacy">
+  <h1>Privacy e sicurezza</h1>
+  <ul>
+    <li><b>Nessun permesso di amministratore.</b> L'app non chiede mai root.</li>
+    <li><b>Nessuna credenziale letta.</b> Legge le impostazioni degli agenti, ma mai i loro file di credenziali. Che un
+      agente abbia effettuato l'accesso si capisce dall'esistenza di un tale file. I valori di chiavi e intestazioni non
+      vengono mai mostrati.</li>
+    <li><b>Nessuna conversazione letta.</b> I numeri di utilizzo vengono letti solo come numeri e tempi.</li>
+    <li><b>Rete solo quando la chiedi</b> — cercare o installare modelli, server MCP o skill, provare un server —, più un
+      controllo degli aggiornamenti ogni poche ore.</li>
+    <li><b>Download verificati.</b> I programmi vengono installati solo se il download corrisponde alla somma pubblicata dalla loro release.</li>
+    <li><b>Anteprima e Annulla.</b> Ogni modifica alle impostazioni di un altro programma viene mostrata prima, salvata in
+      backup e si può annullare. Le impostazioni che possono contenere chiavi vengono scritte leggibili solo da te.</li>
+    <li><b>Limitato.</b> Ogni programma gira senza shell, e ogni risposta viene letta con un limite di dimensione e di tempo.</li>
+  </ul>
+  <p>Il README di ogni repository elenca per intero cosa viene letto, avviato e scritto.</p>
+</section>
+
+<!-- ============================== 13 Troubleshooting ============================== -->
+<section class="chapter" id="troubleshooting">
+  <h1>Risoluzione dei problemi</h1>
+  <table class="faq">
+    <thead><tr><th>Problema</th><th>Cosa fare</th></tr></thead>
+    <tbody>
+      <tr><td>La mappa è stretta o tagliata.</td><td>La finestra è più stretta di circa 1300 pixel. Fai clic su <b>Massimizza per più spazio</b> nell'intestazione, o riduci lo zoom (<kbd>Ctrl</kbd>+<kbd>−</kbd>).</td></tr>
+      <tr><td>Un riquadro che mi aspetto non è sulla mappa.</td><td>La mappa mostra solo ciò che è configurato: guarda su <b>Setup</b> (un componente disattivato, un server MCP che nessun agente usa) e negli interruttori <b>Mostra</b>.</td></tr>
+      <tr><td><b>Avvia qui</b> manca o non fa nulla.</td><td>Installa VTE per GTK&nbsp;4 (<code>vte4</code>), o usa <b>Avvia nel terminale</b>.</td></tr>
+      <tr><td>Una linea è rossa tratteggiata.</td><td>Fai clic su di essa per i suggerimenti, sistema ciò che dicono, poi <b>Prova di nuovo</b>. Vedi <a href="#failed">Quando un collegamento fallisce</a>.</td></tr>
+      <tr><td>L'LLM locale non parte con l'agente.</td><td>Controlla Impostazioni › <b>Avvia gli LLM locali con i loro agenti</b> e che l'agente sia collegato sulla mappa. <code>systemctl --user status ai-agents-map-providers</code> mostra il guardiano.</td></tr>
+      <tr><td>La luce colorata da un LLM locale al suo modello non compare.</td><td>Compare solo mentre un programma che non è sulla mappa genera con quell'LLM, e si spegne circa dieci secondi dopo la sua ultima richiesta. Controlla che la mappa sia visibile (una finestra larga), che il programma invii davvero qualcosa e che Impostazioni › <b>Animazioni della mappa</b> sia su <b>Agenti e altri programmi</b>.</td></tr>
+      <tr><td>L'agente risponde male o si interrompe con un modello locale.</td><td>Il contesto potrebbe essere troppo piccolo. Apri il modello in <b>Modelli… › Installati</b> e usa <b>Imposta contesto</b> con il valore migliore per la tua scheda.</td></tr>
+      <tr><td>Un download si è fermato.</td><td>Dopo un calo di connessione riprende da solo. Dopo un riavvio, usa <b>Riprendi</b> nella striscia in alto.</td></tr>
+      <tr><td>Voglio annullare una modifica precedente.</td><td>I backup sono in <code>~/.local/state/ai-agents-map/backups/</code>.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============================== Appendix ============================== -->
+<section class="chapter appendix" id="reference">
+  <h1>Riferimento</h1>
+
+  <h2 id="shortcuts">Scorciatoie da tastiera</h2>
+  <table class="keys">
+    <tbody>
+      <tr><th scope="row"><kbd>F1</kbd></th><td>Aiuto</td></tr>
+      <tr><th scope="row"><kbd>Ctrl</kbd>+<kbd>,</kbd></th><td>Impostazioni</td></tr>
+      <tr><th scope="row"><kbd>F5</kbd></th><td>Aggiorna (la mappa e Setup)</td></tr>
+      <tr><th scope="row"><kbd>Ctrl</kbd>+<kbd>+</kbd> / <kbd>Ctrl</kbd>+<kbd>−</kbd> / <kbd>Ctrl</kbd>+<kbd>0</kbd></th><td>Ingrandire la mappa, rimpicciolirla, tornare al 100&nbsp;%</td></tr>
+      <tr><th scope="row"><kbd>Ctrl</kbd>+rotellina</th><td>Zoom della mappa</td></tr>
+      <tr><th scope="row"><kbd>Maiusc</kbd>+clic</th><td>Aggiungere alla selezione o toglierne</td></tr>
+      <tr><th scope="row"><kbd>Esc</kbd></th><td>Annullare la selezione; tornare indietro da una pagina</td></tr>
+      <tr><th scope="row"><kbd>Backspace</kbd></th><td>Tornare indietro da una pagina</td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="files">File e cartelle</h2>
+  <table>
+    <thead><tr><th>Percorso</th><th>Contenuto</th></tr></thead>
+    <tbody>
+      <tr><td><code>~/.config/asterism/</code> <span class="badge">Asterism</span><br><code>~/.config/omarchy/ai-agents-map/</code> <span class="badge omarchy">Omarchy</span></td><td>Impostazioni, l'elenco dei server MCP, gli agenti cercati, i collegamenti falliti.</td></tr>
+      <tr><td><code>~/.local/state/ai-agents-map/backups/</code></td><td>I backup di ogni file cambiato dall'app.</td></tr>
+      <tr><td><code>~/.local/state/ai-agents-map/jobs.json</code></td><td>Download e installazioni interrotti.</td></tr>
+      <tr><td><code>~/.local/state/ai-agents-map/reorganize.json</code></td><td>Il registro dell'ultimo riordino, per Annulla.</td></tr>
+      <tr><td><code>~/.cache/ai-agents-map/</code></td><td>Risultati di ricerca, elenchi di strumenti, controlli degli aggiornamenti, icone dei componenti.</td></tr>
+      <tr><td><code>~/.config/systemd/user/ai-agents-map-providers.service</code></td><td>Il guardiano che avvia gli LLM locali con i loro agenti.</td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="glossary">Glossario</h2>
+  <dl>
+    <dt>Approvazione</dt><dd>Un agente chiede prima di cambiare un file o eseguire un comando (vedi <a href="#security-words">Le parole spiegate</a>).</dd>
+    <dt>Contesto</dt><dd>Quanti token di testo un modello può tenere presenti in una volta.</dd>
+    <dt>GGUF</dt><dd>Il formato di file dei modelli usato da llama.cpp, LM Studio, Ollama e KoboldCpp.</dd>
+    <dt>Prompt injection</dt><dd>Istruzioni nascoste in una pagina, un file o la risposta di uno strumento che cercano di guidare un agente.</dd>
+    <dt>Quantizzazione</dt><dd>Salvare un modello con meno bit per peso (per esempio <i>Q4_K_M</i>, circa 4,8 bit) per renderlo più piccolo, con poca perdita di qualità.</dd>
+    <dt>Mixture of experts</dt><dd>Un modello in cui per ogni token lavora solo una parte dei parametri (<i>35B-A3B</i>: 35 miliardi in totale, 3 miliardi attivi), il che lo rende veloce per la sua dimensione.</dd>
+    <dt>Sandbox</dt><dd>Uno spazio isolato in cui girano i comandi di un agente, che raggiungono solo la cartella del progetto e ciò che è consentito.</dd>
+    <dt>Token</dt><dd>Un pezzo di testo, circa tre quarti di parola, che i modelli leggono e scrivono.</dd>
+    <dt>Servizio utente</dt><dd>Un programma in background che systemd avvia solo per il tuo utente, senza permessi di amministratore.</dd>
+  </dl>
+</section>
+
+</body>
+</html>

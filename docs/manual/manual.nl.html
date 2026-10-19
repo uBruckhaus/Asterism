@@ -1,0 +1,954 @@
+<!doctype html>
+<html lang="nl">
+<!-- en-sections: {"cover":"9516ade577b5","about":"24ef624376f3","contents":"21ea3e57c9da","introduction":"313f8fe9cb9d","what-it-does":"ed3064a11d43","key-ideas":"0dc7c4d398f5","safety-promise":"334a9139e547","installation":"adcdc36e3a21","install-asterism":"b945afc8d543","install-plugin":"fc323032a506","first-start":"5579a2415653","remove":"8c1886fef87f","window":"35666f690d1d","my-setup":"81678a2ddc24","views":"bd4f2056edcb","map":"128c58421c9d","health":"eef2a00936de","hints":"24f2192e5f85","agents":"725cacb072f7","agent-cards":"354d56561701","running-agents":"a2f1a14ecc25","sign-in":"ea6d1e3e72ac","agent-updates":"01bef9527c31","installed-agents":"110cc3d880c6","new-agents":"fb16b013258a","local-llms":"e2be23aaaf47","install-runtime":"eabcd3a2b7f3","start-with-agents":"809020136522","llm-details":"b75c476f9a86","gpu":"1f2d352d51f9","outside-use":"86a1bab35faa","models":"b4d5fe299a8c","get-models":"af6188c5aa99","installed-models":"f110e8230bbe","context":"68d7514720cb","on-this-pc":"55bee8ede689","move-models":"d71891f4f901","reorganize":"1114fcad96d5","connecting":"4e3dccd115f3","connect-llm":"db8991c4c5d9","connect-mcp":"b468e04a9fac","connect-skills":"9fce5a98b968","failed":"7ac7d4b2bc76","mcp":"cc5a616e0263","mcp-sources":"51a66027d60a","mcp-setup":"0cb066c1a008","mcp-manage":"24427ff7c541","skills":"7903d52383fc","skills-sources":"2603211f99b7","skills-details":"d4adf096db78","settings":"70e44dac2d67","settings-list":"15eef231709e","help":"ac583f9720ec","disk-space":"5ee741e044cc","security":"e9ecce23da38","security-card":"ac6936e999ff","security-change":"8154c861d65e","security-agents":"f40610c167dd","security-risks":"3dd9a2ca7708","security-words":"3d1a5d5bd8fd","addons":"f591de0e2f7a","addons-setup":"a5215a8cc855","addons-page":"2ca8de053256","addons-install":"be9cb02485ce","addons-privacy":"cc399d559003","addons-kinds":"fed9f935ab09","addons-new-harness":"249c6447b88f","privacy":"f5e1418490cf","troubleshooting":"294f235649d4","reference":"6ac732d0e888","shortcuts":"742009011fac","files":"3afed2ea2663","glossary":"0ce132e36d9f"} -->
+<head>
+<meta charset="utf-8">
+<title>Asterism &amp; AI Agents Map — Gebruikershandleiding</title>
+<link rel="stylesheet" href="manual.css">
+</head>
+<body>
+<!-- Dutch translation of manual.html: same markup and ids, only the text translated. -->
+
+<!-- ============================== Cover ============================== -->
+<section class="cover">
+  <img class="cover-icon" src="images/icon.svg" alt="App-pictogram van Asterism">
+  <p class="cover-kicker">Gebruikershandleiding</p>
+  <h1 class="cover-title">Asterism<br><span>&amp; AI Agents Map</span></h1>
+  <p class="cover-sub">Je AI-agents, lokale modellen, MCP-servers en skills op één kaart</p>
+  <div class="cover-meta">
+    <p>Asterism {{ASTERISM_VERSION}} · AI Agents Map {{PLUGIN_VERSION}}</p>
+    <p>{{DATE}}</p>
+  </div>
+</section>
+
+<!-- ============================== About ============================== -->
+<section class="front" id="about">
+  <h2 class="front-title">Over deze handleiding</h2>
+  <p>Deze handleiding beschrijft één toepassing die in twee edities bestaat:</p>
+  <table class="editions">
+    <thead><tr><th scope="col">Editie</th><th>Asterism</th><th>AI Agents Map</th></tr></thead>
+    <tbody>
+      <tr><th>Wat het is</th><td>Een losse GTK&nbsp;4- / libadwaita-app voor elk Linux-bureaublad</td>
+          <td>Een plugin voor het Omarchy-bureaublad, geopend met een knop in de balk</td></tr>
+      <tr><th>Installeren vanuit</th><td>AUR, AppImage of de broncode</td><td>De Omarchy Plugin Marketplace</td></tr>
+      <tr><th>Uiterlijk</th><td>Volgt de lichte/donkere modus en de accentkleur van het systeem</td>
+          <td>De kleuren van het Omarchy-thema of het Adwaita-uiterlijk van GNOME</td></tr>
+      <tr><th>Map met instellingen</th><td><code>~/.config/asterism/</code></td><td><code>~/.config/omarchy/ai-agents-map/</code></td></tr>
+    </tbody>
+  </table>
+  <p>Al het andere — Setup, de kaart, verbinden door te tekenen, lokale LLM's, modellen, MCP-servers en skills — is
+  in beide hetzelfde. Wat maar voor één editie geldt, is gemarkeerd met <span class="badge">Asterism</span> of
+  <span class="badge omarchy">Omarchy</span>.</p>
+
+  <h3>Notatie</h3>
+  <table class="conventions">
+    <tbody>
+      <tr><th scope="row"><b>Toevoegen</b></th><td>Een knop, tabblad of menu-item in het venster.</td></tr>
+      <tr><th scope="row">Instellingen › <b>Uiterlijk</b></th><td>Een pad door de interface: open de instellingen, dan <b>Uiterlijk</b>.</td></tr>
+      <tr><th scope="row"><code>~/.agents/skills</code></th><td>Een bestand, map of opdracht. <code>~</code> is je persoonlijke map.</td></tr>
+      <tr><th scope="row"><kbd>Ctrl</kbd>+<kbd>,</kbd></th><td>Een sneltoets.</td></tr>
+    </tbody>
+  </table>
+  <div class="note"><p><b>Opmerking</b> Opmerkingen geven nuttige achtergrond.</p></div>
+  <div class="tip"><p><b>Tip</b> Tips tonen een snellere weg of een goede gewoonte.</p></div>
+  <div class="warn"><p><b>Let op</b> Let-op-kaders wijzen op iets dat moeilijk ongedaan te maken is.</p></div>
+</section>
+
+<!-- ============================== Contents (filled by the build) ============================== -->
+<section class="front toc" id="contents">
+  <h2 class="front-title">Inhoud</h2>
+  <!-- TOC -->
+</section>
+
+<!-- ============================== 1 Introduction ============================== -->
+<section class="chapter" id="introduction">
+  <h1>Inleiding</h1>
+  <p class="lead">Asterism toont de AI-opstelling van je computer als kaarten en als kaart: welke programmeeragents
+  geïnstalleerd zijn, welke taalmodellen ze gebruiken — clouddiensten en lokale runtimes —, welke modellen die aanbieden
+  en welke MCP-servers en skills elke agent heeft. En je kunt die opstelling veranderen door lijnen te tekenen.</p>
+
+  <div class="figure wide">
+    <img src="images/main-window.jpg" alt="Het hoofdvenster: in de kopbalk Setup, Kaart en een rood ! voor open problemen; de GPU-kaart en de kaart over de hele breedte: MCP-servers en skills, agents met een startknop, LLM-aanbieders en modellen">
+    <p class="caption">Het hoofdvenster: de kaart over de hele breedte, erboven de GPU-kaart, in de kopbalk het ! voor open problemen.</p>
+  </div>
+
+  <h2 id="what-it-does">Wat het doet</h2>
+  <ul>
+    <li><b>Programmeeragents</b> — Claude Code, Codex, GitHub Copilot, Cursor CLI, Gemini, OpenCode, Pi, Hermes en meer:
+      hun versie, abonnement, limieten en gebruik, en wat elk ervan nog mist, met de opdracht die het oplost.</li>
+    <li><b>Lokale LLM's</b> — llama.cpp, Ollama, LM Studio, vLLM, Jan en KoboldCpp: installeren, modellen downloaden, de
+      contextgrootte instellen die in je videokaart past en ze starten samen met de agents die ze gebruiken.</li>
+    <li><b>MCP-servers en skills</b> — gevonden op je computer of op het web, met aanbevolen servers en een zoekopdracht
+      in het officiële MCP-register.</li>
+    <li><b>Open problemen</b> — een ! in de kopbalk als er iets te verhelpen is, elk probleem met de weg naar waar het verholpen wordt, en waar je setup goed voor is.</li>
+  </ul>
+
+  <h2 id="key-ideas">Kernbegrippen</h2>
+  <dl>
+    <dt>Agent</dt><dd>Een programma waarmee je praat en dat code schrijft of taken uitvoert, zoals Claude Code.</dd>
+    <dt>LLM-provider</dt><dd>Waar het model van een agent draait: een clouddienst (Anthropic, OpenAI, …) of een lokale
+      LLM-runtime op deze computer (llama.cpp, Ollama, …).</dd>
+    <dt>Model</dt><dd>Het taalmodel zelf. Lokale modellen zijn bestanden, meestal in GGUF-formaat.</dd>
+    <dt>MCP-server</dt><dd>Een klein programma of een webdienst die agents extra tools geeft — bestanden lezen, op het web
+      zoeken, een browser besturen. MCP is het Model Context Protocol.</dd>
+    <dt>Skill</dt><dd>Een map met instructies (een <code>SKILL.md</code>) en soms scripts, die een agent een bepaalde taak leert.</dd>
+  </dl>
+
+  <h2 id="safety-promise">Niets verandert zonder voorbeeld</h2>
+  <p>Elke wijziging in de instellingen van een agent wordt eerst regel voor regel getoond, voordat er iets geschreven
+  wordt. Het oude bestand wordt als back-up bewaard, en de balk die na de wijziging verschijnt heeft
+  <b>Ongedaan maken</b>. De app vraagt nooit om beheerdersrechten.</p>
+</section>
+
+<!-- ============================== 2 Installation ============================== -->
+<section class="chapter" id="installation">
+  <h1>Installatie</h1>
+
+  <h2 id="install-asterism">Asterism <span class="badge">Asterism</span></h2>
+  <p>Kies een van deze manieren:</p>
+  <ul>
+    <li><b>Arch Linux (AUR):</b> installeer het pakket <code>asterism</code> met je AUR-helper.</li>
+    <li><b>AppImage:</b> download <code>Asterism-&lt;versie&gt;-x86_64.AppImage</code> van de releasepagina op
+      <code>github.com/uBruckhaus/Asterism</code>, maak het uitvoerbaar en start het. De AppImage gebruikt de Python&nbsp;3
+      van je distributie met PyGObject, GTK&nbsp;4 en libadwaita:
+      <table class="compact">
+        <tbody>
+          <tr><th scope="row">Fedora</th><td><code>sudo dnf install python3-gobject gtk4 libadwaita</code></td></tr>
+          <tr><th scope="row">Ubuntu / Debian</th><td><code>sudo apt install python3-gi gir1.2-gtk-4.0 gir1.2-adw-1</code></td></tr>
+          <tr><th scope="row">Arch</th><td><code>sudo pacman -S python-gobject gtk4 libadwaita</code></td></tr>
+        </tbody>
+      </table></li>
+    <li><b>Vanuit de broncode:</b> voer <code>bin/asterism</code> uit in een kloon van de repository.</li>
+  </ul>
+  <p>De app brengt zijn eigen pictogrammen mee, dus een pictogramlettertype is niet nodig. Om agents in het venster te
+  laten draaien, installeer je ook VTE voor GTK&nbsp;4 (<code>vte4</code>).</p>
+
+  <h2 id="install-plugin">AI Agents Map op Omarchy <span class="badge omarchy">Omarchy</span></h2>
+  <p>Installeer de plugin vanuit de Omarchy Plugin Marketplace of in een terminal:</p>
+  <pre>omarchy plugin add https://github.com/uBruckhaus/omarchy-ai-agents-map.git --enable</pre>
+  <p>Er verschijnt een robotknop in de balk. Al het andere dat nodig is, zit in een normale Omarchy-installatie. Om
+  agents in het venster te laten draaien, installeer je VTE: <code>sudo pacman -S vte4</code>.</p>
+
+  <h2 id="first-start">Eerste start</h2>
+  <p>De eerste keer dat de app opent, vraagt hij of hij zich aan de appstarter moet toevoegen. Daar wordt niets
+  geschreven tenzij je ja zegt; je kunt het later wijzigen onder Instellingen › <b>In de appstarter</b>.</p>
+  <p>Het venster is een gewoon appvenster: het kan getegeld zijn, zweven, naar een andere werkruimte verplaatst worden en
+  met <kbd>Alt</kbd>+<kbd>Tab</kbd> bereikt worden. <span class="badge">Asterism</span> Een nieuwe Asterism opent op zijn
+  <b>welkomstpagina</b>: de agents en lokale LLM's die op deze computer geïnstalleerd zijn, zijn kaarten die al aangevinkt
+  zijn, en <b>Inschakelen</b> zet ze op de kaart (zie <a href="#addons-setup">Asterism instellen</a>).
+  <span class="badge omarchy">Omarchy</span> De knop in de balk opent het venster, haalt het naar voren of verbergt het
+  als het al vooraan staat. Sluiten verbergt het venster; het programma blijft op de achtergrond draaien, zodat het
+  meteen weer opent.</p>
+  <div class="note"><p><b>Opmerking</b> Als er een agent in het venster draait, vraagt sluiten eerst: <b>Stoppen en
+  sluiten</b> (dat stopt ook het lokale LLM van de agent en maakt zijn videogeheugen vrij) of <b>Laten draaien</b>.</p></div>
+
+  <h2 id="remove">De app verwijderen</h2>
+  <p><span class="badge omarchy">Omarchy</span> <code>omarchy plugin remove ubruckhaus.ai-agents-map</code>.
+  <span class="badge">Asterism</span> Verwijder het pakket of wis de AppImage.</p>
+  <p>Zet vooraf Instellingen › <b>Lokale LLM's met hun agents starten</b> uit, zodat ook de achtergrondbewaker verdwijnt,
+  en Instellingen › <b>In de appstarter</b> om het starteritem te wissen. Wat je met de app hebt gewijzigd, blijft:
+  instellingen van agents, MCP-servers, skills en geïnstalleerde lokale LLM's. Verwijder eerst een lokaal LLM
+  (rechtsklik › <b>Verwijderen…</b>) als je wilt dat het weg is. Om ook de eigen toestand van de app te wissen:</p>
+  <pre>rm -rf ~/.config/omarchy/ai-agents-map ~/.config/asterism \
+       ~/.local/state/ai-agents-map ~/.cache/ai-agents-map</pre>
+</section>
+
+<!-- ============================== 3 The window ============================== -->
+<section class="chapter" id="window">
+  <h1>Het venster in één oogopslag</h1>
+
+  <div class="figure wide annotated">
+    <div class="shot">
+      <img src="images/main-window.jpg" alt="Het hoofdvenster met genummerde gebieden">
+      <span class="pin" style="left:71.1%;top:2.6%">1</span>
+      <span class="pin" style="left:80.6%;top:2.6%">2</span>
+      <span class="pin" style="left:1.3%;top:12.9%">3</span>
+      <span class="pin" style="left:0.6%;top:27.9%">4</span>
+      <span class="pin" style="left:50.0%;top:34.9%">5</span>
+      <span class="pin" style="left:40.7%;top:46.2%">6</span>
+    </div>
+    <p class="caption">Het hoofdvenster. De nummers horen bij de lijst hieronder.</p>
+  </div>
+
+  <ol class="legend-list">
+    <li><b>Setup</b> en <b>Kaart</b> — de twee weergaven, op elke pagina; de zichtbare is gemarkeerd. Setup heeft elke agent, elk lokaal LLM, elke MCP-server, elke skillmap en elk model als kaart: installeren, bijwerken, aanmelden, verwijderen (zie hieronder).</li>
+    <li>De symbolen in de kopbalk: <b>!</b> open problemen en updates (rood: iets te verhelpen; de accentkleur: alleen updates en suggesties; niet zichtbaar als er niets is), <b>ⓘ</b> de legenda (wat elke stip, lijn en markering op de kaart betekent), de add-ons <span class="badge">Asterism</span>, <b>?</b> Help (<kbd>F1</kbd>) en het tandwiel voor Instellingen (<kbd>Ctrl</kbd>+<kbd>,</kbd>).</li>
+    <li><b>GPU</b> — GPU-geheugen en GPU-activiteit: hoe de grafische kaart nu gebruikt wordt, in een kaart die inklapt (ingeklapt houdt de regel de cijfers).</li>
+    <li><b>Tonen</b>-schakelaars — beperken de kaart tot de delen waar je mee werkt.</li>
+    <li><b>De kaart</b> — MCP-servers en skills ← agents → LLM-aanbieders → modellen, over de hele breedte, onder de kop <b>KAART</b> met het vernieuwsymbool (<kbd>F5</kbd>) rechts.</li>
+    <li><b>▶</b> in het vak van een agent start hem in een terminal in het venster; zolang hij daar draait, haalt de knop
+      zijn terminal terug.</li>
+  </ol>
+
+  <h2 id="my-setup">Setup</h2>
+  <p>De kaart toont alleen wat ingesteld is: geïnstalleerde agents en lokale LLM's, de MCP-servers en
+  skillmappen die agents gebruiken, en modellen. Al het andere gebeurt op <b>Setup</b> (de knop in de kopbalk
+  naast <b>Kaart</b>), één kaart per onderdeel, in secties die inklappen met een klik op hun balk:</p>
+  <ul>
+    <li><b>Hoe dingen op je kaart komen</b> — een ingeklapte kaart helemaal bovenaan; open hem voor vijf genummerde stappen: aanzetten (of vinden) wat je gebruikt, installeren wat ontbreekt, aanmelden bij een online agent, verbinden door te tekenen, en wat vanzelf verschijnt.</li>
+    <li><b>Wat je ermee kunt doen</b> — waar de setup goed voor is (dagelijkse hulp, programmeren, afbeeldingen, spraak, onderzoek en schrijven), elk een tegel met wat er is en de volgende stap; ingeklapt zegt de regel hoeveel er klaar zijn.</li>
+    <li><b>AI-agents, Lokale LLM's</b> — alle die de app kent. Een kaart met een blauwe rand is op deze pc geïnstalleerd;
+      een grijze niet, en die heeft <b>Installeren</b> waar geïnstalleerde <b>Verwijderen</b> hebben.
+      <span class="badge omarchy">Omarchy</span> Een klik op een geïnstalleerde kaart opent de details.
+      <span class="badge">Asterism</span> Een klik vinkt de kaart aan of uit (✓), daarna schakelt <b>Toepassen</b> de
+      add-on in of uit. Uitschakelen haalt hem van de kaart; er wordt niets gewist.</li>
+    <li><b>Online providers</b> <span class="badge">Asterism</span> — de add-on van de online providers; het menu heeft
+      <b>Aanmelden bij …</b> voor elke geïnstalleerde agent die ze gebruikt.</li>
+    <li><b>MCP-servers, Skills, Modellen</b> — een kaart voor elk geïnstalleerd item. Een klik opent de details (bij een
+      model het menu). De kaart met <b>+</b> aan het eind van een sectie voegt er een toe: <b>MCP-server toevoegen</b>,
+      <b>Skills toevoegen</b>, <b>Model toevoegen</b>, <b>Add-ons ophalen</b>.</li>
+    <li><b>⋯</b> of een rechtsklik op een kaart opent hetzelfde menu als het vak op de kaart: bijwerken, aanmelden, starten
+      of stoppen, details, verwijderen, een model verplaatsen.</li>
+    <li>Een geel <b>↑ versie</b> op een kaart betekent dat er een update klaarstaat; het menu heeft <b>Bijwerken</b>.</li>
+    <li>Een rood <b>!</b> op een kaart betekent daar een open probleem; wijs het aan om te zien welk.</li>
+    <li>Een kleine batterij op de kaart van een online agent toont wat er over is van zijn limieten (een sessie, een week): de krapste telt, geel bij een kwart of minder, rood onder een tiende; wijs hem aan voor elke limiet en wanneer die terugzet. Op de kaart van een draaiend lokaal LLM is de batterij het GPU-geheugen dat nog vrij is, in dezelfde kleuren; wijs hem aan om te zien hoeveel dat lokale LLM gebruikt.</li>
+    <li>Het vernieuwsymbool (<kbd>F5</kbd>) rechts van de kop kijkt opnieuw wat geïnstalleerd, ingesteld en aangemeld is.</li>
+  </ul>
+  <div class="figure">
+    <img src="images/my-setup.jpg" alt="Setup: de ingeklapte kaarten Hoe dingen op je kaart komen en Wat je ermee kunt doen (4 van 5 klaar), de balk AI-agents 16, dan de agents als kaarten met een blauw kader en een vinkje; Claude Code en DeepSeek Harness met een geel updatelabel, Claude Code en Codex met een batterij voor hun limieten, Cursor CLI en Hermes met een rood !; het menu van Claude Code is open met Bijwerken naar 2.1.303, Verwijderen, Bijwerken, Aanmelden, Hier starten, In terminal starten, Details en Add-on">
+    <p class="caption">Setup: geïnstalleerde agents hebben een blauw kader, aangezette een ✓, updates een geel en problemen een rood label; het menu van Claude Code.</p>
+  </div>
+  <div class="figure">
+    <img src="images/my-setup-tools.jpg" alt="Setup verder naar beneden: MCP-servers en skillmappen als kaarten met de agents die ze gebruiken, en de kaarten MCP-server toevoegen en Skills toevoegen">
+    <p class="caption">MCP-servers en skills, elke sectie met een kaart om iets toe te voegen.</p>
+  </div>
+  <p>Er is niets te verbergen: wat je niet op de kaart wilt, schakel je hier uit of verwijder je hier. Als een installatie
+  of aanmelding in een terminal in het venster draait, brengt <b>Terug</b> (of <b>×</b> op het tabblad) je naar de pagina
+  waar die begon.</p>
+
+  <h2 id="views">Kiezen wat de kaart toont</h2>
+  <p>De kaart toont alles wat ingesteld is. De <b>Tonen</b>-schakelaars onder de GPU-kaart laten hele gebieden
+  weg — bijvoorbeeld alle skills, of de lokale LLM's en hun modellen — en worden onthouden.</p>
+  <p>In een smal venster (half scherm of minder) kiest de kaart ze zelf, en een regel naast de schakelaars zegt
+  dat: zolang er een agent draait, agents en aanbieders (wie via wat werkt); zolang er geen draait, aanbieders
+  en modellen. Een daar aangeklikte schakelaar blijft tot dat verandert en wordt niet onthouden; het venster op
+  volle grootte houdt je eigen keuze.</p>
+
+  <h2 id="map">Werken met de kaart</h2>
+  <ul>
+    <li><b>Wijs</b> een vak aan met de muis om het samen met alles waarmee het verbonden is te markeren.</li>
+    <li><b>Klik</b> op een vak om het te selecteren (✓); <kbd>Shift</kbd>+klik voegt er meer toe. <kbd>Esc</kbd> of
+      <b>Selectie wissen</b> heft de selectie op.</li>
+    <li>De <b>punaise</b> rechtsboven in een vak houdt de verbindingen gemarkeerd terwijl je ergens anders kijkt.</li>
+    <li><b>Rechtsklik</b> op een vak voor alles wat de kaart op Setup biedt: starten of stoppen, details, installeren,
+      aanmelden, modellen, bijwerken, verwijderen en meer.</li>
+    <li><b>▶</b> in het vak van een agent start hem in een terminal in het venster.</li>
+    <li>De agents blijven tijdens het scrollen altijd in het midden van het zichtbare deel van de kaart.</li>
+    <li>Het actieve pad van elke agent — agent → de gebruikte provider → het model — wordt vet getekend. Terwijl een agent
+      werkt, loopt er licht langs die lijn.</li>
+    <li>Een rode stippellijn verbindt een agent met een aanbieder waarvoor hij ingesteld is maar die hij nu niet gebruikt (geen model ervan in gebruik).</li>
+    <li>Het vak van een online agent heeft dezelfde batterij als zijn kaart op Setup: wat er over is van zijn limieten; het vak van een draaiend lokaal LLM, het GPU-geheugen dat nog vrij is.</li>
+    <li>Als een programma dat niet op de kaart staat een lokaal LLM gebruikt, wordt de lijn van dat LLM naar zijn model dik
+      in een eigen kleur (paars of cyaan, wat het beste afsteekt tegen de andere themakleuren), en loopt er licht langs.
+      Zie <a href="#outside-use">Gebruikt door andere apps</a>.</li>
+    <li>Het vernieuwsymbool (<kbd>F5</kbd>) rechts van de kop kijkt opnieuw wat geïnstalleerd, ingesteld en aangemeld is.</li>
+    <li>Tot de eerste lijn getrokken is, toont een kaart boven de kaart in drie stappen hoe het gaat; <b>Bekijk hoe</b> speelt de animatie uit de Help af. Na de eerste verbinding, of met ×, verdwijnt hij voorgoed.</li>
+    <li>Zoomen met <b>− 100&nbsp;% +</b>, <kbd>Ctrl</kbd>+scrollen of <kbd>Ctrl</kbd>+<kbd>+</kbd> / <kbd>−</kbd> / <kbd>0</kbd>.</li>
+  </ul>
+  <div class="tip"><p><b>Tip</b> In een smal venster (minder dan ongeveer 1300 pixels, zo'n half scherm) scrollt de kaart
+  zijwaarts, en <b>Maximaliseren voor meer ruimte</b> in de kopregel geeft hem het hele scherm (Instellingen ›
+  <b>Te smal voor de kaart</b> kiest wat die knop doet).</p></div>
+
+  <h2 id="health">Open problemen</h2>
+  <p>Als er iets te verhelpen is, verschijnt er tussen de symbolen in de kopbalk een rood <b>!</b>; de tooltip
+  zegt hoeveel, bijvoorbeeld <i>2 open problemen · 4 suggesties</i>. Een klik opent <b>Open problemen</b>: één
+  regel per probleem — een agent die niet aangemeld is, een lokaal LLM zonder modellen, een verbinding die niet
+  werkt, weinig vrije ruimte voor modellen — met een knop naar waar het verholpen wordt (de details van de agent
+  of het lokale LLM, de kaart met die lijn gemarkeerd, Setup, Opruimen). Dezelfde problemen verschijnen als
+  rood <b>!</b> op hun kaarten op Setup. Tips en wat werkt staan op de kaarten en detailpagina's zelf, en waar
+  de setup goed voor is staat op Setup (<b>Wat je ermee kunt doen</b>). De controle leest alleen; hij verandert,
+  start of verstuurt nooit iets, en toont niets zolang de kaart leeg is.</p>
+
+  <h2 id="hints">Updates en suggesties</h2>
+  <p>Onder de problemen op dezelfde pagina somt <b>Updates en suggesties</b> op wat er te melden is: nieuwe
+  programma's of skills op deze pc, wat op deze pc staat maar niet op de kaart, en updates voor geïnstalleerde
+  agents en lokale LLM's, elk met zijn knop (<b>MCP-server toevoegen…</b>, <b>Setup</b>, <b>Bijwerken</b>). Als
+  er alleen deze zijn en geen probleem, verschijnt het <b>!</b> in de kopbalk in de accentkleur. Naar updates
+  wordt op de achtergrond gezocht bij het openen van het venster, hooguit elke zes uur. Het zoeken zelf
+  installeert niets; een update begint pas als je op <b>Bijwerken</b> klikt.</p>
+</section>
+
+<!-- ============================== 4 Agents ============================== -->
+<section class="chapter" id="agents">
+  <h1>Agents</h1>
+
+  <h2 id="agent-cards">Details van een agent</h2>
+  <p>Elke programmeeragent heeft een kaart op Setup, geïnstalleerde met hun versie. Klik op de kaart van een
+  geïnstalleerde agent (<span class="badge">Asterism</span> of <b>⋯</b> › <b>Details</b>), of rechtsklik op zijn vak op de
+  kaart › <b>Details</b>. Bovenaan zegt een regel of de agent klaar is (en zo niet, waarom) en of hij nu draait of wanneer
+  hij voor het laatst gebruikt is. Daaronder is elk deel een kaart die inklapt: een klik op de kop opent of sluit hem. Ze
+  beginnen ingeklapt, elk met een samenvatting van één regel en badges; een deel dat je opent, blijft ook op de volgende
+  detailpagina's open.</p>
+  <div class="figure wide">
+    <img src="images/agent-details.jpg" alt="De detailpagina van OpenCode: Ingesteld en klaar, dan ingeklapte kaarten Gebruik en tokens, Projecten van de laatste 30 dagen, Onderwerpen met een Privacy-badge, Status met Gezond, Beveiligingsinstellingen en Risicobeheer met Hoog risico, Wat de woorden betekenen en Configuratie, elk met een samenvatting">
+    <p class="caption">De details van een agent: elk deel ingeklapt, met samenvatting en badges.</p>
+  </div>
+  <table>
+    <thead><tr><th>Kaart</th><th>Wat hij toont</th></tr></thead>
+    <tbody>
+      <tr><td><b>Gebruik en tokens</b></td><td>Wat de agent bijhoudt: tokens en sessies van vandaag en de laatste zeven dagen, het abonnement, een grafiek van tokens per dag, limieten met hun resettijd en tokens per model.</td></tr>
+      <tr><td><b>Projecten, laatste 30 dagen</b></td><td>Per projectmap: werktijd, sessies, tokens, subagent-runs, gewijzigde regels en de API-waarde.</td></tr>
+      <tr><td><b>Onderwerpen</b> (Privacy)</td><td>Waar de sessies over gingen. Dat gaat verder dan cijfers, daarom is hij gemarkeerd met <b>Privacy</b> en wordt hij alleen door een add-on gevuld (zie hieronder); de add-on geeft de kaart een naam en de badge zegt hoeveel hij leest.</td></tr>
+      <tr><td><b>Status</b></td><td>Elke controle van de opstelling met een ✓, of wat je hierna moet doen: aanmelden, het lokale LLM installeren of starten, een model downloaden, MCP-servers of skills toevoegen.</td></tr>
+      <tr><td><b>Beveiligingsinstellingen</b>, <b>Risicobeheer</b>, <b>Wat de woorden betekenen</b></td><td>Wat de agent mag doen zonder het je te vragen, en wat het risico verlaagt (zie <a href="#security">Gezondheids- en beveiligingscheck</a>).</td></tr>
+      <tr><td><b>Configuratie</b></td><td>De instellingen van de agent, MCP-servers, skills en zijn instellingenmap.</td></tr>
+    </tbody>
+  </table>
+  <p>Projecten worden getoond voor Claude Code, OpenCode en Hermes: werktijd, sessies, tokens, subagent-runs, gewijzigde
+  regels en wat de tokens tegen API-prijzen zouden kosten. De cijfers komen uit de eigen sessiebestanden of de database
+  van elke agent; er wordt geen tekst gelezen.</p>
+  <p><span class="badge">Asterism</span> Met de add-on <b>Insights</b> (zie <a href="#addons">Add-ons</a>) toont de kaart
+  <b>Onderwerpen</b> de titels die de agent zelf aan zijn sessies gaf, per project, en biedt hij
+  <b>Samenvatten met Claude…</b> (als Claude Code geïnstalleerd is). Voordat er iets verstuurd wordt, zie je precies wat er
+  verstuurd wordt: de titels en cijfers, nooit de gesprekken.</p>
+
+  <h2 id="running-agents">Agents starten en stoppen</h2>
+  <ul>
+    <li><b>▶</b> in het vak van de agent of <b>Hier starten</b> in het menu start de agent in een terminal in het venster,
+      in plaats van de kaart. Dat vraagt VTE (<code>vte4</code>).</li>
+    <li><b>In terminal starten</b> opent hem in een eigen terminalvenster.</li>
+    <li>Terwijl hij in het venster draait: <b>Terminal tonen</b> en <b>Stoppen</b>. Stoppen beëindigt de agent en alles
+      wat hij gestart heeft, zoals zijn MCP-servers.</li>
+  </ul>
+  <p>Als agents terminals in het venster hebben, toont een rij tabbladen boven de kaart één tabblad per terminal, met een
+  stip voor <i>bezig</i>, <i>draait</i> of <i>beëindigd</i>. Een klik op een tabblad toont die terminal; <b>×</b> sluit
+  een beëindigde.</p>
+  <p>Een agent die ergens op de computer open is, krijgt een groene stip en <i>draait</i>, en het vak van het model
+  waarmee hij draait zegt <i>in gebruik · &lt;agent&gt;</i>.</p>
+
+  <h2 id="sign-in">Aanmelden</h2>
+  <p><b>Aanmelden…</b> in het menu van een agent (op Setup of op de kaart) toont wat de agent nodig heeft en zijn
+  eigen manieren om aan te melden:</p>
+  <ul>
+    <li><b>Een abonnement of een account</b> — de eigen aanmelding van de agent draait in een terminal in het venster
+      (bijvoorbeeld <code>claude auth login</code> of <code>codex login</code>). Je wachtwoord of de aanmelding in de
+      browser blijft tussen jou en de agent; de app ziet het nooit. Waar de agent erom vraagt, zegt de terminal wat je moet
+      typen (Pi en Copilot: <code>/login</code>).</li>
+    <li><b>Een API-sleutel</b> — voor agents die er een lezen: de sleutel gaat in een wachtwoordveld en dan rechtstreeks
+      naar de eigen opdracht van de agent (Codex bewaart hem zelf) of naar het bestand dat de agent leest (Gemini:
+      <code>~/.gemini/.env</code>, alleen door jou leesbaar). Hij komt nooit in een opdrachtregel, een log of de
+      instellingen van de app, en de app houdt hem niet bij. De API-facturering van Claude Code is zijn eigen aanmelding bij
+      de Anthropic Console, dus er gaat geen sleutel door de app.</li>
+  </ul>
+  <div class="figure">
+    <img src="images/sign-in.jpg" alt="Het dialoogvenster Aanmelden bij Claude Code: wat Claude Code nodig heeft, een opmerking dat de eigen aanmelding van de agent in een terminal draait, en de knoppen API-facturering (Anthropic Console), Claude-abonnement en Annuleren">
+    <p class="caption">Aanmelden bij Claude Code: een abonnement of API-facturering, beide met de eigen aanmelding van Claude Code.</p>
+  </div>
+  <p>Daarna toont de kaart de online provider van de agent en zijn modellen.</p>
+
+  <h2 id="agent-updates">Agents bijwerken</h2>
+  <p>Als er een nieuwere versie van een geïnstalleerde agent is, krijgt zijn kaart op Setup een geel
+  <b>↑ versie</b>, en <b>Updates en suggesties</b> (het <b>!</b> in de kopbalk) noemt die. <b>Bijwerken</b> voert
+  de update uit op de manier waarop de agent geïnstalleerd is — bijvoorbeeld <code>mise upgrade &lt;tool&gt;</code>
+  of <code>claude update</code> — in een eigen terminalvenster, zodat je het kunt volgen.</p>
+
+  <h2 id="installed-agents">Agents die de app kan installeren</h2>
+  <p>Drie agents kunnen vanaf de kaart geïnstalleerd, bijgewerkt en verwijderd worden (rechtsklik op de agent ›
+  <b>Installeren…</b>):</p>
+  <ul>
+    <li><b>DeepSeek Harness</b> (<code>dsh</code>, preview voor ontwikkelaars), van npm. Hij kan lokale LLM's gebruiken.</li>
+    <li><b>Antigravity CLI</b> (<code>agy</code>, Google), uit het releasemanifest van Google; de download wordt
+      gecontroleerd met zijn SHA-512-controlesom.</li>
+    <li><b>LM Studio Bionic</b> kan hier niet geïnstalleerd worden (geen gepubliceerde controlesom); haal hem van
+      lmstudio.ai. Hij gebruikt altijd de engine en modellen van LM Studio.</li>
+  </ul>
+
+  <h2 id="new-agents">Nieuwe agents</h2>
+  <p>Als er een agent verschijnt die de app nog niet kent, vraagt hij één keer aan een geïnstalleerde agent (Claude Code,
+  anders Codex) om op het web uit te zoeken waar die agent zijn skills en MCP-servers bewaart. Het antwoord wordt
+  gecontroleerd voor het gebruikt wordt, en niets ervan wordt ooit uitgevoerd. Instellingen › <b>Nieuwe agents
+  opzoeken</b> zet dit uit.</p>
+</section>
+
+<!-- ============================== 5 Local LLMs ============================== -->
+<section class="chapter" id="local-llms">
+  <h1>Lokale LLM's</h1>
+  <p class="lead">Een lokale LLM-runtime draait taalmodellen op je eigen videokaart, zodat verzoeken de computer nooit
+  verlaten. De app installeert, start en stopt ze voor je.</p>
+
+  <h2 id="install-runtime">Een lokaal LLM installeren</h2>
+  <p>Rechtsklik op een grijs (niet geïnstalleerd) lokaal LLM op de kaart › <b>Installeren…</b>. Je kiest de programmamap,
+  de modellenmap (voorgesteld wordt de map die je andere lokale LLM's gebruiken) en of hij bij het aanmelden start. Hij
+  wordt alleen voor jouw gebruiker geïnstalleerd, met een gebruikersdienst, dus er is geen wachtwoord nodig. Elke download
+  moet overeenkomen met de SHA-256-controlesom die zijn release publiceert, voordat hij uitgepakt of uitgevoerd wordt.</p>
+  <table>
+    <thead><tr><th>Runtime</th><th>Opmerkingen</th></tr></thead>
+    <tbody>
+      <tr><td><b>Ollama</b></td><td>De officiële release (met ROCm voor AMD-kaarten).</td></tr>
+      <tr><td><b>llama.cpp</b></td><td>De build van je keuze (Vulkan, ROCm, CUDA, CPU), als modelrouter: elke GGUF in de modellenmap, één tegelijk geladen.</td></tr>
+      <tr><td><b>LM Studio</b></td><td>Niet vanaf hier geïnstalleerd (geen gepubliceerde controlesom); haal hem van lmstudio.ai. Eenmaal geïnstalleerd wordt hij getoond en beheerd.</td></tr>
+      <tr><td><b>vLLM</b></td><td>Voor NVIDIA-kaarten, in een eigen Python-omgeving.</td></tr>
+      <tr><td><b>Jan</b></td><td>Zijn AppImage, uitgepakt, met de engine van Jan als achtergronddienst voor agents.</td></tr>
+      <tr><td><b>KoboldCpp</b></td><td>De officiële build in één bestand, als modelrouter.</td></tr>
+    </tbody>
+  </table>
+  <p>Zo geïnstalleerd biedt een lokaal LLM ook <b>Bijwerken…</b> (de vorige versie blijft als terugval bewaard),
+  <b>Modellenmap…</b> en <b>Verwijderen…</b>, dat programma, opdracht, dienst en instellingen verwijdert, maar nooit de
+  modellen. Lokale LLM's die je zelf geïnstalleerd hebt, worden getoond maar nooit gewijzigd.</p>
+
+  <h2 id="start-with-agents">Starten en stoppen met de agents</h2>
+  <p>Verbind een agent één keer met een lokaal LLM en start dan gewoon de agent — ook als de app dicht is of na een
+  herstart. Zijn lokale LLM start mee, en als de laatste agent die het gebruikt stopt, stopt het LLM zo'n vijf seconden
+  later, zodat zijn videogeheugen weer vrij is.</p>
+  <p>Een kleine achtergronddienst regelt dat, <code>ai-agents-map-providers.service</code>. Hij wordt ingesteld bij de
+  eerste verbinding met een lokaal LLM en verwijderd als de laatste wegvalt of als je Instellingen ›
+  <b>Lokale LLM's met hun agents starten</b> uitzet.</p>
+  <div class="note"><p><b>Opmerking</b> KoboldCpp heeft een paar seconden nodig om te starten, langer dan sommige agents
+  wachten. Daarom start het bij het aanmelden, en als de laatste agent stopt, wordt alleen zijn model ontladen.</p></div>
+
+  <h2 id="llm-details">Details van een lokaal LLM</h2>
+  <p>Klik op de kaart van een lokaal LLM op Setup, of rechtsklik op zijn vak op de kaart › <b>Details</b>. Onder de
+  tegels (modellen, agents, adres) volgen dezelfde inklapbare kaarten als bij agents: <b>Gebruik en tokens</b> — wat je
+  agents er de laatste dagen doorheen stuurden, per agent en model, uit de eigen sessiecijfers van de agents en gekoppeld
+  via de modelnaam —, dan Status, Risicobeheer, Wat de woorden betekenen en Configuratie.</p>
+
+  <h2 id="gpu">GPU-geheugen en GPU-geheugen vrijmaken</h2>
+  <p>In de <b>GPU</b>-kaart boven de kaart toont <b>GPU-geheugen</b> hoeveel er in gebruik is, verdeeld over
+  lokale LLM's, bureaublad en apps, en vrij; <b>GPU-activiteit</b> toont belasting, temperatuur en vermogen. Het
+  vak van elk lokaal LLM toont hoeveel geheugen het inneemt, en geladen modellen krijgen een groene stip.</p>
+  <p>Rechtsklik op een lokaal LLM voor <b>Starten</b>, <b>Stoppen</b>, starten bij aanmelden en
+  <b>GPU-geheugen vrijmaken</b>: zijn modellen worden ontladen, het blijft draaien en laadt er weer een als erom gevraagd wordt.</p>
+
+  <h2 id="outside-use">Gebruikt door andere apps</h2>
+  <p>Lokale LLM's worden niet alleen door agents gebruikt. Een plugin zoals Video Trans, een chat-app of je eigen script
+  kan ook verzoeken sturen. De app merkt dat op en toont het:</p>
+  <div class="figure wide">
+    <img src="images/outside-use.jpg" alt="De kaart: een cyaan lijn met licht van llama.cpp naar het model gemma-4-12B-it-QAT-Q4_0, waarvan het vak in use · curl zegt; daarboven de blauwe accentlijn van Claude Code naar opus">
+    <p class="caption">Een programma dat niet op de kaart staat (hier <code>curl</code>) genereert met llama.cpp: de cyaan lijn en het vak (thema Tokyo Night). Het eigen pad van Claude Code naar opus blijft in de accentkleur.</p>
+  </div>
+  <ul>
+    <li><b>Op de kaart</b> wordt de lijn van het lokale LLM naar het model waarmee het genereert dik in zijn eigen kleur,
+      loopt er licht langs, en krijgt het vak van het model een rand en stip in die kleur en zegt het wie het gebruikt,
+      bijvoorbeeld <i>in gebruik · Video Trans</i>.</li>
+    <li><b>Het rechtsklikmenu van het lokale LLM</b> en zijn pagina <b>ⓘ Details</b> zeggen <i>In gebruik door Video Trans · nu</i>
+      of hoeveel seconden geleden het voor het laatst gebruikt is.</li>
+    <li>De legenda <b>ⓘ</b> toont beide markeringen.</li>
+  </ul>
+  <p>De app kijkt welke van je eigen programma's een verbinding met het lokale LLM open hebben. Wat ze sturen, leest hij
+  nooit. Een plugin wordt met zijn eigen naam getoond, een agent met zijn naam, al het andere met zijn programmanaam. De
+  app zelf en LLM Monitor, die alleen de status lezen, tellen niet mee.</p>
+  <div class="note"><p><b>Opmerking</b> Het licht is alleen te zien terwijl het programma genereert en dooft zo'n tien
+  seconden na zijn laatste verzoek. Een programma dat open maar inactief is — Video Trans zonder spraak om te vertalen —
+  toont niets. Een programma blijft een halve minuut na zijn laatste verzoek in het menu staan.</p></div>
+</section>
+
+<!-- ============================== 6 Models ============================== -->
+<section class="chapter" id="models">
+  <h1>Modellen</h1>
+  <p class="lead">Rechtsklik op een geïnstalleerd lokaal LLM › <b>Modellen…</b>, of klik op <b>Model toevoegen</b> op
+  <b>Setup</b>. De pagina heeft links een lijst en rechts het gekozen model, in drie tabbladen.</p>
+
+  <div class="figure wide">
+    <img src="images/models-download.jpg" alt="De modellenpagina: zoekresultaten en downloadopties">
+    <p class="caption">Ophalen van Hugging Face: wat een model kan en welke grootte in je videokaart past.</p>
+  </div>
+
+  <h2 id="get-models">Ophalen van Hugging Face</h2>
+  <p>Blader door populaire GGUF-chatmodellen of zoek. Elk resultaat toont auteur, grootte, downloads, likes, leeftijd en
+  wat het kan: <b>Beeld</b>, <b>Tools</b>, <b>Redeneren</b>, <b>MTP</b>. De pagina van het model toont parameters,
+  architectuur, context, licentie en modelkaart. <b>Wat de naam betekent</b> legt de delen van de naam uit, zoals
+  <i>35B-A3B</i> of <i>Q4_K_M</i>.</p>
+  <p><b>Downloadopties</b> geeft elke grootte met hoe ze past: in de videokaart, deels in het werkgeheugen (werkt, maar
+  langzamer) of waarschijnlijk te groot. De beste keuze is al gemaakt; <b>Downloaden</b> haalt hem naar de modellenmap.</p>
+  <p>Downloads lopen op de achtergrond en verschijnen in een strook bovenaan de hoofdpagina. Als de verbinding wegvalt,
+  probeert hij het opnieuw en gaat hij verder. Als de app tijdens een download gesloten werd, staat die als onderbroken
+  vermeld, met <b>Hervatten</b> of <b>Weggooien</b>.</p>
+
+  <h2 id="installed-models">Geïnstalleerd</h2>
+  <div class="figure wide">
+    <img src="images/models-installed.jpg" alt="Het tabblad Geïnstalleerd met de contextgroottes van een model en zijn uitgelegde naam">
+    <p class="caption">Geïnstalleerd: context nu, het beste voor je kaart en waarvoor getraind; wat de naam betekent; Verwijderen.</p>
+  </div>
+  <p>Elk model toont grootte, bestand en context — <i>nu</i>, <i>het beste voor je kaart</i> en <i>getraind voor</i>.
+  <b>Verwijderen</b> vraagt eerst en verplaatst de bestanden naar de prullenbak, waaruit je ze kunt terugzetten. Een model
+  dat alleen een koppeling is, verliest alleen de koppeling.</p>
+
+  <h2 id="context">Contextgrootte</h2>
+  <p>De context is hoeveel tekst het model in één keer kan overzien. De app berekent uit het modelbestand zelf de grootste
+  context die in je videokaart past. <b>Context instellen</b> schrijft die in de instellingen van het lokale LLM, met
+  back-up en Ongedaan maken. Agents hebben een vrij grote context nodig; als je een agent verbindt met een LM
+  Studio-model zonder ingestelde context, wordt in dezelfde stap de beste ingesteld.</p>
+
+  <h2 id="on-this-pc">Op deze pc</h2>
+  <p>Toont GGUF-bestanden die het lokale LLM nog niet leest — in zijn modellenmap, in de mappen van de andere lokale
+  LLM's, in <code>~/Downloads</code> en in <code>~/Models</code>. <b>Toevoegen</b> maakt er zijn model van zonder tweede
+  kopie (via een koppeling), behalve bij Ollama, dat een eigen kopie importeert.</p>
+
+  <h2 id="move-models">Modellen verplaatsen en wissen</h2>
+  <p>Rechtsklik op een model van llama.cpp, KoboldCpp of LM Studio › <b>Verplaatsen naar…</b>, of sleep het modelvak naar
+  de map van een ander lokaal LLM. Eerst zie je hoeveel er verplaatst wordt en welke agent het model gebruikt. Ongedaan
+  maken zet de bestanden terug. <b>Verwijderen…</b> vraagt eerst en verplaatst de bestanden naar de prullenbak.</p>
+
+  <h2 id="reorganize">Eén modellenmap</h2>
+  <p>Instellingen › <b>Modellenmap</b> stelt één map in voor de modellen van alle lokale LLM's.
+  <b>Modellen opruimen…</b> laat vooraf zien hoe de bestanden gesorteerd zouden worden
+  (<code>&lt;map&gt;/&lt;uitgever&gt;/&lt;model&gt;/</code>), en er verandert niets tot je op <b>Opruimen</b> drukt. Met
+  <b>Oude paden blijven werken</b> (standaard aan) blijft er op elke oude plek een koppeling. <b>Laatste opruimactie
+  ongedaan maken</b> zet alles terug.</p>
+  <div class="warn"><p><b>Let op</b> Bij verplaatsen naar een andere schijf worden de modellen eerst gekopieerd en de
+  originelen pas verwijderd als de kopie compleet is. Zorg dat er genoeg vrije ruimte op het doel is; anders weigert de app
+  het verplaatsen.</p></div>
+</section>
+
+<!-- ============================== 7 Connecting ============================== -->
+<section class="chapter" id="connecting">
+  <h1>Verbinden door te tekenen</h1>
+  <p class="lead">Druk op een vak van de kaart en sleep naar een ander om ze te verbinden. Elke wijziging toont vóór het
+  schrijven precies welke regels van welk bestand veranderen, maakt een back-up en kan via de balk die volgt ongedaan
+  gemaakt worden.</p>
+
+  <h2 id="connect-llm">Agent ↔ lokaal LLM</h2>
+  <p>Sleep van een agent naar een lokaal LLM of andersom. Kies het model en of de agent het meteen gebruikt. Om een
+  verbinding te wijzigen, klik je op de lijn om hem te selecteren en sleep je het uiteinde naar een ander lokaal LLM — of
+  naar een lege plek om hem te verwijderen. Met een agent geselecteerd maakt een klik op een model van een verbonden lokaal
+  LLM dat model het model van de agent.</p>
+  <p>Ondersteunde agents: Hermes, Pi, OpenCode en DeepSeek Harness.</p>
+
+  <h2 id="connect-mcp">Agent ↔ MCP-server</h2>
+  <p>Sleep van een agent naar een MCP-server. De instellingen van de server worden overgenomen in het eigen formaat van die
+  agent. Ondersteund: Claude Code, Codex, Copilot, Crush, Cursor, Gemini, Grok, Hermes, Muse, Oh My Pi, OpenClaw, OpenCode
+  en Pi. Instellingenbestanden die sleutels kunnen bevatten, worden altijd zo geschreven dat alleen jij ze kunt lezen.</p>
+
+  <h2 id="connect-skills">Agent ↔ skillmap</h2>
+  <p>Sleep van een agent naar een skillmap. Pi en Hermes krijgen de map in hun instellingen; elke andere agent krijgt per
+  skill een koppeling in zijn eigen skillmap. Een map die een agent uit zichzelf leest (de meeste lezen
+  <code>~/.agents/skills</code>) kan niet alleen bij die agent weggehaald worden.</p>
+
+  <h2 id="failed">Als een verbinding mislukt</h2>
+  <p>Direct nadat een verbinding geschreven is, controleert de app of ze zal werken: of een lokaal LLM geïnstalleerd is en
+  het model aanbiedt, of een MCP-server antwoordt, of de skillkoppelingen intact zijn. Een mislukte verbinding blijft op de
+  kaart als <span class="red">rode stippellijn</span> met een <b>!</b>; een met alleen waarschuwingen is
+  <span class="yellow">geel gestippeld</span>. Klik op de lijn of het <b>!</b> voor tips:</p>
+  <ul>
+    <li><b>Opnieuw testen</b> controleert opnieuw; slaagt hij, dan wordt de lijn weer normaal.</li>
+    <li><b>Opnieuw proberen…</b> opent de verbindingspagina voor een verbinding die nooit geschreven is.</li>
+    <li><b>Verbinding verwijderen</b> verwijdert haar.</li>
+  </ul>
+</section>
+
+<!-- ============================== 8 MCP servers ============================== -->
+<section class="chapter" id="mcp">
+  <h1>MCP-servers</h1>
+  <p class="lead">MCP-servers geven agents extra tools. <b>+ MCP-server</b> op de kaart of onder de kaarten opent de pagina
+  om er een toe te voegen: links een lijst, rechts de pagina van de gekozen server.</p>
+
+  <h2 id="mcp-sources">Waar servers vandaan komen</h2>
+  <table>
+    <thead><tr><th>Tabblad</th><th>Inhoud</th></tr></thead>
+    <tbody>
+      <tr><td><b>Aanbevolen</b></td><td>De referentieservers van het MCP-project (Filesystem, Fetch, Git, Memory, Sequential Thinking, Time, Everything) en officiële servers van bekende bedrijven (GitHub, Playwright, Chrome DevTools, Brave Search, Context7), gegroepeerd naar doel en vastgezet op hun nieuwste versie.</td></tr>
+      <tr><td><b>MCP-register</b></td><td>Een zoekopdracht in het officiële MCP-register. Elk resultaat noemt zijn uitgever zoals het register die heeft gecontroleerd. Het zoeken kan tien seconden of langer duren.</td></tr>
+      <tr><td><b>Op deze pc</b></td><td>Programma's op deze computer die een MCP-server aanbieden, gevonden door hun bestanden te lezen — er wordt niets gestart. In AppImages wordt alleen gekeken als je op <b>Binnenin kijken…</b> klikt.</td></tr>
+      <tr><td><b>Met de hand</b></td><td>Een opdrachtregel of een webadres met headers.</td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="mcp-setup">Een server instellen</h2>
+  <p>De pagina van de server zegt wie hem gemaakt heeft en hoe goed dat gecontroleerd is, wat hij doet (met dingen die je
+  een agent kunt vragen), hoe hij draait — als programma via <code>npx</code>, <code>uvx</code> of Docker, of als webdienst
+  — en wat hij nodig heeft, zoals een map of een API-sleutel met een link waar je die krijgt. Daaronder <b>Instellen</b>:</p>
+  <ol>
+    <li>Vul de velden in die de server nodig heeft.</li>
+    <li>Vink de agents aan die hem moeten krijgen.</li>
+    <li>Klik op <b>Testen</b> om de server naar zijn tools te vragen.</li>
+    <li>Klik op <b>Toevoegen</b>: alle aangevinkte agents worden in één keer geschreven, met een voorbeeld en een Ongedaan maken.</li>
+  </ol>
+  <div class="note"><p><b>Opmerking</b> Geheime waarden, zoals API-sleutels, worden in de omgeving of in headers
+  meegegeven, nooit in een opdrachtregel waar andere gebruikers van de computer ze zouden kunnen lezen. Een server die een
+  geheim in zijn opdrachtregel nodig zou hebben, moet met de hand ingesteld worden.</p></div>
+
+  <h2 id="mcp-manage">Servers beheren</h2>
+  <p><b>ⓘ Details</b> op de kaart van een MCP-server toont het instellingenbestand van elke agent, de opdracht of het adres
+  en, op verzoek, de tools van de server; waarden van sleutels worden nooit getoond. <b>Verwijderen</b> haalt hem bij alle
+  agents weg. Servers blijven in de lijst als geen agent ze meer gebruikt, zodat een lijn ze weer kan verbinden.</p>
+  <p>Als er in <code>~/Applications</code> een nieuwere versie verschijnt van een app die een MCP-server levert, meldt een
+  tip dat. <b>Bijwerken…</b> pakt de nieuwe versie uit, richt elke agent erop en bewaart de oude zeven dagen als back-up.
+  <b>Op updates controleren</b> (onder <b>Op deze pc</b>) doet dat na je klik voor al zulke apps tegelijk: het kijkt in de
+  nieuwe versies, biedt alle updates aan in één voorbeeld met een back-up en een Ongedaan maken, en test daarna elke
+  bijgewerkte server; een tip noemt elke server die niet antwoordt.</p>
+</section>
+
+<!-- ============================== 9 Skills ============================== -->
+<section class="chapter" id="skills">
+  <h1>Skills</h1>
+  <p class="lead">Een skill is een map met instructies die een agent een bepaalde taak leert. <b>+ Skills</b> opent een
+  pagina die net zo is opgebouwd als de MCP-pagina.</p>
+
+  <h2 id="skills-sources">Skills vinden</h2>
+  <ul>
+    <li><b>Op deze pc</b>: skillmappen die apps meebrachten en die nog geen agent leest.</li>
+    <li><b>Van het web</b>: een zoekopdracht in de directory skills.sh, op een andere site met dezelfde API of in een
+      GitHub-repository met skills. Een skill wordt uit zijn GitHub-repository opgehaald naar een map naar keuze, standaard
+      <code>~/.agents/skills</code>.</li>
+  </ul>
+  <div class="warn"><p><b>Let op</b> Skills kunnen scripts bevatten die een agent later kan uitvoeren. De pagina toont de
+  repository en somt de scripts op voordat er iets opgehaald wordt — bekijk ze.</p></div>
+
+  <h2 id="skills-details">Skillmappen</h2>
+  <p>Elke kaart van een skillmap toont zijn skills en de agents die hem lezen. Een map die via koppelingen gedeeld wordt,
+  verschijnt één keer, waar hij echt staat. <b>ⓘ Details</b> geeft elke skill met zijn beschrijving en hoe elke agent de
+  map krijgt.</p>
+</section>
+
+<!-- ============================== 10 Settings ============================== -->
+<section class="chapter" id="settings">
+  <h1>Instellingen en hulp</h1>
+
+  <h2 id="settings-list">Instellingen</h2>
+  <p>Het tandwiel (<kbd>Ctrl</kbd>+<kbd>,</kbd>) opent de instellingen. <kbd>Backspace</kbd> of <kbd>Esc</kbd> gaat terug.</p>
+  <table>
+    <thead><tr><th>Instelling</th><th>Wat ze doet</th></tr></thead>
+    <tbody>
+      <tr><td><b>Taal</b></td><td>De systeemtaal of English, Deutsch, Français, Español, Italiano, Português, Nederlands, Polski.</td></tr>
+      <tr><td><b>Uiterlijk</b> <span class="badge omarchy">Omarchy</span></td><td>De kleuren van het Omarchy-thema of het Adwaita-uiterlijk van GNOME met de lichte/donkere modus en accentkleur van het systeem.</td></tr>
+      <tr><td><b>Kaartanimaties</b></td><td>Licht loopt langs de lijnen van de kaart: <b>Agents en andere programma's</b> (de lijn van een agent die werkt en de lijn van een lokaal LLM naar een model dat een ander programma gebruikt), <b>Alleen mijn agents</b> of <b>Uit</b>. Een kleine geanimeerde kaart onder de instelling toont wat elke keuze beweegt.</td></tr>
+      <tr><td><b>Terminaltabbladen boven de kaart</b></td><td>Eén tabblad per agentterminal in het venster.</td></tr>
+      <tr><td><b>Hoeken</b></td><td>Zoals de vensters, afgerond of recht.</td></tr>
+      <tr><td><b>Nieuwe agents opzoeken</b></td><td>Een geïnstalleerde agent vragen waar een onbekende agent zijn instellingen bewaart.</td></tr>
+      <tr><td><b>Lokale LLM's met hun agents starten</b></td><td>De achtergrondbewaker uit <a href="#start-with-agents">Starten en stoppen met de agents</a>.</td></tr>
+      <tr><td><b>Te smal voor de kaart</b> <span class="badge omarchy">Omarchy</span></td><td>Wat <b>Maximaliseren voor meer ruimte</b> doet: naar een vrije werkruimte verplaatsen, ter plekke maximaliseren of geen tip tonen.</td></tr>
+      <tr><td><b>In de appstarter</b></td><td>Het item in de starter; uit verwijdert het.</td></tr>
+      <tr><td><b>Agents starten in</b></td><td>De map waarin agents starten.</td></tr>
+      <tr><td><b>Modellenmap</b></td><td>Eén map voor alle modellen, met <b>Modellen opruimen…</b>.</td></tr>
+      <tr><td><b>Add-ons</b> <span class="badge">Asterism</span></td><td><b>Online naar add-ons zoeken</b>, de add-onpagina en <b>Setup</b>.</td></tr>
+      <tr><td><b>Over</b></td><td>De versie, de auteur en de licentie; <b>Website</b> opent het project op GitHub en <b>Probleem melden</b> zijn lijst met issues.</td></tr>
+    </tbody>
+  </table>
+  <div class="figure narrow">
+    <img src="images/about.jpg" alt="Het dialoogvenster Over: het Asterism-pictogram, de naam, Uwe Bruckhaus, versie 0.7.1 en de regels Website, Probleem melden en Juridisch">
+    <p class="caption">Instellingen › Over.</p>
+  </div>
+
+  <h2 id="help">Hulp</h2>
+  <p><b>?</b> (<kbd>F1</kbd>) opent de hulp: <b>Handleiding openen</b> opent deze handleiding (de editie die bij je versie
+  hoort, in jouw taal) in je pdf-viewer; <b>Schijfruimte</b> (hieronder); een animatie over instellen door te tekenen; en
+  LLM Monitor, een bijbehorende balkplugin die toont wat een lokaal LLM doet (een kleine animatie van zijn balkitem en
+  paneel). Beide animaties en die onder Instellingen › <b>Kaartanimaties</b> worden in de kleuren van je thema getekend en
+  volgen een themawissel meteen. De legenda <b>ⓘ</b> in de kopregel legt elke stip, lijn en markering op de kaart uit.</p>
+
+  <h2 id="disk-space">Schijfruimte</h2>
+  <p><b>Schijfruimte: agents, lokale LLM's en modellen</b> toont hoeveel ruimte je AI-opstelling inneemt en waar. Ze wordt
+  op de achtergrond gemeten telkens als de hulp opent (opnieuw na tien minuten of met <b>Opnieuw meten</b>) en alleen
+  gelezen — vanaf hier wordt niets gewist. De kop toont altijd de totalen op één regel
+  (<i>Agents · Lokale LLM's · Modellen · Totaal</i>); een klik klapt de sectie in. <b>Schijven</b>, <b>Agents</b>,
+  <b>Lokale LLM's</b> en <b>Modelmappen</b> beginnen ingeklapt, elk met hun totaal en de grootste items; een klik opent ze.</p>
+  <div class="figure wide">
+    <img src="images/disk-space.jpg" alt="Schijfruimte in de hulp: vier tegels (totaal, agents, lokale LLM's, modellen), de regel 103,7 GB van 2,5 TB op deze 2 schijven voor AI (4,1 %), een balk over alle schijfruimte, verdeeld in agentprogramma's, agentgegevens, lokale LLM's, modellen, andere bestanden en vrije ruimte, en de ingeklapte secties met hun totalen">
+    <p class="caption">De totalen, het AI-deel van alle schijfruimte en de ingeklapte secties met hun totalen.</p>
+  </div>
+  <ul>
+    <li><b>Tegels</b>: alles samen, dan agentprogramma's, agentgegevens (instellingen, sessies, geschiedenis), lokale LLM's
+      (programma's en hun eigen gegevens) en modellen.</li>
+    <li><b>Balk</b>: alle ruimte van de schijven waarop de AI-opstelling staat. De gekleurde delen zijn de AI-opstelling,
+      grijs is al het andere op die schijven en de lege rest is vrij; de regel erboven geeft het AI-deel in procenten. Wijs
+      de balk aan voor exacte groottes.</li>
+    <li><b>Schijven</b>: elke schijf met wat de AI-opstelling erop inneemt en hoeveel vrij is.</li>
+    <li><b>Agents</b>, <b>Lokale LLM's</b>, <b>Modelmappen</b>: één regel per stuk, de grootste eerst. Open een regel om elke
+      map met grootte en aantal bestanden te zien en hem in het bestandsbeheer te openen. Een programmamap zegt hoeveel
+      versies er bewaard worden; voor een agent met meerdere oude versies in mise noemt een tip <code>mise prune</code>, dat
+      de ongebruikte verwijdert. Een modellenmap zegt welke lokale LLM's hem gebruiken, of dat hij alleen koppelingen naar
+      modellen in een andere map bevat.</li>
+  </ul>
+  <div class="tip"><p><b>Tip</b> Programma's kun je opnieuw installeren en modellen opnieuw downloaden; de gegevens van
+  agents bevatten je sessies en instellingen. Als de ruimte krap wordt, kijk dan eerst naar oude programmaversies en
+  modellen die je niet meer gebruikt.</p></div>
+  <p>Groottes zijn schijfruimte: een bestand dat op twee plekken staat, telt één keer, en koppelingen worden niet gevolgd.</p>
+</section>
+
+<!-- ============================== 11 Healthy & Security check ============================== -->
+<section class="chapter" id="security">
+  <h1>Gezondheids- en beveiligingscheck</h1>
+  <p>Een programmeeragent leest en schrijft bestanden en voert opdrachten uit op je computer. Hoeveel hij mag doen
+  <i>zonder het je te vragen</i>, staat in zijn eigen instellingen, met andere woorden voor elke agent. De
+  <b>Gezondheids- en beveiligingscheck</b> brengt dat samen: op de detailpagina van elke agent en elk lokaal LLM tonen vier
+  kaarten of hij werkt, wat hij mag, wat dat in gewone woorden betekent en wat het risico verlaagt.</p>
+
+  <div class="figure wide">
+    <img src="images/security-check.jpg" alt="De geopende kaart Beveiligingsinstellingen van OpenCode met Hoog risico: Bestanden bewerken, Opdrachten uitvoeren geopend met de keuzes Vragen (aanbevolen), Toestaan In gebruik met Hoog risico, Nooit, dan Webpagina's ophalen en Buiten het project; daaronder de kaart Risicobeheer met Verlagen-knoppen">
+    <p class="caption">De beveiligingsinstellingen van OpenCode met <b>Opdrachten uitvoeren</b> geopend, en het begin van zijn risicobeheer.</p>
+  </div>
+
+  <h2 id="security-card">De kaarten lezen</h2>
+  <p>De badges op de ingeklapte kaarten vatten het samen: <b>Gezond</b>, <b>Even nakijken</b> of <b>Niet ingesteld</b> bij
+  Status, en <b>Laag risico</b>, <b>Gemiddeld risico</b> of <b>Hoog risico</b> bij Beveiligingsinstellingen en
+  Risicobeheer. Open een kaart voor de details:</p>
+  <table>
+    <thead><tr><th>Kaart</th><th>Wat hij toont</th></tr></thead>
+    <tbody>
+      <tr><td><b>Status</b></td><td>Elke controle van de opstelling met een ✓, of wat je hierna moet doen: geïnstalleerd, aangemeld, zijn model en lokale LLM, MCP-servers en skills.</td></tr>
+      <tr><td><b>Beveiligingsinstellingen</b></td><td>De instellingen van de agent die bepalen wat hij zelfstandig mag, elk met de huidige waarde en een zin over wat die betekent. Het teken ervoor geeft het risico: <b>✓</b> veilig, <b>·</b> laag, een geel <b>!</b> gemiddeld, een rood <b>!</b> hoog.</td></tr>
+      <tr><td><b>Risicobeheer</b></td><td>Wat de instellingen samen betekenen, het ernstigste eerst, elk met de reden en <b>→</b> wat het verlaagt. Bestaande beveiligingen staan erbij met een ✓.</td></tr>
+      <tr><td><b>Wat de woorden betekenen</b></td><td>Sandbox, goedkeuring, toestaan- en weigerregels en de andere woorden van de kaarten, uitgelegd (zie <a href="#security-words">De woorden uitgelegd</a>).</td></tr>
+    </tbody>
+  </table>
+  <p>Toestaan- en weigerregels en vertrouwde mappen van de agent (bijvoorbeeld de lijst <code>permissions.allow</code> van
+  Claude Code) staan onder de instellingen, één regel per lijn.</p>
+
+  <h2 id="security-change">Een instelling wijzigen</h2>
+  <ol>
+    <li>Klik op een instelling om haar te openen. Je ziet wat ze regelt en elke keuze met haar risico; de gebruikte is gemarkeerd met <b>In gebruik</b>, de veiligere standaard met <b>aanbevolen</b>.</li>
+    <li>Klik op <b>Gebruiken …</b> naast een keuze of op <b>Verlagen …</b> naast een risico. Een pagina toont de wijziging in woorden (oud → nieuw), het risico ervoor en erna, en <b>Wat er verandert</b>: de regels van het instellingenbestand van de agent.</li>
+    <li>Klik op <b>Wijzigen</b>. Het bestand wordt geback-upt en geschreven; een melding biedt 30 seconden lang <b>Ongedaan maken</b>. De agent gebruikt de nieuwe instelling bij de volgende start.</li>
+  </ol>
+  <div class="note"><p><b>Opmerking</b> Alleen die ene sleutel verandert; commentaar en al het andere in het bestand blijft
+  zoals het is. Een instelling die meer dan één regel in een bestand vraagt — zoals Hermes die zijn opdrachten in Docker
+  uitvoert — wordt getoond en uitgelegd, met waar je haar wijzigt, maar niet vanaf hier gewijzigd.</p></div>
+
+  <h2 id="security-agents">Wat er bij elke agent gecontroleerd wordt</h2>
+  <table>
+    <thead><tr><th>Agent</th><th>Getoonde en wijzigbare instellingen</th><th>Bestand</th></tr></thead>
+    <tbody>
+      <tr><td><b>Claude Code</b></td><td>Toestemmingsmodus (Eerst vragen, Alleen plannen, Alleen toegestane, Bewerken zonder vragen, Automatische controle, Alle controles overslaan), sandbox voor opdrachten, omzeilmodus vergrendelen; toestaan-/vragen-/weigerregels</td><td><code>~/.claude/settings.json</code></td></tr>
+      <tr><td><b>Codex</b></td><td>Wanneer Codex vraagt, sandbox (alleen lezen, projectmap, geen), netwerk in de sandbox; vertrouwde mappen</td><td><code>~/.codex/config.toml</code></td></tr>
+      <tr><td><b>GitHub Copilot</b></td><td>Toestemmingsmodus (Eerst vragen, Automatische controle, Alles toestaan); vertrouwde mappen, sites zonder vragen</td><td><code>~/.copilot/settings.json</code></td></tr>
+      <tr><td><b>Cursor CLI</b></td><td>Goedkeuring, sandbox, netwerk in de sandbox, webzoeken zonder vragen; toestaan-/weigerregels</td><td><code>~/.config/cursor/cli-config.json</code></td></tr>
+      <tr><td><b>Hermes</b></td><td>Gevaarlijke opdrachten (altijd vragen, automatische controle, nooit vragen), geheimen verbergen; waar opdrachten draaien (alleen getoond)</td><td><code>~/.hermes/config.yaml</code></td></tr>
+      <tr><td><b>OpenCode</b></td><td>Vragen, toestaan of nooit voor bestanden bewerken, opdrachten uitvoeren, webpagina's ophalen en werken buiten het project</td><td><code>~/.config/opencode/opencode.json</code></td></tr>
+      <tr><td><b>Pi</b></td><td>Zijn tools: lezen, schrijven en opdrachten uitvoeren, of alleen lezen. Pi vraagt bewust nooit, dus zijn tools zijn zijn rechten.</td><td><code>~/.pi/agent/settings.json</code></td></tr>
+    </tbody>
+  </table>
+  <p>Voor andere agents toont de kaart hun status en MCP-servers en zegt ze waar je in de eigen instellingen van de agent
+  moet kijken. Voor een <b>lokaal LLM</b> toont ze wie het kan bereiken: alleen deze pc (<code>127.0.0.1</code>, zoals het
+  hoort) of elk apparaat in je netwerk.</p>
+
+  <h2 id="security-risks">Het risico beheersen</h2>
+  <p>Het risiconiveau is het ernstigste punt dat de kaart vindt:</p>
+  <ul>
+    <li><b>Hoog risico</b> — hij kan ernstige dingen doen zonder te vragen: elke opdracht uitvoeren, of zonder sandbox en
+      zonder vragen werken. Prima in een wegwerpcontainer of een virtuele machine; laat hem op je eigen pc eerst vragen.</li>
+    <li><b>Gemiddeld risico</b> — sommige dingen gebeuren zonder te vragen, zoals bestanden in het project bewerken, of een
+      automatische controle beslist voor je.</li>
+    <li><b>Laag risico</b> — hij vraagt voor alles wat ertoe doet, of kan het helemaal niet.</li>
+  </ul>
+  <p>Goede gewoonten, ongeacht de instellingen:</p>
+  <ul>
+    <li><b>Eerst vragen bij opdrachten</b> op je eigen computer; sta losse, onschuldige opdrachten (zoals
+      <code>git status</code>) toe met een toestaanregel in plaats van de hele shell.</li>
+    <li><b>Zet de sandbox aan</b> waar de agent er een heeft (Claude Code, Codex, Cursor CLI) en laat het netwerk erin uit
+      zolang geen taak het nodig heeft.</li>
+    <li><b>Start agents in de projectmap</b>, niet in je persoonlijke map, en houd sleutels en wachtwoorden erbuiten.</li>
+    <li><b>Weinig MCP-servers</b>: alleen die je gebruikt en vertrouwt. Elke server draait met jouw rechten.</li>
+    <li><b>Werk zonder toezicht</b> (omzeilmodus, „YOLO", Pi met alle tools) laat je in een container of virtuele machine draaien.</li>
+    <li><b>Lokale LLM's op <code>127.0.0.1</code></b>: hun servers hebben geen wachtwoord.</li>
+  </ul>
+  <div class="warn"><p><b>Let op</b> Een automatische controle (de modus <i>auto</i> van Claude Code, <i>assisted</i> van
+  Copilot, <i>auto-review</i> van Cursor, <i>smart</i> van Hermes) is een tweede AI die elke stap beoordeelt. Dat scheelt
+  vragen, maar het is een oordeel, geen muur.</p></div>
+
+  <h2 id="security-words">De woorden uitgelegd</h2>
+  <div class="figure wide">
+    <img src="images/sandbox.svg" alt="Twee vakken. Zonder sandbox bereikt de agent de projectmap, SSH-sleutels en documenten, browsergegevens en het internet. Met sandbox bereikt hij alleen de projectmap; de rest is doorgestreept.">
+    <p class="caption">Wat een sandbox verandert: opdrachten bereiken alleen de projectmap en wat jij toestaat.</p>
+  </div>
+  <dl>
+    <dt>Sandbox</dt><dd>Een afgeschermde ruimte waarin de opdrachten van de agent draaien. Daarin kan een opdracht alleen de
+      projectmap aanraken (en wat jij toestaat) — niet de rest van je persoonlijke map, je SSH-sleutels of browsergegevens,
+      en vaak ook niet het internet. Zonder sandbox kan een opdracht van de agent alles wat jij kunt.</dd>
+    <dt>Goedkeuring (eerst vragen)</dt><dd>Voordat de agent een bestand bewerkt of een opdracht uitvoert, toont hij wat hij
+      wil doen en wacht hij op je ja of nee. Hoe minder hij zonder vragen mag, hoe meer controle je houdt — en hoe vaker je
+      gevraagd wordt.</dd>
+    <dt>Toestaan- en weigerregels</dt><dd>Lijsten met opdrachten of tools die de agent zonder vragen mag gebruiken
+      (toestaan) of nooit (weigeren). Weigeren wint van toestaan. Een regel die elke shellopdracht toestaat, schakelt de
+      goedkeuring voor de shell uit.</dd>
+    <dt>Vertrouwde map</dt><dd>Een map waarvan jij hebt gezegd dat de agent erin mag werken. Daar gebruikt hij ook de eigen
+      instructies en instellingen van de map, die van iemand anders kunnen komen als je een project kloont.</dd>
+    <dt>Netwerktoegang</dt><dd>Of opdrachten het internet mogen bereiken. Code die je bestanden leest en gegevens kan
+      versturen, zou ze kunnen lekken; ook pakketten installeren heeft het netwerk nodig.</dd>
+    <dt>Omzeilen („YOLO")</dt><dd>Alles zonder vragen en zonder grenzen. Alleen voor een wegwerp-VM of -container.</dd>
+    <dt>Automatische controle</dt><dd>Een tweede AI-model laat onschuldige acties door en vraagt bij de rest.</dd>
+    <dt>Promptinjectie</dt><dd>Instructies, verstopt in een webpagina, bestand of toolantwoord, die de agent iets willen
+      laten doen waar je niet om vroeg. Eerst vragen, een sandbox en geen netwerk houden ze tegen.</dd>
+    <dt>Geheimen verbergen</dt><dd>Tekst die eruitziet als een wachtwoord, token of sleutel wordt gemaskeerd voordat het model hem ziet of hij in een log belandt.</dd>
+    <dt>Tools</dt><dd>Wat de agent überhaupt kan: lezen, schrijven, opdrachten uitvoeren, op het web zoeken. Een tool die hij niet heeft, kan niet misbruikt worden.</dd>
+    <dt>MCP-server</dt><dd>Een klein programma dat de agent extra tools geeft. Het draait als jij, met jouw rechten.</dd>
+    <dt>127.0.0.1 (localhost)</dt><dd>Een adres dat alleen programma's op deze pc bereiken. Een server op
+      <code>0.0.0.0</code> is bereikbaar vanaf elk apparaat in je netwerk.</dd>
+  </dl>
+</section>
+
+<!-- ============================== Add-ons ============================== -->
+<section class="chapter" id="addons">
+  <h1>Add-ons</h1>
+  <p>Alles wat Asterism van een agent of een LLM-provider begrijpt, is een <b>adapter</b>: hoe hij gevonden en
+  geïnstalleerd wordt, zijn sessies, beveiligingsinstellingen, MCP-servers en skills. In Asterism is elke adapter een
+  <b>add-on</b>: de pakketten brengen ze allemaal mee, ondertekend en uitgeschakeld, en jij schakelt in wat je gebruikt.
+  Add-ons brengen ook nieuwe agents, nieuwe providers en functies die verder gaan dan cijfers, zoals <b>Insights</b>
+  (sessieonderwerpen en een samenvatting door Claude). De plugin AI Agents Map heeft de adapters ingebouwd en geen add-ons.</p>
+
+  <h2 id="addons-setup">Asterism instellen</h2>
+  <p>Een nieuwe Asterism opent op zijn <b>welkomstpagina</b>. Elke agent en elk lokaal LLM dat Asterism kent, is een kaart
+  met een eigen pictogram, in drie groepen: <b>AI-agents</b>, <b>Lokale LLM's</b> en <b>Online providers</b> (de namen van
+  Anthropic, OpenAI en de anderen op de kaart). Elke kaart zegt of het programma hier is:</p>
+  <ul>
+    <li><b>Geïnstalleerd</b> (groen) — gevonden zoals de kaart het vindt; de kaart is al aangevinkt;</li>
+    <li><b>Eerder gebruikt</b> — nu niet geïnstalleerd, maar de instellingen zijn er nog;</li>
+    <li><b>Niet geïnstalleerd</b> — vink het aan om het daarna via de kaart te installeren.</li>
+  </ul>
+  <div class="figure wide">
+    <img src="images/setup-welcome.jpg" alt="De welkomstpagina: het Asterism-pictogram en Welkom bij Asterism, dan AI-agents als kaarten met hun pictogrammen; tien geïnstalleerde zijn aangevinkt met blauwe rand en vinkje, eerder gebruikte of niet geïnstalleerde zijn grijs; onderaan Later en 14 inschakelen">
+    <p class="caption">De welkomstpagina: gevonden programma's staan eerst en zijn aangevinkt.</p>
+  </div>
+  <p>Klik op een kaart (of druk er <kbd>Spatie</kbd> op) om haar aan of uit te vinken; een aangevinkte kaart heeft een
+  blauwe rand en een vinkje. <b>Inschakelen</b> (met het aantal aangevinkte kaarten) laadt ze en toont de kaart; heb je
+  programma's aangevinkt die niet geïnstalleerd zijn, dan opent <b>Setup</b>: <b>⋯</b> op hun kaarten ›
+  <b>Installeren…</b>. <b>Later</b> begint met een lege kaart. Zolang er niets ingeschakeld is, opent Asterism bij elke start
+  weer op de welkomstpagina. Daarna staan dezelfde kaarten op <b>Setup</b> (de knop in de kopregel), waar agents en
+  providers op elk moment in- en uitgeschakeld worden.</p>
+
+  <h2 id="addons-page">De add-onpagina</h2>
+  <p>Open haar met de puzzelstukknop in de kopregel, via Instellingen › <b>Add-ons</b> of via elke tip „add-on
+  beschikbaar". Ze toont, in inklapbare groepkaarten die open beginnen:</p>
+  <ul>
+    <li><b>Voorgesteld voor deze pc</b> — een add-on waarvan de agent of provider hier geïnstalleerd is maar nog niet
+      getoond wordt;</li>
+    <li><b>Geïnstalleerde add-ons</b> — aan, uit of <i>niet geladen</i> met de reden (bijvoorbeeld een gewijzigd bestand);
+      agents en providers gescheiden door een lijn;</li>
+    <li><b>Beschikbaar</b> — de overige add-ons uit de catalogus;</li>
+    <li><b>Ingebouwd in Asterism</b> — agents en providers die geen geïnstalleerde add-on meebrengt (als je Asterism uit
+      zijn bronmap zonder add-ons draait).</li>
+  </ul>
+  <div class="figure wide">
+    <img src="images/addons-page.jpg" alt="De add-onpagina: zoekveld, filters Alle, Agents, Providers, Functies, Geïnstalleerd, Updates en de geïnstalleerde add-ons als kaarten; Claude Code, Codex, OpenCode, Pi, llama.cpp, LM Studio en Ollama aan, met grijs Installeren en Verwijderen, de andere uit met Inschakelen">
+    <p class="caption">Geïnstalleerde add-ons: aan of uit, met Installeren en Verwijderen voor het programma.</p>
+  </div>
+  <p>De kaart van een ingeschakelde agent of een ingeschakeld lokaal LLM heeft <b>Installeren</b> en <b>Verwijderen</b> voor
+  het programma zelf (wat niet van toepassing is, is grijs), en elke kaart met een homepage heeft een wereldbolknop die
+  hem in je browser opent.</p>
+  <p>Het zoeken vindt namen, beschrijvingen en wat een add-on leest; de filters erboven beperken de lijst tot agents,
+  providers, functies, de geïnstalleerde of die met een update. Klik op een kaart voor de details: wat hij leest, wat hij
+  verstuurt, wat hij mag en zijn privacyniveau.</p>
+
+  <h2 id="addons-install">Installeren, in- en uitschakelen, bijwerken, verwijderen</h2>
+  <p><b>Installeren</b> (of <b>Add-on ophalen</b>) toont eerst wat de add-on leest, verstuurt en mag; pas na jouw OK wordt
+  hij gedownload, gecontroleerd en ingeschakeld. <b>Uitschakelen</b> en <b>Inschakelen</b> werken direct, zonder herstart:
+  zijn agents, providers, secties en kaarten verschijnen of verdwijnen overal. <b>Bijwerken</b> vervangt hem door de
+  nieuwere versie uit de catalogus, nadat de nieuwe gecontroleerd is; <b>Verwijderen</b> verplaatst hem naar de
+  prullenbak. <b>Uit bestand installeren…</b> neemt een add-on-zip die je zelf gedownload hebt; dezelfde controles gelden.</p>
+
+  <div class="tip"><p><b>Alleen van de auteur.</b> Asterism laadt alleen add-ons die ondertekend zijn door Uwe Bruckhaus
+  (vingerafdruk van de sleutel <code>SHA256:e5cC634Ke3Our5LAeSc88qs22NKZEHTncBW5Ig3amWQ</code>). Voordat er iets van een
+  add-on draait, wordt de handtekening gecontroleerd met <code>ssh-keygen</code> van OpenSSH, wordt elk bestand vergeleken
+  met zijn SHA-256-controlesom en mag er geen bestand bijgekomen zijn. Een download moet bovendien overeenkomen met de
+  SHA-256-controlesom in de ondertekende catalogus.</p></div>
+
+  <h2 id="addons-privacy">Privacyniveaus</h2>
+  <table class="first-nowrap">
+    <thead><tr><th>Niveau</th><th>Wat de add-on mag lezen of versturen</th></tr></thead>
+    <tbody>
+      <tr><td><b>Alleen cijfers</b></td><td>Aantallen, tijden, tokens, gewijzigde regels, kosten — wat Asterism zonder add-ons toont.</td></tr>
+      <tr><td><b>Sessietitels</b></td><td>De titels die een agent zelf aan zijn sessies gaf (nooit de gesprekken).</td></tr>
+      <tr><td><b>Titels en een samenvatting door Claude</b></td><td>Die titels en cijfers, verstuurd naar je eigen Claude Code — alleen op een klik, na een voorbeeld van precies wat er verstuurd wordt.</td></tr>
+    </tbody>
+  </table>
+  <p>Een add-on kan nooit meer doen dan zijn niveau toestaat. Een agent of provider toevoegen of een programma installeren
+  zijn aparte rechten die de kaart noemt.</p>
+
+  <h2 id="addons-kinds">Soorten add-ons</h2>
+  <table class="first-nowrap">
+    <thead><tr><th>Soort</th><th>Wat hij meebrengt</th></tr></thead>
+    <tbody>
+      <tr><td><b>Agent</b></td><td>Een programmeeragent: waar hij zijn instellingen, sessies, MCP-servers en skills bewaart, hoe hij geïnstalleerd wordt en hoe hij aanmeldt. Al het andere bouwt Asterism daaruit — de kaart op Setup, zijn vak op de kaart, Gebruik en tokens, Projecten, Status en Beveiliging.</td></tr>
+      <tr><td><b>Provider</b></td><td>Een lokaal LLM-programma of de online providers: hoe het gevonden en geïnstalleerd wordt en hoe agents het bereiken. Asterism bouwt zijn kaart, zijn vak op de kaart en zijn detailpagina — inclusief <b>Gebruik en tokens</b>: wat je agents erdoorheen stuurden, uit hun eigen sessiecijfers.</td></tr>
+      <tr><td><b>Uitbreiding</b></td><td>Meer gegevens over een agent of provider die een andere add-on meebrengt, zonder die te vervangen — bijvoorbeeld zijn abonnement en limieten, of een kaart op zijn detailpagina. Ze vult alleen in wat de add-on van de agent leeg laat; de pagina van de add-on zegt wat ze toevoegt en wat daarvan niet gebruikt wordt.</td></tr>
+      <tr><td><b>Functie</b></td><td>Iets over meerdere agents heen, zoals Insights (de kaart Onderwerpen).</td></tr>
+    </tbody>
+  </table>
+  <p>De sectie van een add-on op de detailpagina van een agent of lokaal LLM komt in de kaart waar ze over gaat: Gebruik en
+  tokens, Status, Onderwerpen (alleen bij agents) of een eigen kaart met zijn naam.</p>
+  <p>Een agent-add-on beschrijft zijn agent als gegevens (een bestand met de naam <code>agent.toml</code>);
+  de meeste brengen helemaal geen code mee, en de pagina van de add-on zegt dat: <i>Brengt geen code mee</i> of,
+  voor de paar agents die iets nodig hebben (zoals hun eigen sessiedatabase), <i>Gegevens over de agent, en wat
+  code voor wat gegevens niet kunnen zeggen</i>.</p>
+
+  <h2 id="addons-new-harness">Een nieuwe agent op je computer</h2>
+  <p>Als je een agent installeert die Asterism nog niet kent, kijkt het in de catalogus (Instellingen ›
+  <b>Online naar add-ons zoeken</b>, standaard aan: de lijst wordt om de paar uur van GitHub gelezen en alleen
+  het verzoek wordt verstuurd). Kent een add-on die agent, dan zegt <b>Updates en suggesties</b> (het <b>!</b> in
+  de kopbalk) dat (<i>„Kilo Code staat op deze pc maar niet op de kaart"</i>), en verschijnt er een kaart onder
+  <b>Voorgesteld voor deze pc</b>; een klik installeert hem. Is er nog geen add-on, dan zeggen de details van de
+  agent dat, met een link om er een aan te vragen.</p>
+</section>
+
+<section class="chapter" id="privacy">
+  <h1>Privacy en beveiliging</h1>
+  <ul>
+    <li><b>Geen beheerdersrechten.</b> De app vraagt nooit om root.</li>
+    <li><b>Geen inloggegevens gelezen.</b> Hij leest de instellingen van agents, maar nooit hun bestanden met inloggegevens.
+      Of een agent aangemeld is, wordt herkend aan het bestaan van zo'n bestand. Waarden van sleutels en headers worden nooit getoond.</li>
+    <li><b>Geen gesprekken gelezen.</b> Gebruikscijfers worden alleen als getallen en tijden gelezen.</li>
+    <li><b>Netwerk alleen op verzoek</b> — modellen, MCP-servers of skills zoeken of installeren, een server testen —, plus
+      om de paar uur een controle op updates.</li>
+    <li><b>Gecontroleerde downloads.</b> Programma's worden alleen geïnstalleerd als de download overeenkomt met de controlesom die hun release publiceert.</li>
+    <li><b>Voorbeeld en Ongedaan maken.</b> Elke wijziging in de instellingen van een ander programma wordt vooraf getoond,
+      geback-upt en kan ongedaan gemaakt worden. Instellingen die sleutels kunnen bevatten, worden alleen voor jou leesbaar geschreven.</li>
+    <li><b>Begrensd.</b> Elk programma draait zonder shell, en elk antwoord wordt met een limiet op grootte en tijd gelezen.</li>
+  </ul>
+  <p>De README in elke repository somt volledig op wat er gelezen, gestart en geschreven wordt.</p>
+</section>
+
+<!-- ============================== 13 Troubleshooting ============================== -->
+<section class="chapter" id="troubleshooting">
+  <h1>Probleemoplossing</h1>
+  <table class="faq">
+    <thead><tr><th>Probleem</th><th>Wat te doen</th></tr></thead>
+    <tbody>
+      <tr><td>De kaart is krap of afgesneden.</td><td>Het venster is smaller dan ongeveer 1300 pixels. Klik op <b>Maximaliseren voor meer ruimte</b> in de kopregel, of zoom uit (<kbd>Ctrl</kbd>+<kbd>−</kbd>).</td></tr>
+      <tr><td>Een vak dat ik verwacht, staat niet op de kaart.</td><td>De kaart toont alleen wat ingesteld is: kijk op <b>Setup</b> (een uitgeschakelde add-on, een MCP-server die geen agent gebruikt) en bij de <b>Tonen</b>-schakelaars.</td></tr>
+      <tr><td><b>Hier starten</b> ontbreekt of doet niets.</td><td>Installeer VTE voor GTK&nbsp;4 (<code>vte4</code>), of gebruik <b>In terminal starten</b>.</td></tr>
+      <tr><td>Een lijn is rood gestippeld.</td><td>Klik erop voor tips, los op wat ze zeggen en dan <b>Opnieuw testen</b>. Zie <a href="#failed">Als een verbinding mislukt</a>.</td></tr>
+      <tr><td>Het lokale LLM start niet met de agent.</td><td>Controleer Instellingen › <b>Lokale LLM's met hun agents starten</b> en of de agent op de kaart verbonden is. <code>systemctl --user status ai-agents-map-providers</code> toont de bewaker.</td></tr>
+      <tr><td>Het gekleurde licht van een lokaal LLM naar zijn model verschijnt niet.</td><td>Het verschijnt alleen terwijl een programma dat niet op de kaart staat met dat LLM genereert, en dooft zo'n tien seconden na zijn laatste verzoek. Controleer of de kaart zichtbaar is (een breed venster), of het programma echt iets verstuurt en of Instellingen › <b>Kaartanimaties</b> op <b>Agents en andere programma's</b> staat.</td></tr>
+      <tr><td>De agent antwoordt slecht of breekt af met een lokaal model.</td><td>De context is misschien te klein. Open het model onder <b>Modellen… › Geïnstalleerd</b> en gebruik <b>Context instellen</b> met de beste waarde voor je kaart.</td></tr>
+      <tr><td>Een download is gestopt.</td><td>Na een verbroken verbinding gaat hij zelf verder. Na een herstart gebruik je <b>Hervatten</b> in de strook bovenaan.</td></tr>
+      <tr><td>Ik wil een eerdere wijziging ongedaan maken.</td><td>Back-ups staan in <code>~/.local/state/ai-agents-map/backups/</code>.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============================== Appendix ============================== -->
+<section class="chapter appendix" id="reference">
+  <h1>Naslag</h1>
+
+  <h2 id="shortcuts">Sneltoetsen</h2>
+  <table class="keys">
+    <tbody>
+      <tr><th scope="row"><kbd>F1</kbd></th><td>Hulp</td></tr>
+      <tr><th scope="row"><kbd>Ctrl</kbd>+<kbd>,</kbd></th><td>Instellingen</td></tr>
+      <tr><th scope="row"><kbd>F5</kbd></th><td>Vernieuwen (de kaart en Setup)</td></tr>
+      <tr><th scope="row"><kbd>Ctrl</kbd>+<kbd>+</kbd> / <kbd>Ctrl</kbd>+<kbd>−</kbd> / <kbd>Ctrl</kbd>+<kbd>0</kbd></th><td>De kaart in- en uitzoomen, terug naar 100&nbsp;%</td></tr>
+      <tr><th scope="row"><kbd>Ctrl</kbd>+scrollen</th><td>De kaart zoomen</td></tr>
+      <tr><th scope="row"><kbd>Shift</kbd>+klik</th><td>Aan de selectie toevoegen of eruit halen</td></tr>
+      <tr><th scope="row"><kbd>Esc</kbd></th><td>Selectie wissen; terug van een pagina</td></tr>
+      <tr><th scope="row"><kbd>Backspace</kbd></th><td>Terug van een pagina</td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="files">Bestanden en mappen</h2>
+  <table>
+    <thead><tr><th>Pad</th><th>Inhoud</th></tr></thead>
+    <tbody>
+      <tr><td><code>~/.config/asterism/</code> <span class="badge">Asterism</span><br><code>~/.config/omarchy/ai-agents-map/</code> <span class="badge omarchy">Omarchy</span></td><td>Instellingen, de lijst met MCP-servers, opgezochte agents, mislukte verbindingen.</td></tr>
+      <tr><td><code>~/.local/state/ai-agents-map/backups/</code></td><td>Back-ups van elk bestand dat de app heeft gewijzigd.</td></tr>
+      <tr><td><code>~/.local/state/ai-agents-map/jobs.json</code></td><td>Onderbroken downloads en installaties.</td></tr>
+      <tr><td><code>~/.local/state/ai-agents-map/reorganize.json</code></td><td>Het logboek van de laatste opruimactie, voor Ongedaan maken.</td></tr>
+      <tr><td><code>~/.cache/ai-agents-map/</code></td><td>Zoekresultaten, toollijsten, updatecontroles, add-onpictogrammen.</td></tr>
+      <tr><td><code>~/.config/systemd/user/ai-agents-map-providers.service</code></td><td>De bewaker die lokale LLM's met hun agents start.</td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="glossary">Woordenlijst</h2>
+  <dl>
+    <dt>Goedkeuring</dt><dd>Een agent vraagt voordat hij een bestand wijzigt of een opdracht uitvoert (zie <a href="#security-words">De woorden uitgelegd</a>).</dd>
+    <dt>Context</dt><dd>Hoeveel tokens tekst een model in één keer kan overzien.</dd>
+    <dt>GGUF</dt><dd>Het bestandsformaat voor modellen dat llama.cpp, LM Studio, Ollama en KoboldCpp gebruiken.</dd>
+    <dt>Promptinjectie</dt><dd>Verborgen instructies in een pagina, bestand of toolantwoord die een agent proberen te sturen.</dd>
+    <dt>Kwantisatie</dt><dd>Een model opslaan met minder bits per gewicht (bijvoorbeeld <i>Q4_K_M</i>, zo'n 4,8 bits) zodat het kleiner is, met weinig kwaliteitsverlies.</dd>
+    <dt>Mixture of experts</dt><dd>Een model waarin per token maar een deel van de parameters werkt (<i>35B-A3B</i>: 35 miljard in totaal, 3 miljard actief), wat het snel maakt voor zijn grootte.</dd>
+    <dt>Sandbox</dt><dd>Een afgeschermde ruimte waarin de opdrachten van een agent draaien en alleen de projectmap en het toegestane bereiken.</dd>
+    <dt>Token</dt><dd>Een stukje tekst, ongeveer driekwart woord, dat modellen lezen en schrijven.</dd>
+    <dt>Gebruikersdienst</dt><dd>Een achtergrondprogramma dat systemd alleen voor jouw gebruiker start, zonder beheerdersrechten.</dd>
+  </dl>
+</section>
+
+</body>
+</html>

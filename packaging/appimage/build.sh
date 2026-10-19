@@ -16,6 +16,7 @@ dir=$(mktemp -d)/Asterism.AppDir
 mkdir -p "$dir/usr/lib/asterism"
 cp "$root"/*.py "$dir/usr/lib/asterism/"
 cp -r "$root/translations" "$dir/usr/lib/asterism/"
+cp -r "$root/icons" "$dir/usr/lib/asterism/"          # the app's own icons (icons.py)
 mkdir -p "$dir/usr/lib/asterism/data" && cp "$root/data/user-manual.pdf" "$dir/usr/lib/asterism/data/"
 cp -r "$root/data/icons" "$dir/usr/lib/asterism/data/"     # the app's icon for About and the welcome page
 python3 "$root/packaging/unpack-adapters.py" "$adapters" "$dir/usr/lib/asterism/addons"

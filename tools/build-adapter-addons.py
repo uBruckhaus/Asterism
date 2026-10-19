@@ -41,20 +41,37 @@ def write(out: Path, meta: dict, source: str, register: str) -> None:
                                      "def register(api):\n" + register)
 
 
+def agent_data(out: Path, h, meta: dict) -> None:
+    """An agent described as data: addon.json + agent.toml (+ hooks.py when it needs code), never an
+    addon.py; the app builds the agent from the signed files."""
+    folder = out / meta["id"]
+    shutil.rmtree(folder, ignore_errors=True)
+    folder.mkdir(parents=True)
+    meta = {"api": 1, "privacy": "numbers", "needs": NEEDS, **meta}
+    (folder / "addon.json").write_text(json.dumps(meta, indent=2, ensure_ascii=False) + "\n")
+    shutil.copyfile(ROOT / "adapters" / f"{h.command}.toml", folder / "agent.toml")
+    hooks = ROOT / "adapters" / f"{h.command}.py"
+    if hooks.is_file():                     # what its facts cannot say (adapter_data.HOOKS)
+        shutil.copyfile(hooks, folder / "hooks.py")
+
+
 def agent(out: Path, module: str, version: str) -> None:
     h = next(x for x in harnesses.built_in_adapters() if x.command.replace("-", "_") == module)
     caps = ["agent"] + (["installer"] if h.installer is not None else []) + \
         (["updater"] if h.self_update or h.latest is not None else [])
     name = h.full_name or h.name
-    write(out, {"id": f"agent-{h.command}", "name": name, "version": version, "kind": "agent",
-                "icon": "system-users-symbolic",
-                "summary": f"{name} on the map: its models, MCP servers, skills, settings and sessions",
-                "description": f"Teaches Asterism {name}: where it keeps its settings, which models, MCP servers "
-                               "and skills it uses, its session numbers, and how to install or remove it.",
-                "capabilities": caps, "harnesses": [h.command], "provides": [h.command],
-                "reads": [f"{name}'s own settings and session files ({', '.join(h.data) or 'its folders'})"],
-                "detect": {"commands": [h.command], "paths": list(h.data)}, "homepage": h.homepage},
-          (ROOT / f"harness_{module}.py").read_text(), "    api.add_harness(HARNESS)\n")
+    meta = {"id": f"agent-{h.command}", "name": name, "version": version, "kind": "agent",
+            "icon": "system-users-symbolic",
+            "summary": f"{name} on the map: its models, MCP servers, skills, settings and sessions",
+            "description": f"Teaches Asterism {name}: where it keeps its settings, which models, MCP servers "
+                           "and skills it uses, its session numbers, and how to install or remove it.",
+            "capabilities": caps, "harnesses": [h.command], "provides": [h.command],
+            "reads": [f"{name}'s own settings and session files ({', '.join(h.data) or 'its folders'})"],
+            "detect": {"commands": [h.command], "paths": list(h.data)}, "homepage": h.homepage}
+    if (ROOT / "adapters" / f"{h.command}.toml").is_file():
+        agent_data(out, h, meta)
+    else:
+        write(out, meta, (ROOT / f"harness_{module}.py").read_text(), "    api.add_harness(HARNESS)\n")
 
 
 def llm(out: Path, p, version: str) -> None:

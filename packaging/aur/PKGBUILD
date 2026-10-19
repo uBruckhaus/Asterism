@@ -24,6 +24,7 @@ package() {
     install -d "$pkgdir/usr/lib/asterism"
     install -m644 ./*.py "$pkgdir/usr/lib/asterism/"
     install -Dm644 translations/*.json -t "$pkgdir/usr/lib/asterism/translations/"
+    cp -r icons "$pkgdir/usr/lib/asterism/icons"
     install -Dm644 data/user-manual.pdf -t "$pkgdir/usr/lib/asterism/data/"
     python packaging/unpack-adapters.py "$srcdir/adapters-$_adapters.zip" "$pkgdir/usr/lib/asterism/addons"
     install -Dm755 bin/asterism "$pkgdir/usr/bin/asterism"

@@ -318,7 +318,7 @@ def remove(aid: str, user_dir: Path = addons.USER_DIR, trash=None) -> bool:
 # --- switched on ---------------------------------------------------------------------------------------
 
 def enabled() -> set:
-    value = ai_core.load_settings().get("addons_enabled", [])
+    value = ai_core.setting("addons_enabled")
     return {v for v in value if isinstance(v, str)} if isinstance(value, list) else set()
 
 
@@ -330,7 +330,7 @@ def set_enabled(aid: str, on: bool) -> None:
 
 def online() -> bool:
     """Settings › Look for add-ons online (on unless switched off)."""
-    return ai_core.load_settings().get("addons_online") is not False
+    return ai_core.setting("addons_online") is not False
 
 
 def newer(a: str, b: str) -> bool:

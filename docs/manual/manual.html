@@ -42,7 +42,7 @@
       <tr><th>Settings folder</th><td><code>~/.config/asterism/</code></td><td><code>~/.config/omarchy/ai-agents-map/</code></td></tr>
     </tbody>
   </table>
-  <p>Everything else — My setup, the map, connecting by drawing, local LLMs, models, MCP servers
+  <p>Everything else — Setup, the map, connecting by drawing, local LLMs, models, MCP servers
   and skills — is the same in both. Where something applies to only one edition, it is marked
   <span class="badge">Asterism</span> or <span class="badge omarchy">Omarchy</span>.</p>
 
@@ -75,8 +75,8 @@
   setup by drawing lines.</p>
 
   <div class="figure wide">
-    <img src="images/main-window.jpg" alt="The main window: the health check and hints at the top, the GPU meters, and the map across the whole width: MCP servers and skills, agents with a start button, LLM providers and models">
-    <p class="caption">The main window: the map across the whole width, with the health check and hints above it.</p>
+    <img src="images/main-window.jpg" alt="The main window: in the header Setup, Map and a red ! for open problems; the GPU card, and the map across the whole width: MCP servers and skills, agents with a start button, LLM providers and models">
+    <p class="caption">The main window: the map across the whole width, the GPU card above it, the ! for open problems in the header.</p>
   </div>
 
   <h2 id="what-it-does">What it does</h2>
@@ -89,7 +89,8 @@
       with the agents that use them.</li>
     <li><b>MCP servers and skills</b> — found on your computer or on the web, with recommended
       servers and a search of the official MCP registry.</li>
-    <li><b>A health check</b> — what works, what to fix and what your setup is good for.</li>
+    <li><b>Open problems</b> — a ! in the header when something needs fixing, each problem with the way to
+      where it is fixed, and what your setup is good for.</li>
   </ul>
 
   <h2 id="key-ideas">Key ideas</h2>
@@ -130,7 +131,7 @@
       </table></li>
     <li><b>From source:</b> run <code>bin/asterism</code> in a checkout of the repository.</li>
   </ul>
-  <p>Agent icons need a Nerd Font (Symbols Nerd Font). To run agents inside the window, also
+  <p>The app brings its own icons, so no icon font is needed. To run agents inside the window, also
   install VTE for GTK&nbsp;4 (<code>vte4</code>).</p>
 
   <h2 id="install-plugin">AI Agents Map on Omarchy <span class="badge omarchy">Omarchy</span></h2>
@@ -174,42 +175,45 @@
   <div class="figure wide annotated">
     <div class="shot">
       <img src="images/main-window.jpg" alt="The main window with numbered areas">
-      <span class="pin" style="left:76.8%;top:2.3%">1</span>
-      <span class="pin" style="left:84.4%;top:4.8%">2</span>
-      <span class="pin" style="left:0.4%;top:13.1%">3</span>
-      <span class="pin" style="left:0.4%;top:18.0%">4</span>
-      <span class="pin" style="left:6.2%;top:24.9%">5</span>
-      <span class="pin" style="left:29.7%;top:34.7%">6</span>
-      <span class="pin" style="left:32.6%;top:42.3%">7</span>
-      <span class="pin" style="left:43.7%;top:49.7%">8</span>
+      <span class="pin" style="left:71.1%;top:2.6%">1</span>
+      <span class="pin" style="left:80.6%;top:2.6%">2</span>
+      <span class="pin" style="left:1.3%;top:12.9%">3</span>
+      <span class="pin" style="left:0.6%;top:27.9%">4</span>
+      <span class="pin" style="left:50.0%;top:34.9%">5</span>
+      <span class="pin" style="left:40.7%;top:46.2%">6</span>
     </div>
     <p class="caption">The main window. The numbers match the list below.</p>
   </div>
 
   <ol class="legend-list">
-    <li><b>My setup</b> — every agent, local LLM, MCP server, skill folder and model as a card: install,
-      update, sign in, remove (see below). On My setup the same button says <b>Map</b> and goes back.</li>
-    <li><b>ⓘ</b> the legend (what every dot, line and mark on the map means; on the map and on My setup), the add-ons
-      <span class="badge">Asterism</span>, <b>?</b> Help (<kbd>F1</kbd>) and the gear for Settings
-      (<kbd>Ctrl</kbd>+<kbd>,</kbd>).</li>
-    <li><b>Health check</b> — how well the setup works; <b>Open ›</b> for the details.</li>
-    <li><b>Hints</b> — new programs or skills found on this PC, updates, and what is on this PC but not
-      on the map, each with a button that does it.</li>
-    <li><b>GPU memory</b> and <b>GPU activity</b> — how the graphics card is used right now.</li>
+    <li><b>Setup</b> and <b>Map</b> — the two views, on every page; the one in view is highlighted.
+      Setup has every agent, local LLM, MCP server, skill folder and model as a card: install, update,
+      sign in, remove (see below).</li>
+    <li>The header's symbols: <b>!</b> open problems and updates (red: something to fix; the accent
+      colour: only updates and suggestions; not there when there is nothing), <b>ⓘ</b> the legend (what
+      every dot, line and mark on the map means), the add-ons <span class="badge">Asterism</span>,
+      <b>?</b> Help (<kbd>F1</kbd>) and the gear for Settings (<kbd>Ctrl</kbd>+<kbd>,</kbd>).</li>
+    <li><b>GPU</b> — GPU memory and GPU activity: how the graphics card is used right now, in a card that
+      folds (folded, its line keeps the numbers).</li>
     <li><b>Show</b> toggles — shorten the map to the categories you are working on.</li>
-    <li><b>The map</b> — MCP servers and skills ← agents → LLM providers → models, across the whole width.</li>
+    <li><b>The map</b> — MCP servers and skills ← agents → LLM providers → models, across the whole width,
+      under its heading <b>MAP</b> with the refresh symbol (<kbd>F5</kbd>) at the right.</li>
     <li><b>▶</b> on an agent's box starts it in a terminal in the window; while it runs there, the button
       brings its terminal back.</li>
   </ol>
 
-  <h2 id="my-setup">My setup</h2>
+  <h2 id="my-setup">Setup</h2>
   <p>The map shows only what is set up: installed agents and local LLMs, the MCP servers and skill
-  folders agents use, and models. Everything else is done on <b>My setup</b> (the button in the
-  header; there it turns into <b>Map</b>, which goes back), one card per item, in sections that fold
-  away with a click on their heading:</p>
+  folders agents use, and models. Everything else is done on <b>Setup</b> (the button in the
+  header, beside <b>Map</b>), one card per item, in sections that fold away with a click on their
+  bar:</p>
   <ul>
-    <li><b>How things get onto your map</b> — a folded card at the top; open it for what puts an agent,
-      a provider, an MCP server or a model on the map.</li>
+    <li><b>How things get onto your map</b> — a folded card at the top; open it for five numbered steps:
+      switch on (or find) what you use, install what is missing, sign in to an online agent, connect by
+      drawing, and what shows up by itself.</li>
+    <li><b>What you can do with this</b> — what the setup is good for (everyday help, coding, images,
+      voice, research and writing), one tile each with what is there and the next step; folded, its line
+      says how many are ready.</li>
     <li><b>AI agents, Local LLMs</b> — every one the app knows. A card with a blue frame is installed on
       this PC; a grey one is not, and has <b>Install</b> where installed ones have <b>Uninstall</b>.
       <span class="badge omarchy">Omarchy</span> A click on an installed card opens its details.
@@ -223,14 +227,20 @@
     <li><b>⋯</b> or a right-click on a card opens the same menu as the box on the map: update, sign in,
       start or stop, details, uninstall or remove, move a model.</li>
     <li>A yellow <b>↑ version</b> on a card means an update is waiting; its menu has <b>Update</b>.</li>
-    <li><b>Refresh</b> (<kbd>F5</kbd>) looks again at what is installed, set up and signed in.</li>
+    <li>A red <b>!</b> on a card means an open problem there; hover it for what it is.</li>
+    <li>A small battery on an online agent's card shows what is left of its limits (a session, a week):
+      the tightest one counts, yellow at a quarter or less, red under a tenth; hover it for each limit
+      and when it resets. On a running local LLM's card the battery is the GPU memory still free, with
+      the same colours; hover it for how much that local LLM uses.</li>
+    <li>The refresh symbol (<kbd>F5</kbd>) at the right of the heading looks again at what is installed,
+      set up and signed in.</li>
   </ul>
   <div class="figure">
-    <img src="images/my-setup.jpg" alt="My setup: the folded card How things get onto your map, then AI agents as cards; installed ones with a blue frame, ticked ones with a check mark, Gemini CLI, Oh My Pi, Antigravity CLI and OpenClaw grey; the menu of Claude Code is open with Uninstall, Sign in, Start here, Start in terminal, Details and Add-on">
-    <p class="caption">My setup: installed agents have a blue frame, switched-on ones a ✓; the menu of Claude Code.</p>
+    <img src="images/my-setup.jpg" alt="Setup: the folded cards How things get onto your map and What you can do with this (4 of 5 ready), the bar AI agents 16, then the agents as cards with a blue frame and a check mark; Claude Code and DeepSeek Harness with a yellow update badge, Claude Code and Codex with a battery for their limits, Cursor CLI and Hermes with a red !; the menu of Claude Code is open with Update to 2.1.303, Uninstall, Update, Sign in, Start here, Start in terminal, Details and Add-on">
+    <p class="caption">Setup: installed agents have a blue frame, switched-on ones a ✓, updates a yellow and problems a red badge; the menu of Claude Code.</p>
   </div>
   <div class="figure">
-    <img src="images/my-setup-tools.jpg" alt="My setup further down: MCP servers and skill folders as cards with the agents that use them, and the cards Add MCP server and Add skills">
+    <img src="images/my-setup-tools.jpg" alt="Setup further down: MCP servers and skill folders as cards with the agents that use them, and the cards Add MCP server and Add skills">
     <p class="caption">MCP servers and skills, each section with a card to add one.</p>
   </div>
   <p>There is nothing to hide: what you do not want on the map is switched off or removed here. When an
@@ -238,9 +248,13 @@
   the page it was started from.</p>
 
   <h2 id="views">Choosing what the map shows</h2>
-  <p>The map shows everything that is set up. The <b>Show</b> toggles below the GPU meters leave whole
+  <p>The map shows everything that is set up. The <b>Show</b> toggles below the GPU card leave whole
   categories out of it — for example all skills, or the local LLMs and their models — and are
   remembered.</p>
+  <p>In a narrow window (half the screen or less) the map chooses them itself, and a line beside the
+  toggles says so: while an agent runs, agents and providers (who works through what); while none
+  runs, providers and models. A toggle clicked there stays until that changes and is not remembered;
+  the full-size window keeps your own choice.</p>
 
   <h2 id="map">Working with the map</h2>
   <ul>
@@ -248,37 +262,47 @@
     <li><b>Click</b> a box to select it (✓); <kbd>Shift</kbd>+click adds more.
       <kbd>Esc</kbd> or <b>Clear selection</b> clears it.</li>
     <li>The <b>pin</b> at a box's top-right corner keeps its connections lit while you look elsewhere.</li>
-    <li><b>Right-click</b> a box for everything its card on My setup offers: start or stop, details,
+    <li><b>Right-click</b> a box for everything its card on Setup offers: start or stop, details,
       install, sign in, models, update, remove, and more.</li>
     <li><b>▶</b> on an agent's box starts it in a terminal in the window.</li>
     <li>The agents always stay in the middle of the map's visible part while you scroll.</li>
     <li>Each agent's active path — agent → provider in use → its model — is drawn bold. While an
       agent is working, light runs along that line.</li>
+    <li>A red dotted line joins an agent to a provider it is set up for but does not use now (no model
+      of it in use).</li>
+    <li>An online agent's box has the same battery as its card on Setup: what is left of its limits; a
+      running local LLM's box, the GPU memory still free.</li>
     <li>When a program that is not on the map uses a local LLM, the line from that LLM to the model
       turns bold in a colour of its own (purple or cyan, whichever stands out from the theme's other
       colours), and light runs along it. See <a href="#outside-use">Used by other apps</a>.</li>
-    <li><b>Refresh</b> (<kbd>F5</kbd>) at the right of the heading looks again at what is installed, set
-      up and signed in.</li>
+    <li>The refresh symbol (<kbd>F5</kbd>) at the right of the heading looks again at what is installed,
+      set up and signed in.</li>
+    <li>Until the first line is drawn, a card above the map shows how, in three steps; <b>Watch how</b>
+      plays the animation from Help. It goes for good after the first connection, or with ×.</li>
     <li>Zoom with <b>− 100&nbsp;% +</b>, <kbd>Ctrl</kbd>+scroll or <kbd>Ctrl</kbd>+<kbd>+</kbd> / <kbd>−</kbd> / <kbd>0</kbd>.</li>
   </ul>
   <div class="tip"><p><b>Tip</b> In a narrow window (below about 1300 pixels, such as half the
   screen) the map scrolls sideways, and <b>Maximize for more room</b> in the header gives it the
   whole screen (Settings › <b>Too narrow for the map</b> chooses what that button does).</p></div>
 
-  <h2 id="health">Health check</h2>
-  <p>The <b>Health check</b> line above the map sums up how well the setup works, for example
-  <i>1 thing to fix · 3 tips</i>. <b>Open ›</b> lists by area — this PC, agents, local LLMs and
-  models, tools — what is fine, what are tips and what to fix, each with what to do and, where
-  possible, a button that does it. It also tells you what the setup is good for (everyday help,
-  coding, images, voice, research and writing) and the next step. The health check only reads;
-  it never changes, starts or sends anything. The line shows only when something needs fixing, and
-  never while the map is still empty.</p>
+  <h2 id="health">Open problems</h2>
+  <p>When something needs fixing, a red <b>!</b> appears among the header's symbols; its tooltip
+  says how many, for example <i>2 open problems · 4 suggestions</i>. A click opens <b>Open problems</b>:
+  one line each — an agent not signed in, a local LLM without models, a connection that does not
+  work, little free space for models — with a button to where it is fixed (the agent's or local
+  LLM's details, the map with that line lit, Setup, Tidy up). The same problems show as a red
+  <b>!</b> on their cards on Setup. Tips and what works are on the cards and details pages
+  themselves, and what the setup is good for is on Setup (<b>What you can do with this</b>). The
+  check only reads; it never changes, starts or sends anything, and it shows nothing while the map is
+  still empty.</p>
 
-  <h2 id="hints">Hints and updates</h2>
-  <p>Above the map, below the health check, hint lines appear when there is something to say: new programs or skills
-  found on this PC, updates for installed agents and local LLMs, and how many more things you could
-  set up. Updates are checked in the background when the window opens, at most every six hours.
-  Nothing is installed by the check itself; an update starts only when you click <b>Update</b>.</p>
+  <h2 id="hints">Updates and suggestions</h2>
+  <p>Below the problems on the same page, <b>Updates and suggestions</b> lists what there is to say:
+  new programs or skills found on this PC, what is on this PC but not on the map, and updates for
+  installed agents and local LLMs, each with its button (<b>Add MCP server…</b>, <b>Setup</b>,
+  <b>Update</b>). With only these and no problem, the header's <b>!</b> shows in the accent colour.
+  Updates are checked in the background when the window opens, at most every six hours. Nothing is
+  installed by the check itself; an update starts only when you click <b>Update</b>.</p>
 </section>
 
 <!-- ============================== 4 Agents ============================== -->
@@ -286,24 +310,32 @@
   <h1>Agents</h1>
 
   <h2 id="agent-cards">Agent details</h2>
-  <p>Every coding agent has a card on My setup, installed ones with their version. Click an installed
+  <p>Every coding agent has a card on Setup, installed ones with their version. Click an installed
   agent's card (<span class="badge">Asterism</span> or <b>⋯</b> › <b>Details</b>), or right-click its box on
-  the map › <b>Details</b>, to see:</p>
-  <ul>
-    <li>whether the agent is ready (and if not, why), whether it is running now or when it was last used;</li>
-    <li>today's and the last seven days' tokens and sessions, the plan, a chart of tokens per day,
-      rate limits with reset times and tokens by model;</li>
-    <li><b>Healthy &amp; Security check</b>: every setup check with a ✓, or what to do next — sign in
-      with which command, which subscription or API key it needs, install or start its local LLM,
-      download a model, add MCP servers or skills — and what the agent may do without asking you, with
-      what lowers the risk (see <a href="#security">Healthy &amp; Security check</a>);</li>
-    <li><b>Configuration</b>: the agent's settings, MCP servers, skills and settings folder.</li>
-  </ul>
-  <p>The details of Claude Code, OpenCode and Hermes also show the last 30 days per project folder:
+  the map › <b>Details</b>. At the top, one line says whether the agent is ready (and if not, why) and
+  whether it is running now or when it was last used. Below it, every category is a card that folds:
+  click its heading to open or close it. They start folded, each with a one-line summary and badges; a
+  category you open stays open on the next details pages.</p>
+  <div class="figure wide">
+    <img src="images/agent-details.jpg" alt="OpenCode's details page: Set up and ready, then folded cards Usage and tokens, Projects last 30 days, Topics with a Privacy badge, Health with Healthy, Security settings and Risk management with High risk, What the words mean and Configuration, each with a one-line summary">
+    <p class="caption">An agent's details: every category folded, with its summary and badges.</p>
+  </div>
+  <table>
+    <thead><tr><th>Card</th><th>What it shows</th></tr></thead>
+    <tbody>
+      <tr><td><b>Usage and tokens</b></td><td>Where the agent records it: today's and the last seven days' tokens and sessions, the plan, a chart of tokens per day, rate limits with reset times and tokens by model.</td></tr>
+      <tr><td><b>Projects, last 30 days</b></td><td>Per project folder: working time, sessions, tokens, subagent runs, lines changed and the API value.</td></tr>
+      <tr><td><b>Topics</b> (Privacy)</td><td>What the sessions were about. It goes beyond numbers, so it is marked <b>Privacy</b> and filled only by an add-on (see below); the add-on names the card and its badge says how much it reads.</td></tr>
+      <tr><td><b>Health</b></td><td>Every setup check with a ✓, or what to do next: sign in, install or start its local LLM, download a model, add MCP servers or skills.</td></tr>
+      <tr><td><b>Security settings</b>, <b>Risk management</b>, <b>What the words mean</b></td><td>What the agent may do without asking you, and what lowers the risk (see <a href="#security">Healthy &amp; Security check</a>).</td></tr>
+      <tr><td><b>Configuration</b></td><td>The agent's settings, MCP servers, skills and settings folder.</td></tr>
+    </tbody>
+  </table>
+  <p>Projects are shown for Claude Code, OpenCode and Hermes:
   working time, sessions, tokens, subagent runs, lines changed and what the tokens would cost at API
   prices. The numbers come from each agent's own session files or database; no text is read.</p>
-  <p><span class="badge">Asterism</span> With the <b>Insights</b> add-on (see <a href="#addons">Add-ons</a>) they also list <b>Topics</b>, the titles the agent gave its
-  sessions itself, and offer <b>Summarize with Claude…</b> (when Claude Code is installed). Before
+  <p><span class="badge">Asterism</span> With the <b>Insights</b> add-on (see <a href="#addons">Add-ons</a>) the <b>Topics</b> card lists the titles the agent gave its
+  sessions itself, per project, and offers <b>Summarize with Claude…</b> (when Claude Code is installed). Before
   anything is sent, you see exactly what will be sent: the titles and numbers, never the
   conversations.</p>
 
@@ -322,7 +354,7 @@
   and the model box it runs with says <i>in use · &lt;agent&gt;</i>.</p>
 
   <h2 id="sign-in">Signing in</h2>
-  <p><b>Sign in…</b> in an agent's menu (on My setup or on the map) shows what the agent needs and its
+  <p><b>Sign in…</b> in an agent's menu (on Setup or on the map) shows what the agent needs and its
   own ways to sign in:</p>
   <ul>
     <li><b>A subscription or an account</b> — the agent's own sign-in runs in a terminal in the window
@@ -342,7 +374,8 @@
   <p>Afterwards the map shows the agent's online provider and its models.</p>
 
   <h2 id="agent-updates">Updating agents</h2>
-  <p>When a newer version of an installed agent is out, a hint line above the map names it. <b>Update</b> runs
+  <p>When a newer version of an installed agent is out, its card on Setup gets a yellow <b>↑ version</b>,
+  and <b>Updates and suggestions</b> (the header's <b>!</b>) names it. <b>Update</b> runs
   the update the same way the agent was installed — for example <code>mise upgrade &lt;tool&gt;</code>
   or <code>claude update</code> — in a terminal window of its own, so you can follow it.</p>
 
@@ -401,8 +434,15 @@
   <div class="note"><p><b>Note</b> KoboldCpp takes a few seconds to start, longer than some agents
   wait. So it starts at login, and when the last agent closes only its model is unloaded.</p></div>
 
+  <h2 id="llm-details">A local LLM's details</h2>
+  <p>Click a local LLM's card on Setup, or right-click its box on the map › <b>Details</b>. Below the
+  tiles (models, agents, address) the same folding cards as for agents: <b>Usage and tokens</b> —
+  what your agents sent through it in the last days, per agent and model, taken from the agents' own
+  session numbers and matched by model name — then Health, Risk management, What the words mean and
+  Configuration.</p>
+
   <h2 id="gpu">GPU memory and Free GPU memory</h2>
-  <p>Above the map, <b>GPU memory</b> shows how much is in use, split into local LLMs, desktop and
+  <p>In the <b>GPU</b> card above the map, <b>GPU memory</b> shows how much is in use, split into local LLMs, desktop and
   apps, and free; <b>GPU activity</b> shows load, temperature and power. Each local LLM's box shows
   how much memory it holds, and loaded models get a green dot.</p>
   <p>Right-click a local LLM for <b>Start</b>, <b>Stop</b>, start at login, and <b>Free GPU memory</b>:
@@ -436,7 +476,7 @@
 <section class="chapter" id="models">
   <h1>Models</h1>
   <p class="lead">Right-click an installed local LLM › <b>Models…</b>, or click <b>Add model</b> on
-  <b>My setup</b>. The page has a list on the left and the chosen model on the right,
+  <b>Setup</b>. The page has a list on the left and the chosen model on the right,
   in three tabs.</p>
 
   <div class="figure wide">
@@ -608,16 +648,16 @@
     <tbody>
       <tr><td><b>Language</b></td><td>The system language, or English, Deutsch, Français, Español, Italiano, Português, Nederlands, Polski.</td></tr>
       <tr><td><b>Look</b> <span class="badge omarchy">Omarchy</span></td><td>The Omarchy theme colours, or GNOME's Adwaita look with the system's light/dark mode and accent colour.</td></tr>
-      <tr><td><b>Animate active lines</b></td><td>Light runs along the line of a working agent.</td></tr>
+      <tr><td><b>Map animations</b></td><td>Light runs along the lines on the map: <b>Agents and other programs</b> (a working agent's line, and a local LLM's line to a model another program uses), <b>Only my agents</b>, or <b>Off</b>. A small animated map under the setting shows what each choice moves.</td></tr>
       <tr><td><b>Terminal tabs above the map</b></td><td>One tab per agent terminal in the window.</td></tr>
       <tr><td><b>Corners</b></td><td>Like windows, rounded or square.</td></tr>
       <tr><td><b>Look up new agents</b></td><td>Ask an installed agent where an unknown agent keeps its settings.</td></tr>
       <tr><td><b>Start local LLMs with their agents</b></td><td>The background watcher described in <a href="#start-with-agents">Starting and stopping with agents</a>.</td></tr>
-      <tr><td><b>Too narrow for the map</b> <span class="badge omarchy">Omarchy</span></td><td>What "Maximize to see the map" does: move to a free workspace, maximize in place, or show no hint.</td></tr>
+      <tr><td><b>Too narrow for the map</b> <span class="badge omarchy">Omarchy</span></td><td>What <b>Maximize for more room</b> does: move to a free workspace, maximize in place, or show no hint.</td></tr>
       <tr><td><b>In the app launcher</b></td><td>The launcher entry; off removes it.</td></tr>
       <tr><td><b>Agents start in</b></td><td>The folder agents start in.</td></tr>
       <tr><td><b>Models folder</b></td><td>One folder for all models, with <b>Reorganize models…</b>.</td></tr>
-      <tr><td><b>Add-ons</b> <span class="badge">Asterism</span></td><td><b>Look for add-ons online</b>, the Add-ons page, and <b>My setup</b>.</td></tr>
+      <tr><td><b>Add-ons</b> <span class="badge">Asterism</span></td><td><b>Look for add-ons online</b>, the Add-ons page, and <b>Setup</b>.</td></tr>
       <tr><td><b>About</b></td><td>The version, the author and the license; <b>Website</b> opens the project on GitHub and <b>Report an Issue</b> its issue list.</td></tr>
     </tbody>
   </table>
@@ -670,25 +710,25 @@
   <p>A coding agent reads and writes files and runs commands on your computer. How much it may do
   <i>without asking you</i> is set in the agent's own settings, with different words in every
   agent. The <b>Healthy &amp; Security check</b> brings this together: on the details page of every
-  agent (<b>ⓘ Details</b> on its card) and of every local LLM, one card shows whether it works, what
-  it may do, what that means in plain words, and what lowers the risk.</p>
+  agent and of every local LLM, four cards show whether it works, what it may do, what that means in
+  plain words, and what lowers the risk.</p>
 
   <div class="figure wide">
-    <img src="images/security-check.jpg" alt="The Healthy &amp; Security check of OpenCode: security settings with one setting opened and its three choices, then the risk management list with Lower it buttons">
-    <p class="caption">OpenCode's security settings, with <b>Run commands</b> opened, and the start of its risk management.</p>
+    <img src="images/security-check.jpg" alt="OpenCode's Security settings card opened with High risk: Edit files, Run commands opened with its choices Ask recommended, Allow in use with High risk, Never, then Fetch web pages and Outside the project; below it the Risk management card with Lower it buttons">
+    <p class="caption">OpenCode's Security settings, with <b>Run commands</b> opened, and the start of its Risk management.</p>
   </div>
 
-  <h2 id="security-card">Reading the card</h2>
-  <p>Two badges at the top sum it up: <b>Healthy</b>, <b>Needs a look</b> or <b>Not set up</b> for the
-  health, and <b>Low risk</b>, <b>Medium risk</b> or <b>High risk</b> for security. Below them come
-  four parts:</p>
+  <h2 id="security-card">Reading the cards</h2>
+  <p>The badges on the folded cards sum it up: <b>Healthy</b>, <b>Needs a look</b> or <b>Not set up</b>
+  on Health, and <b>Low risk</b>, <b>Medium risk</b> or <b>High risk</b> on Security settings and Risk
+  management. Open a card for its details:</p>
   <table>
-    <thead><tr><th>Part</th><th>What it shows</th></tr></thead>
+    <thead><tr><th>Card</th><th>What it shows</th></tr></thead>
     <tbody>
       <tr><td><b>Health</b></td><td>Every setup check with a ✓, or what to do next: installed, signed in, its model and local LLM, MCP servers and skills.</td></tr>
       <tr><td><b>Security settings</b></td><td>The agent's settings that decide what it may do on its own, each with its value now and one sentence on what that means. The mark in front tells the risk: <b>✓</b> safe, <b>·</b> low, a yellow <b>!</b> medium, a red <b>!</b> high.</td></tr>
       <tr><td><b>Risk management</b></td><td>What the settings mean together, most serious first, each with why it matters and <b>→</b> what lowers it. Protections that are in place are listed with a ✓.</td></tr>
-      <tr><td><b>What the words mean</b></td><td>Sandbox, approval, allow and deny rules and the other words the card uses, explained (see <a href="#security-words">The words explained</a>).</td></tr>
+      <tr><td><b>What the words mean</b></td><td>Sandbox, approval, allow and deny rules and the other words the cards use, explained (see <a href="#security-words">The words explained</a>).</td></tr>
     </tbody>
   </table>
   <p>Allow and deny rules and trusted folders the agent has (for example Claude Code's
@@ -802,9 +842,9 @@
   </div>
   <p>Click a card (or press <kbd>Space</kbd> on it) to tick or untick it; a ticked card has a blue frame
   and a check mark. <b>Switch on</b> (with the number of ticked cards) loads them and shows the map; when
-  you ticked programs that are not installed, <b>My setup</b> opens: <b>⋯</b> on their cards ›
+  you ticked programs that are not installed, <b>Setup</b> opens: <b>⋯</b> on their cards ›
   <b>Install…</b>. <b>Later</b> starts with an empty map. As long as nothing is switched on, Asterism opens
-  on the welcome page again at every start. Afterwards the same cards are on <b>My setup</b> (the header
+  on the welcome page again at every start. Afterwards the same cards are on <b>Setup</b> (the header
   button), where agents and providers are switched on and off at any time.</p>
 
   <h2 id="addons-page">The Add-ons page</h2>
@@ -855,11 +895,28 @@
   <p>An add-on can never do more than its level allows. Adding an agent or a provider, or installing a
   program, are separate permissions that the card names.</p>
 
+  <h2 id="addons-kinds">Kinds of add-ons</h2>
+  <table class="first-nowrap">
+    <thead><tr><th>Kind</th><th>What it brings</th></tr></thead>
+    <tbody>
+      <tr><td><b>Agent</b></td><td>One coding agent: where it keeps its settings, sessions, MCP servers and skills, how it is installed and how it signs in. Asterism builds everything else from that — the card on Setup, its box on the map, Usage and tokens, Projects, Health and Security.</td></tr>
+      <tr><td><b>Provider</b></td><td>A local LLM program, or the online providers: how it is found and installed, and how agents reach it. Asterism builds its card, its box on the map and its details page — including <b>Usage and tokens</b>: what your agents sent through it, taken from their own session numbers.</td></tr>
+      <tr><td><b>Extension</b></td><td>More facts for an agent or a provider another add-on brings, without replacing it — for example its plan and limits, or a card on its details page. It only fills what the agent's add-on leaves empty; the add-on's page says what it adds to and anything it adds that is not used.</td></tr>
+      <tr><td><b>Feature</b></td><td>Something across agents, such as Insights (the Topics card).</td></tr>
+    </tbody>
+  </table>
+  <p>An add-on's section on an agent's or a local LLM's details page joins the card it is about: Usage
+  and tokens, Health, Topics (agents only), or a card of its own with its name.</p>
+  <p>An agent add-on describes its agent as facts (a file named <code>agent.toml</code>); most bring no
+  code at all, and the add-on's page says so: <i>Brings no code</i>, or, for the few agents that need
+  some (their own session database, say), <i>Facts about the agent, and a little code for what facts
+  cannot say</i>.</p>
+
   <h2 id="addons-new-harness">A new agent on your computer</h2>
   <p>When you install an agent Asterism does not know yet, it looks in the catalog (Settings ›
   <b>Look for add-ons online</b>, on by default: the list is read from GitHub every few hours, nothing
-  is sent but the request). If an add-on knows that agent, you see a hint line above the map
-  (<i>"Kilo Code is on this PC but not on the map"</i>) and a card under <b>Suggested for this PC</b>; one click installs it. If no add-on exists yet, the
+  is sent but the request). If an add-on knows that agent, <b>Updates and suggestions</b> (the
+  header's <b>!</b>) says so (<i>"Kilo Code is on this PC but not on the map"</i>) and a card under <b>Suggested for this PC</b>; one click installs it. If no add-on exists yet, the
   agent's details say so, with a link to ask for one.</p>
 </section>
 
@@ -890,9 +947,8 @@
     <thead><tr><th>Problem</th><th>What to do</th></tr></thead>
     <tbody>
       <tr><td>The map is cramped or cut off.</td><td>The window is narrower than about 1300 pixels. Click <b>Maximize for more room</b> in the header, or zoom out (<kbd>Ctrl</kbd>+<kbd>−</kbd>).</td></tr>
-      <tr><td>A box I expect is not on the map.</td><td>The map shows only what is set up: check <b>My setup</b> (an add-on switched off, an MCP server no agent uses) and the <b>Show</b> toggles.</td></tr>
+      <tr><td>A box I expect is not on the map.</td><td>The map shows only what is set up: check <b>Setup</b> (an add-on switched off, an MCP server no agent uses) and the <b>Show</b> toggles.</td></tr>
       <tr><td><b>Start here</b> is missing or does nothing.</td><td>Install VTE for GTK&nbsp;4 (<code>vte4</code>), or use <b>Start in terminal</b>.</td></tr>
-      <tr><td>Agent icons are boxes.</td><td>Install a Nerd Font (Symbols Nerd Font).</td></tr>
       <tr><td>A line is dotted red.</td><td>Click it for hints, fix what it says, then <b>Test again</b>. See <a href="#failed">When a connection fails</a>.</td></tr>
       <tr><td>The local LLM does not start with the agent.</td><td>Check Settings › <b>Start local LLMs with their agents</b>, and that the agent is connected on the map. <code>systemctl --user status ai-agents-map-providers</code> shows the watcher.</td></tr>
       <tr><td>The coloured light from a local LLM to its model does not show.</td><td>It shows only while a program that is not on the map is generating with that LLM, and fades about ten seconds after its last request. Check the map is visible (a wide window) and that the program is actually sending something.</td></tr>
@@ -912,13 +968,12 @@
     <tbody>
       <tr><th scope="row"><kbd>F1</kbd></th><td>Help</td></tr>
       <tr><th scope="row"><kbd>Ctrl</kbd>+<kbd>,</kbd></th><td>Settings</td></tr>
-      <tr><th scope="row"><kbd>F5</kbd></th><td>Refresh (the map and My setup)</td></tr>
+      <tr><th scope="row"><kbd>F5</kbd></th><td>Refresh (the map and Setup)</td></tr>
       <tr><th scope="row"><kbd>Ctrl</kbd>+<kbd>+</kbd> / <kbd>Ctrl</kbd>+<kbd>−</kbd> / <kbd>Ctrl</kbd>+<kbd>0</kbd></th><td>Zoom the map in, out, back to 100&nbsp;%</td></tr>
       <tr><th scope="row"><kbd>Ctrl</kbd>+scroll</th><td>Zoom the map</td></tr>
       <tr><th scope="row"><kbd>Shift</kbd>+click</th><td>Add to or remove from the selection</td></tr>
       <tr><th scope="row"><kbd>Esc</kbd></th><td>Clear the selection; go back from a page</td></tr>
       <tr><th scope="row"><kbd>Backspace</kbd></th><td>Go back from a page</td></tr>
-      <tr><th scope="row">Arrow keys</th><td>Move, open and close entries in the tree</td></tr>
     </tbody>
   </table>
 
