@@ -357,6 +357,22 @@
   <p>An agent with an open instance anywhere on the computer gets a green dot and <i>running</i>,
   and the model box it runs with says <i>in use · &lt;agent&gt;</i>.</p>
 
+  <h2 id="chess">Playing chess</h2>
+  <p>Agents that can answer a single prompt without tools (Claude Code, Codex, Hermes and Pi) can play chess against you. Right-click a fully set-up agent's box › <b>Play chess</b>. The chess page opens in the window, like Settings.</p>
+  <ul>
+    <li><b>New game with White</b> or <b>New game with Black</b> starts a game at once; with Black the board is turned, so your pieces are always at the bottom. <b>Define position</b>: pick a piece in the cards (or drag it onto the board) and click squares, a right click empties one; then <b>Play it with White</b> or <b>Play it with Black</b>. <b>Start</b> begins the chosen entry again.</li>
+    <li>Drag a piece to move it, or click it and then the square it should go to.</li>
+    <li>The thinking time (<b>Quick (30 s)</b> to <b>Maximum (6 min)</b>) is how long the agent may take for a move. Longer also lets its model think harder and asks it to play more strongly.</li>
+    <li>After each of your moves the agent is asked for its move. It gets the position, the game so far and its legal moves, runs in an empty private folder without tools, and answers with one move and a sentence or two about it. An answer without a legal move is asked once more; after that, <b>Ask again</b> appears.</li>
+    <li>The <b>Game</b> card at the bottom shows whose move it is, what the agent said and the moves. Click its heading to fold it; folded, it still shows whose move it is.</li>
+    <li><b>Back</b> leaves the game running. While it runs, a chess button in the header and one on the agent's box lead back to it, as does <b>Back to the chess game</b> in the agent's menu. <b>×</b> on the page, or the stop button that the agent's box shows during a game, ends it.</li>
+  </ul>
+  <div class="tip"><p><b>Tip</b> An agent on a local LLM plays with that model. Hermes needs a context window of at least 64,000 tokens: load the model with that context size (in LM Studio, for example) before you play.</p></div>
+  <div class="figure half">
+    <img src="images/chess.jpg" alt="The chess page: the board in the middle, cards with each side's pieces above and below it, captured pieces beside it, and the Game card with Claude Code's comment and the moves">
+    <p class="caption">A game against Claude Code: the pieces each side still has above and below the board, the captured ones beside it, and below, the agent's words and the moves.</p>
+  </div>
+
   <h2 id="sign-in">Signing in</h2>
   <p><b>Sign in…</b> in an agent's menu (on Setup or on the map) shows what the agent needs and its
   own ways to sign in:</p>
@@ -451,6 +467,9 @@
   how much memory it holds, and loaded models get a green dot.</p>
   <p>Right-click a local LLM for <b>Start</b>, <b>Stop</b>, start at login, and <b>Free GPU memory</b>:
   its models are unloaded, it keeps running and loads one again when asked.</p>
+
+  <p>A local LLM that holds GPU memory gets a red stop button on its box. It asks first: <b>Free GPU memory</b> unloads its models; <b>Stop</b> ends it. For LM Studio the button is <b>Stop server</b>: only its server ends, and the app stays open with its models loaded. A model that a local LLM has loaded, but no agent uses, is joined to it by a solid light line.</p>
+  <p>LM Studio can be open without its server. Its box then says <i>server off</i> with a yellow dot, agents cannot reach it, and its menu offers <b>Start server</b> (<code>lms server start</code>).</p>
 
   <h2 id="outside-use">Used by other apps</h2>
   <p>Local LLMs are not only used by agents. A plugin such as Video Trans, a chat app or your own

@@ -118,7 +118,9 @@ class AddonsTest(unittest.TestCase):
 
     def test_capabilities_still_apply_to_facts(self):
         claude = (Path(__file__).resolve().parent.parent / "adapters/claude.toml").read_text()
-        addon = self.verify(self.agent_addon(claude.replace('command = "claude"', 'command = "gemini-test"')))
+        claude = claude.replace('command = "claude"', 'command = "gemini-test"')
+        claude = claude.replace('argv = ["claude", "-p"', 'argv = ["gemini-test", "-p"')   # its ask command too
+        addon = self.verify(self.agent_addon(claude))
         addons.load(addon, self.hooks)                     # it has an updater, but no "updater" capability
         self.assertEqual(addon.state, "failed")
         self.assertIn("updater", addon.reason)
