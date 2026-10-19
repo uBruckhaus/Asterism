@@ -2,9 +2,11 @@
 """The agent and provider adapters as add-on folders (unsigned): one per agent (agent-<command>),
 one per local LLM (llm-<key>) and one for the online providers (providers-online).
 
-Each addon.py is the adapter module itself (harness_<name>.py, provider_<key>.py,
-provider_online.py), unchanged, plus a register(api) that adds it. So the adapters keep one source:
-the AI Agents Map plugin has the same modules built in, Asterism gets them as signed add-ons.
+An agent add-on is its adapter as data: adapters/<command>.toml as agent.toml, plus
+adapters/<command>.py as hooks.py for the few agents facts cannot describe. A local LLM's or the
+online providers' addon.py is the provider module itself (provider_<key>.py, provider_online.py),
+unchanged, plus a register(api) that adds it. So the adapters keep one source: the AI Agents Map
+plugin has the same files built in, Asterism gets them as signed add-ons.
 
     tools/build-adapter-addons.py <folder>      e.g. ../asterism-addons (then tools/release-adapters.sh)
 
@@ -68,10 +70,7 @@ def agent(out: Path, module: str, version: str) -> None:
             "capabilities": caps, "harnesses": [h.command], "provides": [h.command],
             "reads": [f"{name}'s own settings and session files ({', '.join(h.data) or 'its folders'})"],
             "detect": {"commands": [h.command], "paths": list(h.data)}, "homepage": h.homepage}
-    if (ROOT / "adapters" / f"{h.command}.toml").is_file():
-        agent_data(out, h, meta)
-    else:
-        write(out, meta, (ROOT / f"harness_{module}.py").read_text(), "    api.add_harness(HARNESS)\n")
+    agent_data(out, h, meta)
 
 
 def llm(out: Path, p, version: str) -> None:
