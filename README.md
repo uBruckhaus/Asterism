@@ -15,7 +15,11 @@ Asterism shows the AI setup on your computer as cards and a map:
   project's reference servers and official ones from GitHub, Microsoft, Google, Brave, Upstash),
   a search of the official MCP registry that says who published each server and how it runs, and a
   short explanation on each page of what servers and skills are for;
-- a **health check**: what works, what to fix, what the setup is good for;
+- **Setup**: one page of cards to switch on, install, update, sign in to and remove everything the
+  map shows, with what the setup is good for and five steps for someone new;
+- **open problems**: a red **!** in the header lists what to fix, each with a button to where it is
+  fixed, plus updates and suggestions; online agents show a battery for what is left of their
+  limits, running local LLMs one for the GPU memory still free;
 - a **Healthy & Security check** on every agent's and local LLM's details page: what the agent may
   do without asking you (Claude Code, Codex, Copilot, Cursor CLI, Hermes, OpenCode, Pi), every
   choice explained with its risk and changeable with a preview and Undo, risk management with what
@@ -24,13 +28,12 @@ Asterism shows the AI setup on your computer as cards and a map:
 
 Connect an agent to a local LLM, an MCP server or a skill folder by drawing a line on the map:
 a preview shows every change first, and Undo puts it back. The **ⓘ** in the header explains every
-dot, line and mark of the map. **Hide** leaves an agent, or a provider no shown agent uses a model
-of, out of **My setup**; **+ Available** lists it under **Hidden** with **Show again**. Pin a box
+dot, line and mark of the map; the map shows only what is set up on **Setup**. Pin a box
 to keep its connections lit, right-click boxes for the cards' actions, and drag a model onto
 another models folder to move it.
 
-The user manual (a PDF, also under **?** in the app) explains everything step by step:
-[docs/manual](docs/manual).
+The user manual (a PDF in eight languages, also under **?** in the app, in its language) explains
+everything step by step: [docs/manual](docs/manual).
 
 On [Omarchy](https://omarchy.org) the same app is the **AI Agents Map** plugin (bar icon, Omarchy
 theme, Hyprland window actions). Install that one there.
@@ -70,8 +73,8 @@ file sizes (`lstat`, links not followed, bounded); nothing is opened or deleted.
   bounded and incremental); OpenCode and Hermes from their own databases, opened read-only, only the
   folder, time, token and cost columns and the message times; no message text;
 - with the **Insights** add-on: **Topics**, the title each harness gave its sessions itself (Claude
-  Code's `ai-title` lines, cached owner-only; OpenCode's and Hermes's title column), and
-  **Summarize with Claude…** (only on a click, after showing exactly what is sent): those titles and
+  Code's `ai-title` lines, cached owner-only; OpenCode's and Hermes's title column), which topics
+  took the most tokens, and **Summarize with Claude…** (only on a click, after showing exactly what is sent): those titles and
   numbers, never the conversations, go to your own `claude -p`, which runs in plan mode without
   MCP servers or a saved session, in an empty folder.
 
@@ -88,10 +91,13 @@ file must match the signed list, nothing may be added, and nothing of it runs be
 Each add-on states in plain words what it reads and sends, and its privacy level (numbers, titles
 or summary) is the most it can do. Add-ons build on a small, versioned API (`addon_api.py`), so a
 new add-on needs no new Asterism. An add-on can also bring a **new agent or LLM provider**: every
-agent and provider is an adapter (`harness_<command>.py`, `provider_<key>.py`, registered in
-`harnesses.py` / `providers.py`), and an add-on that declares the capability ("agent", "provider",
-and "installer" for one that installs something) adds its own; it then appears on the map, in the
-cards and on its details page like the built-in ones. A built-in agent or provider cannot be
+agent is described as data (`adapters/<command>.toml`, format in
+[docs/adapter-format.md](docs/adapter-format.md), plus a small `adapters/<command>.py` for the few
+facts data cannot say), every provider is an adapter (`provider_<key>.py`); an add-on that declares
+the capability ("agent", "provider", and "installer" for one that installs something) adds its own
+(`agent.toml`, mostly with no code at all), and it then appears on the map, in the cards and on its
+details page like the built-in ones. An **extension add-on** adds facts to an agent another one
+brings, without replacing it. A built-in agent or provider cannot be
 replaced, and an add-on's agent cannot bring an updater of its own. The AI Agents Map plugin has no
 add-ons.
 

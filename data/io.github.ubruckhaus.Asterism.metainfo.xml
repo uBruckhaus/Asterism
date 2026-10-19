@@ -25,6 +25,20 @@
   <url type="bugtracker">https://github.com/uBruckhaus/Asterism/issues</url>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.8.0" date="2026-10-19">
+      <description>
+        <p>Setup (formerly My setup) and Map are on every page, Setup first. A red ! in the header lists
+        open problems, each with a button to where it is fixed, and updates and suggestions; cards with a
+        problem show the same red !. Online agents show a battery for what is left of their limits, and
+        running local LLMs one for the GPU memory still free. The map runs across the whole width, starts
+        agents with ▶ on their boxes, shows unused connections as red dotted lines and, in a narrow window,
+        picks what to show by itself. A card explains the first connection and Setup explains in five
+        steps how things get onto the map. Agents are now described as data: their add-ons bring facts
+        instead of code, and extension add-ons can add to an agent. With Insights 1.1.0 the Topics card
+        shows which topics took the most tokens. The user manual comes in eight languages and opens in
+        the app's language.</p>
+      </description>
+    </release>
     <release version="0.7.2" date="2026-10-19">
       <description>
         <p>My setup: one page of cards for everything the map shows. Agents, local LLMs and online

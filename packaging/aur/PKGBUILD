@@ -1,6 +1,6 @@
 # Maintainer: Uwe Bruckhaus
 pkgname=asterism
-pkgver=0.7.2
+pkgver=0.8.0
 pkgrel=1
 pkgdesc="Your AI agents, models and tools on one map (GTK4/libadwaita)"
 arch=('any')
@@ -12,12 +12,12 @@ optdepends=('vte4: agents in a terminal inside the window'
             'mise: updates for agents installed with mise')
 # The signed agent and provider add-ons (switched off until the first start's Set up).
 _addons=https://github.com/uBruckhaus/asterism-addons/releases/download
-_adapters=0.7.0              # the adapter add-ons' own release (signed separately)
+_adapters=0.8.0              # the adapter add-ons' own release (signed separately)
 source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/v$pkgver.tar.gz"
         "adapters-$_adapters.zip::$_addons/adapters-$_adapters/adapters-$_adapters.zip")
 noextract=("adapters-$_adapters.zip")
-sha256sums=('5f8577f0ce94434a57f0181295fda17996875499762258a08ed6e942bc877ac5'
-            '71d011fc6a2dfd6e67f79099cab694d0cd5a1c39910f719062893c5dbae1f752')
+sha256sums=('SKIP'
+            'cdd33f632c6cc4ccd8007aee91f26657caac56fa9831ac8595fe4cd73781c8f5')
 
 package() {
     cd "Asterism-$pkgver"          # GitHub names the folder after the repository
@@ -25,7 +25,8 @@ package() {
     install -m644 ./*.py "$pkgdir/usr/lib/asterism/"
     install -Dm644 translations/*.json -t "$pkgdir/usr/lib/asterism/translations/"
     cp -r icons "$pkgdir/usr/lib/asterism/icons"
-    install -Dm644 data/user-manual.pdf -t "$pkgdir/usr/lib/asterism/data/"
+    install -Dm644 adapters/*.toml adapters/*.py -t "$pkgdir/usr/lib/asterism/adapters/"   # built-in agents as data
+    install -Dm644 data/user-manual*.pdf -t "$pkgdir/usr/lib/asterism/data/"
     python packaging/unpack-adapters.py "$srcdir/adapters-$_adapters.zip" "$pkgdir/usr/lib/asterism/addons"
     install -Dm755 bin/asterism "$pkgdir/usr/bin/asterism"
     install -Dm644 data/io.github.ubruckhaus.Asterism.desktop -t "$pkgdir/usr/share/applications/"
