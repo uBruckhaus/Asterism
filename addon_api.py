@@ -310,6 +310,23 @@ class UI:
     def plain_row(self, title: str, subtitle: str = ""):
         return self._app.plain_row(title, subtitle)
 
+    def share_row(self, title: str, subtitle: str, value: str, share: float):
+        """A row with `value` and a bar filled to `share` (0..1) at its right: one part of a whole."""
+        from gi.repository import Adw, Gtk
+        row = Adw.ActionRow(title=title, subtitle=subtitle, use_markup=False)
+        side = Gtk.Box(spacing=10, valign=Gtk.Align.CENTER)
+        text = Gtk.Label(label=value, xalign=1)
+        text.add_css_class("dim-label")
+        text.add_css_class("numeric")
+        bar = Gtk.LevelBar(min_value=0, max_value=1, value=max(0.0, min(1.0, share)), valign=Gtk.Align.CENTER)
+        bar.set_size_request(90, -1)
+        for name in ("low", "high", "full"):          # one colour: a share, not a good or bad level
+            bar.remove_offset_value(name)
+        side.append(text)
+        side.append(bar)
+        row.add_suffix(side)
+        return row
+
     def expander_row(self, title: str, subtitle: str = ""):
         from gi.repository import Adw
         return Adw.ExpanderRow(title=title, subtitle=subtitle, use_markup=False)

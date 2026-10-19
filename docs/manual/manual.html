@@ -334,10 +334,13 @@
   <p>Projects are shown for Claude Code, OpenCode and Hermes:
   working time, sessions, tokens, subagent runs, lines changed and what the tokens would cost at API
   prices. The numbers come from each agent's own session files or database; no text is read.</p>
-  <p><span class="badge">Asterism</span> With the <b>Insights</b> add-on (see <a href="#addons">Add-ons</a>) the <b>Topics</b> card lists the titles the agent gave its
-  sessions itself, per project, and offers <b>Summarize with Claude…</b> (when Claude Code is installed). Before
-  anything is sent, you see exactly what will be sent: the titles and numbers, never the
-  conversations.</p>
+  <p><span class="badge">Asterism</span> With the <b>Insights</b> add-on (see <a href="#addons">Add-ons</a>) the <b>Topics</b> card shows first
+  which topics took the most tokens in the last 30 days (<b>Most tokens</b>: sessions with the same title are one
+  topic, each with its share of all tokens), then the titles the agent gave its sessions itself, per project
+  (<b>By project</b>), and offers <b>Summarize with Claude…</b> (when Claude Code is installed). Its tokens come
+  from the agent's own session files without cache reads, so they can be far lower than in <b>Usage and
+  tokens</b>, which may count cache reads. Before anything is sent, you see exactly what will be sent: the titles
+  and numbers, never the conversations.</p>
 
   <h2 id="running-agents">Starting and stopping agents</h2>
   <ul>
