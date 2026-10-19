@@ -149,7 +149,7 @@ class AddonsPage:
     """The page; needs AgentsMap's helpers (page_scroller, boxed_list, plain_row, note, toast, …)."""
 
     def build_addons_page(self) -> Gtk.Widget:
-        page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=ai_core.GAP)
         header = Gtk.Box(spacing=8)
         back = Gtk.Button()
         back.add_css_class("flat")
@@ -214,9 +214,9 @@ class AddonsPage:
         self.addons_status.add_css_class("am-agent-detail")
         page.append(self.addons_status)
         self.addons_stack = Gtk.Stack(vexpand=True, transition_type=Gtk.StackTransitionType.CROSSFADE)
-        self.addons_list = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14, margin_bottom=12)
+        self.addons_list = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=ai_core.GAP, margin_bottom=12)
         self.addons_stack.add_named(self.page_scroller(self.addons_list), "list")
-        self.addons_detail = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12, margin_bottom=12)
+        self.addons_detail = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=ai_core.GAP, margin_bottom=12)
         clamp = Adw.Clamp(maximum_size=820, child=self.addons_detail, unit=Adw.LengthUnit.PX)
         self.addons_stack.add_named(self.page_scroller(clamp), "detail")
         page.append(self.addons_stack)
@@ -372,8 +372,8 @@ class AddonsPage:
             heading = Gtk.Label(label=title, xalign=0)
             heading.add_css_class("heading")
             box.append(heading)
-            flow = Gtk.FlowBox(selection_mode=Gtk.SelectionMode.NONE, homogeneous=True, column_spacing=10,
-                               row_spacing=10, min_children_per_line=1, max_children_per_line=4)
+            flow = Gtk.FlowBox(selection_mode=Gtk.SelectionMode.NONE, homogeneous=True, column_spacing=ai_core.GAP,
+                               row_spacing=ai_core.GAP, min_children_per_line=1, max_children_per_line=4)
             for item in items:
                 flow.append(self.addon_card(item))
             box.append(flow)
@@ -404,7 +404,7 @@ class AddonsPage:
         return badge
 
     def addon_card(self, item: Item) -> Gtk.Widget:
-        card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=ai_core.GAP_TIGHT)
         card.add_css_class("am-addon-card")
         if item.state == "suggested" or item.here:
             card.add_css_class("am-addon-suggested")

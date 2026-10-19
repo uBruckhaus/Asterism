@@ -1736,5 +1736,12 @@
  "Click a box to see only its connections; Shift+click selects more than one; ▶ starts an agent.": "Klik op een vak om alleen de verbindingen ervan te zien; Shift+klik selecteert er meer; ▶ start een agent.",
  "Start {0} in {1}, in a terminal in this window; Stop ends it": "Start {0} in {1}, in een terminal in dit venster; Stoppen beëindigt het",
  "Maximize for more room": "Maximaliseren voor meer ruimte",
- "What “Maximize for more room” in the header does when the window is tiled too narrow for the whole map.": "Wat ‘Maximaliseren voor meer ruimte’ in de kop doet als het venster te smal is getegeld voor de hele kaart."
+ "What “Maximize for more room” in the header does when the window is tiled too narrow for the whole map.": "Wat ‘Maximaliseren voor meer ruimte’ in de kop doet als het venster te smal is getegeld voor de hele kaart.",
+ "Map": "Kaart",
+ "Other files": "Andere bestanden",
+ "{0} of {1} on {2} for AI ({3}) · {4} free": "{0} van {1} op {2} voor AI ({3}) · {4} vrij",
+ "\u0004this disk": [
+  "deze schijf",
+  "deze {0} schijven"
+ ]
 }

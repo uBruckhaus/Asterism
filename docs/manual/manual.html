@@ -174,22 +174,22 @@
   <div class="figure wide annotated">
     <div class="shot">
       <img src="images/main-window.jpg" alt="The main window with numbered areas">
-      <span class="pin" style="left:61.4%;top:2.7%">1</span>
-      <span class="pin" style="left:84.4%;top:5.4%">2</span>
-      <span class="pin" style="left:0.4%;top:12.2%">3</span>
-      <span class="pin" style="left:0.4%;top:17.6%">4</span>
-      <span class="pin" style="left:6.2%;top:22.4%">5</span>
-      <span class="pin" style="left:29.7%;top:33%">6</span>
-      <span class="pin" style="left:32.6%;top:38.6%">7</span>
-      <span class="pin" style="left:43.7%;top:47.8%">8</span>
+      <span class="pin" style="left:76.8%;top:2.3%">1</span>
+      <span class="pin" style="left:84.4%;top:4.8%">2</span>
+      <span class="pin" style="left:0.4%;top:13.1%">3</span>
+      <span class="pin" style="left:0.4%;top:18.0%">4</span>
+      <span class="pin" style="left:6.2%;top:24.9%">5</span>
+      <span class="pin" style="left:29.7%;top:34.7%">6</span>
+      <span class="pin" style="left:32.6%;top:42.3%">7</span>
+      <span class="pin" style="left:43.7%;top:49.7%">8</span>
     </div>
     <p class="caption">The main window. The numbers match the list below.</p>
   </div>
 
   <ol class="legend-list">
     <li><b>My setup</b> — every agent, local LLM, MCP server, skill folder and model as a card: install,
-      update, sign in, remove (see below). <b>All · Online · Local LLMs</b> — what the map shows.</li>
-    <li><b>ⓘ</b> the legend (what every dot, line and mark on the map means; only on the map), the add-ons
+      update, sign in, remove (see below). On My setup the same button says <b>Map</b> and goes back.</li>
+    <li><b>ⓘ</b> the legend (what every dot, line and mark on the map means; on the map and on My setup), the add-ons
       <span class="badge">Asterism</span>, <b>?</b> Help (<kbd>F1</kbd>) and the gear for Settings
       (<kbd>Ctrl</kbd>+<kbd>,</kbd>).</li>
     <li><b>Health check</b> — how well the setup works; <b>Open ›</b> for the details.</li>
@@ -205,7 +205,8 @@
   <h2 id="my-setup">My setup</h2>
   <p>The map shows only what is set up: installed agents and local LLMs, the MCP servers and skill
   folders agents use, and models. Everything else is done on <b>My setup</b> (the button in the
-  header), one card per item, in sections that fold away with a click on their heading:</p>
+  header; there it turns into <b>Map</b>, which goes back), one card per item, in sections that fold
+  away with a click on their heading:</p>
   <ul>
     <li><b>How things get onto your map</b> — a folded card at the top; open it for what puts an agent,
       a provider, an MCP server or a model on the map.</li>
@@ -237,16 +238,9 @@
   the page it was started from.</p>
 
   <h2 id="views">Choosing what the map shows</h2>
-  <table class="first-nowrap">
-    <thead><tr><th>Switch</th><th>Shows</th></tr></thead>
-    <tbody>
-      <tr><td><b>All</b></td><td>Everything.</td></tr>
-      <tr><td><b>Online</b></td><td>Online providers only; no local LLMs, their models or the GPU meters.</td></tr>
-      <tr><td><b>Local LLMs</b></td><td>Only local LLMs and the agents that can use them.</td></tr>
-    </tbody>
-  </table>
-  <p>The <b>Show</b> toggles below the GPU meters leave whole categories out of the map, for example
-  all skills.</p>
+  <p>The map shows everything that is set up. The <b>Show</b> toggles below the GPU meters leave whole
+  categories out of it — for example all skills, or the local LLMs and their models — and are
+  remembered.</p>
 
   <h2 id="map">Working with the map</h2>
   <ul>
@@ -263,6 +257,8 @@
     <li>When a program that is not on the map uses a local LLM, the line from that LLM to the model
       turns bold in a colour of its own (purple or cyan, whichever stands out from the theme's other
       colours), and light runs along it. See <a href="#outside-use">Used by other apps</a>.</li>
+    <li><b>Refresh</b> (<kbd>F5</kbd>) at the right of the heading looks again at what is installed, set
+      up and signed in.</li>
     <li>Zoom with <b>− 100&nbsp;% +</b>, <kbd>Ctrl</kbd>+scroll or <kbd>Ctrl</kbd>+<kbd>+</kbd> / <kbd>−</kbd> / <kbd>0</kbd>.</li>
   </ul>
   <div class="tip"><p><b>Tip</b> In a narrow window (below about 1300 pixels, such as half the
@@ -646,12 +642,15 @@
   <b>Disks</b>, <b>Agents</b>, <b>Local LLMs</b> and <b>Models folders</b> inside start folded, each
   showing its sum and largest entries; click one to open it.</p>
   <div class="figure wide">
-    <img src="images/disk-space.jpg" alt="Disk space in Help: four tiles (in all, agents, local LLMs, models), a bar split into agent programs, agent data, local LLMs and models, and the disks with free space">
-    <p class="caption">The totals, the split, and the folded sections with their sums.</p>
+    <img src="images/disk-space.jpg" alt="Disk space in Help: four tiles (in all, agents, local LLMs, models), the line 103.7 GB of 2.5 TB on these 2 disks for AI (4.1 %), a bar across the whole disk space split into agent programs, agent data, local LLMs, models, other files and free space, and the folded sections with their sums">
+    <p class="caption">The totals, the AI share of the whole disk space, and the folded sections with their sums.</p>
   </div>
   <ul>
-    <li><b>Tiles and bar</b>: everything together, then agent programs, agent data (settings, sessions,
-      history), local LLMs (programs and their own data) and models. Hover over the bar for exact sizes.</li>
+    <li><b>Tiles</b>: everything together, then agent programs, agent data (settings, sessions, history),
+      local LLMs (programs and their own data) and models.</li>
+    <li><b>Bar</b>: the whole space of the disks the AI setup is on. The coloured parts are the AI setup,
+      grey is everything else on those disks, and the empty rest is free; the line above it gives the AI
+      share in percent. Hover over the bar for exact sizes.</li>
     <li><b>Disks</b>: each disk with what the AI setup takes on it and how much is free.</li>
     <li><b>Agents</b>, <b>Local LLMs</b>, <b>Models folders</b>: one row each, largest first. Open a row
       to see every folder with its size and number of files, and open it in the file manager. A program
@@ -891,7 +890,7 @@
     <thead><tr><th>Problem</th><th>What to do</th></tr></thead>
     <tbody>
       <tr><td>The map is cramped or cut off.</td><td>The window is narrower than about 1300 pixels. Click <b>Maximize for more room</b> in the header, or zoom out (<kbd>Ctrl</kbd>+<kbd>−</kbd>).</td></tr>
-      <tr><td>A box I expect is not on the map.</td><td>The map shows only what is set up: check <b>My setup</b> (an add-on switched off, an MCP server no agent uses), the <b>All · Online · Local LLMs</b> switch and the <b>Show</b> toggles.</td></tr>
+      <tr><td>A box I expect is not on the map.</td><td>The map shows only what is set up: check <b>My setup</b> (an add-on switched off, an MCP server no agent uses) and the <b>Show</b> toggles.</td></tr>
       <tr><td><b>Start here</b> is missing or does nothing.</td><td>Install VTE for GTK&nbsp;4 (<code>vte4</code>), or use <b>Start in terminal</b>.</td></tr>
       <tr><td>Agent icons are boxes.</td><td>Install a Nerd Font (Symbols Nerd Font).</td></tr>
       <tr><td>A line is dotted red.</td><td>Click it for hints, fix what it says, then <b>Test again</b>. See <a href="#failed">When a connection fails</a>.</td></tr>
@@ -913,7 +912,7 @@
     <tbody>
       <tr><th scope="row"><kbd>F1</kbd></th><td>Help</td></tr>
       <tr><th scope="row"><kbd>Ctrl</kbd>+<kbd>,</kbd></th><td>Settings</td></tr>
-      <tr><th scope="row"><kbd>F5</kbd></th><td>Refresh My setup</td></tr>
+      <tr><th scope="row"><kbd>F5</kbd></th><td>Refresh (the map and My setup)</td></tr>
       <tr><th scope="row"><kbd>Ctrl</kbd>+<kbd>+</kbd> / <kbd>Ctrl</kbd>+<kbd>−</kbd> / <kbd>Ctrl</kbd>+<kbd>0</kbd></th><td>Zoom the map in, out, back to 100&nbsp;%</td></tr>
       <tr><th scope="row"><kbd>Ctrl</kbd>+scroll</th><td>Zoom the map</td></tr>
       <tr><th scope="row"><kbd>Shift</kbd>+click</th><td>Add to or remove from the selection</td></tr>

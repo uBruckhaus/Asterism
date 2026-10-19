@@ -1736,5 +1736,12 @@
  "Click a box to see only its connections; Shift+click selects more than one; ▶ starts an agent.": "Clique numa caixa para ver só as conexões dela; Shift+clique seleciona várias; ▶ inicia um agente.",
  "Start {0} in {1}, in a terminal in this window; Stop ends it": "Inicia {0} em {1}, num terminal nesta janela; Parar o encerra",
  "Maximize for more room": "Maximizar para mais espaço",
- "What “Maximize for more room” in the header does when the window is tiled too narrow for the whole map.": "O que “Maximizar para mais espaço” no cabeçalho faz quando a janela fica estreita demais para o mapa inteiro."
+ "What “Maximize for more room” in the header does when the window is tiled too narrow for the whole map.": "O que “Maximizar para mais espaço” no cabeçalho faz quando a janela fica estreita demais para o mapa inteiro.",
+ "Map": "Mapa",
+ "Other files": "Outros arquivos",
+ "{0} of {1} on {2} for AI ({3}) · {4} free": "{0} de {1} em {2} para IA ({3}) · {4} livres",
+ "\u0004this disk": [
+  "este disco",
+  "estes {0} discos"
+ ]
 }
