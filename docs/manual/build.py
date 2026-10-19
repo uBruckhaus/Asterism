@@ -67,8 +67,9 @@ PLUGIN_MANIFEST = Path.home() / ".config/omarchy/plugins/ubruckhaus.ai-agents-ma
 
 
 def asterism_version() -> str:
-    text = (REPO / "packaging/aur/PKGBUILD").read_text()
-    return re.search(r"^pkgver=(\S+)", text, re.M).group(1)
+    """The app's own version (addons.ASTERISM_VERSION), the one About and the packages name."""
+    text = (REPO / "addons.py").read_text()
+    return re.search(r'^ASTERISM_VERSION = "([^"]+)"', text, re.M).group(1)
 
 
 def plugin_version(given: str | None) -> str:

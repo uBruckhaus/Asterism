@@ -29,6 +29,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 ASTERISM_ONLY = {"addons.py", "addon_api.py", "addon_store.py", "addons_page.py"}
+ASTERISM_ONLY_TESTS = {"test_packaging.py"}       # Asterism's packages (packaging/): the plugin has none
 ADDON_IMPORT = re.compile(r"^(import|from) (addons|addon_api|addon_store|addons_page)\b", re.M)
 SHARED_DIRS = ("tests", "icons", "translations", "adapters")   # mirrored whole (minus what is left out)
 SKIP = {"__pycache__", ".git", ".pytest_cache"}
@@ -46,7 +47,7 @@ def wanted() -> dict[str, Path]:
             if not source.is_file() or SKIP & set(rel.parts) or source.suffix == ".pyc":
                 continue
             if folder == "tests" and source.suffix == ".py" and (
-                    source.name.removeprefix("test_") in ASTERISM_ONLY
+                    source.name.removeprefix("test_") in ASTERISM_ONLY or source.name in ASTERISM_ONLY_TESTS
                     or ADDON_IMPORT.search(source.read_text(errors="replace"))):
                 continue                       # tests of (or loading) the add-on modules
             files[str(rel)] = source

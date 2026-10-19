@@ -22,11 +22,27 @@ class PackagesCarryTheAppTest(unittest.TestCase):
         pdfs = sorted(p.name for p in (ROOT / "data").glob("user-manual*.pdf"))
         self.assertEqual(len(pdfs), 8, pdfs)        # English and the seven translations
 
-    def test_adapters_version_matches_the_app(self):
+    def test_versions_match_the_app(self):
+        """pkgver is the app's version; the adapter add-ons have releases of their own, of the same
+        minor version (a patch release of the app keeps them)."""
         import addons
-        found = re.search(r"^_adapters=(\S+)", PKGBUILD, re.M)
-        self.assertEqual(found.group(1), addons.ASTERISM_VERSION)
         self.assertEqual(re.search(r"^pkgver=(\S+)", PKGBUILD, re.M).group(1), addons.ASTERISM_VERSION)
+        adapters = re.search(r"^_adapters=(\S+)", PKGBUILD, re.M).group(1)
+        self.assertEqual(adapters.split(".")[:2], addons.ASTERISM_VERSION.split(".")[:2])
+        self.assertLessEqual(addons.version_tuple(adapters), addons.version_tuple(addons.ASTERISM_VERSION))
+
+    def test_manuals_name_this_version(self):
+        """Each built manual's footer names this Asterism version (docs/manual/build.py --all)."""
+        import shutil
+        import subprocess
+        import addons
+        if shutil.which("pdftotext") is None:
+            self.skipTest("pdftotext not installed")
+        for pdf in sorted((ROOT / "data").glob("user-manual*.pdf")):
+            with self.subTest(pdf=pdf.name):
+                text = subprocess.run(["pdftotext", "-f", "5", "-l", "5", str(pdf), "-"], capture_output=True,
+                                      text=True, timeout=30).stdout
+                self.assertIn(f"Asterism {addons.ASTERISM_VERSION}", text)
 
     def test_unpacker_takes_every_file_an_add_on_may_have(self):
         source = (ROOT / "packaging/unpack-adapters.py").read_text()

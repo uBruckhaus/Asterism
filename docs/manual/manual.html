@@ -108,7 +108,8 @@
   <h2 id="safety-promise">Nothing changes without a preview</h2>
   <p>Every change to an agent's settings is shown first, line by line, before anything is written.
   The old file is kept as a backup, and the bar that appears after the change has <b>Undo</b>. The
-  app never asks for administrator rights.</p>
+  app itself never runs with administrator rights; only installing an agent that comes as a system
+  package asks for your password, in a terminal you watch.</p>
 </section>
 
 <!-- ============================== 2 Installation ============================== -->
@@ -926,7 +927,9 @@
 <section class="chapter" id="privacy">
   <h1>Privacy and safety</h1>
   <ul>
-    <li><b>No administrator rights.</b> The app never asks for root.</li>
+    <li><b>No administrator rights for the app.</b> It never runs as root and never sees a password.
+      Installing an agent that comes as a system package (such as Hermes or OpenClaw) runs the system's
+      package manager through <code>sudo</code> in a terminal you watch, after showing you the command.</li>
     <li><b>No credentials read.</b> It reads the agents' settings, but never their credential files.
       Whether an agent is signed in is judged from whether such a file exists. Values of keys and
       headers are never shown.</li>
