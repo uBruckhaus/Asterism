@@ -42,7 +42,7 @@
       <tr><th>Settings folder</th><td><code>~/.config/asterism/</code></td><td><code>~/.config/omarchy/ai-agents-map/</code></td></tr>
     </tbody>
   </table>
-  <p>Everything else — the cards, the map, connecting by drawing, local LLMs, models, MCP servers
+  <p>Everything else — My setup, the map, connecting by drawing, local LLMs, models, MCP servers
   and skills — is the same in both. Where something applies to only one edition, it is marked
   <span class="badge">Asterism</span> or <span class="badge omarchy">Omarchy</span>.</p>
 
@@ -52,7 +52,7 @@
       <tr><th scope="row"><b>Add</b></th><td>A button, tab or menu item in the window.</td></tr>
       <tr><th scope="row">Settings › <b>Look</b></th><td>A path through the interface: open Settings, then <b>Look</b>.</td></tr>
       <tr><th scope="row"><code>~/.agents/skills</code></th><td>A file, folder or command. <code>~</code> is your home folder.</td></tr>
-      <tr><th scope="row"><kbd>Ctrl</kbd>+<kbd>B</kbd></th><td>A keyboard shortcut.</td></tr>
+      <tr><th scope="row"><kbd>Ctrl</kbd>+<kbd>,</kbd></th><td>A keyboard shortcut.</td></tr>
     </tbody>
   </table>
   <div class="note"><p><b>Note</b> Notes add useful background.</p></div>
@@ -75,8 +75,8 @@
   setup by drawing lines.</p>
 
   <div class="figure wide">
-    <img src="images/main-window.jpg" alt="The main window: cards on the left, the map on the right, the legend open">
-    <p class="caption">The main window with the cards on the left, the map on the right and the legend open.</p>
+    <img src="images/main-window.jpg" alt="The main window: the health check and hints at the top, the GPU meters, and the map across the whole width: MCP servers and skills, agents with a start button, LLM providers and models">
+    <p class="caption">The main window: the map across the whole width, with the health check and hints above it.</p>
   </div>
 
   <h2 id="what-it-does">What it does</h2>
@@ -174,55 +174,67 @@
   <div class="figure wide annotated">
     <div class="shot">
       <img src="images/main-window.jpg" alt="The main window with numbered areas">
-      <span class="pin" style="left:3.6%;top:0.8%">1</span>
-      <span class="pin" style="left:67.6%;top:0.8%">2</span>
-      <span class="pin" style="left:85.6%;top:4.6%">3</span>
-      <span class="pin" style="left:0.3%;top:10.2%">4</span>
-      <span class="pin" style="left:16%;top:7.0%">5</span>
-      <span class="pin" style="left:16%;top:15.4%">6</span>
-      <span class="pin" style="left:39.2%;top:20.2%">7</span>
+      <span class="pin" style="left:61.4%;top:2.7%">1</span>
+      <span class="pin" style="left:84.4%;top:5.4%">2</span>
+      <span class="pin" style="left:0.4%;top:12.2%">3</span>
+      <span class="pin" style="left:0.4%;top:17.6%">4</span>
+      <span class="pin" style="left:6.2%;top:22.4%">5</span>
+      <span class="pin" style="left:29.7%;top:33%">6</span>
+      <span class="pin" style="left:32.6%;top:38.6%">7</span>
+      <span class="pin" style="left:43.7%;top:47.8%">8</span>
     </div>
     <p class="caption">The main window. The numbers match the list below.</p>
   </div>
 
   <ol class="legend-list">
-    <li><b>Sidebar button</b> — hides or shows the cards (<kbd>Ctrl</kbd>+<kbd>B</kbd>).</li>
-    <li><b>My setup</b> — every agent, local LLM, MCP server, skill folder and model as a card: switch on,
-      update, remove (see below). <b>All · Online · Local LLMs</b> — what the map shows.</li>
-    <li><b>ⓘ</b> the legend (what every dot, line and mark on the map means), the add-ons
+    <li><b>My setup</b> — every agent, local LLM, MCP server, skill folder and model as a card: install,
+      update, sign in, remove (see below). <b>All · Online · Local LLMs</b> — what the map shows.</li>
+    <li><b>ⓘ</b> the legend (what every dot, line and mark on the map means; only on the map), the add-ons
       <span class="badge">Asterism</span>, <b>?</b> Help (<kbd>F1</kbd>) and the gear for Settings
       (<kbd>Ctrl</kbd>+<kbd>,</kbd>).</li>
-    <li><b>Cards</b> — Agents, Local LLMs, MCP servers, Skills. The two buttons at the top switch
-      between cards and a compact tree. Hints and updates collect at the bottom.</li>
+    <li><b>Health check</b> — how well the setup works; <b>Open ›</b> for the details.</li>
+    <li><b>Hints</b> — new programs or skills found on this PC, updates, and what is on this PC but not
+      on the map, each with a button that does it.</li>
     <li><b>GPU memory</b> and <b>GPU activity</b> — how the graphics card is used right now.</li>
     <li><b>Show</b> toggles — shorten the map to the categories you are working on.</li>
-    <li><b>The map</b> — MCP servers and skills ← agents → LLM providers → models.</li>
+    <li><b>The map</b> — MCP servers and skills ← agents → LLM providers → models, across the whole width.</li>
+    <li><b>▶</b> on an agent's box starts it in a terminal in the window; while it runs there, the button
+      brings its terminal back.</li>
   </ol>
 
   <h2 id="my-setup">My setup</h2>
   <p>The map shows only what is set up: installed agents and local LLMs, the MCP servers and skill
   folders agents use, and models. Everything else is done on <b>My setup</b> (the button in the
-  header), one card per item:</p>
+  header), one card per item, in sections that fold away with a click on their heading:</p>
   <ul>
-    <li><b>AI agents, Local LLMs, Online providers</b> <span class="badge">Asterism</span> — click a
-      card to tick or untick it, then <b>Apply</b>: the add-on is switched on or off. Switching off
-      takes it off the map; nothing is deleted.</li>
+    <li><b>How things get onto your map</b> — a folded card at the top; open it for what puts an agent,
+      a provider, an MCP server or a model on the map.</li>
+    <li><b>AI agents, Local LLMs</b> — every one the app knows. A card with a blue frame is installed on
+      this PC; a grey one is not, and has <b>Install</b> where installed ones have <b>Uninstall</b>.
+      <span class="badge omarchy">Omarchy</span> A click on an installed card opens its details.
+      <span class="badge">Asterism</span> A click ticks or unticks the card (✓), then <b>Apply</b>
+      switches its add-on on or off. Switching off takes it off the map; nothing is deleted.</li>
+    <li><b>Online providers</b> <span class="badge">Asterism</span> — the online providers' add-on; its
+      menu has <b>Sign in to …</b> for each installed agent that uses them.</li>
     <li><b>MCP servers, Skills, Models</b> — a card for each one that is installed. A click opens its
-      details (a model: its menu). The dashed card at the end of a section adds one:
+      details (a model: its menu). The card with a <b>+</b> at the end of a section adds one:
       <b>Add MCP server</b>, <b>Add skills</b>, <b>Add model</b>, <b>Get add-ons</b>.</li>
-    <li><b>⋯</b> or a right-click on a card opens the same menu as the box on the map: update, start or
-      stop, details, uninstall or remove, move a model.</li>
+    <li><b>⋯</b> or a right-click on a card opens the same menu as the box on the map: update, sign in,
+      start or stop, details, uninstall or remove, move a model.</li>
     <li>A yellow <b>↑ version</b> on a card means an update is waiting; its menu has <b>Update</b>.</li>
+    <li><b>Refresh</b> (<kbd>F5</kbd>) looks again at what is installed, set up and signed in.</li>
   </ul>
   <div class="figure">
-    <img src="images/my-setup.jpg" alt="My setup: AI agents as cards; Claude Code, Hermes, OpenCode and Pi ticked with a blue frame, Claude Code with a yellow 2.1.303 update badge; its menu is open with Update to 2.1.303, Uninstall, Start here, Start in terminal, Details and Add-on">
-    <p class="caption">My setup: the ticked agents are on the map; the menu of Claude Code offers its update.</p>
+    <img src="images/my-setup.jpg" alt="My setup: the folded card How things get onto your map, then AI agents as cards; installed ones with a blue frame, ticked ones with a check mark, Gemini CLI, Oh My Pi, Antigravity CLI and OpenClaw grey; the menu of Claude Code is open with Uninstall, Sign in, Start here, Start in terminal, Details and Add-on">
+    <p class="caption">My setup: installed agents have a blue frame, switched-on ones a ✓; the menu of Claude Code.</p>
   </div>
   <div class="figure">
-    <img src="images/my-setup-tools.jpg" alt="My setup further down: MCP servers and skill folders as cards with the agents that use them, dashed cards Add MCP server and Add skills, then the models of llama.cpp">
-    <p class="caption">MCP servers, skills and models, each section with a card to add one.</p>
+    <img src="images/my-setup-tools.jpg" alt="My setup further down: MCP servers and skill folders as cards with the agents that use them, and the cards Add MCP server and Add skills">
+    <p class="caption">MCP servers and skills, each section with a card to add one.</p>
   </div>
-  <p>There is nothing to hide: what you do not want on the map is switched off or removed here.</p>
+  <p>There is nothing to hide: what you do not want on the map is switched off or removed here. When an
+  install or a sign-in runs in a terminal in the window, <b>Back</b> (or <b>×</b> on its tab) returns to
+  the page it was started from.</p>
 
   <h2 id="views">Choosing what the map shows</h2>
   <table class="first-nowrap">
@@ -239,25 +251,26 @@
   <h2 id="map">Working with the map</h2>
   <ul>
     <li><b>Hover</b> a box to light it up together with everything it is joined to.</li>
-    <li><b>Click</b> a box or a card to select it (✓); <kbd>Shift</kbd>+click adds more.
+    <li><b>Click</b> a box to select it (✓); <kbd>Shift</kbd>+click adds more.
       <kbd>Esc</kbd> or <b>Clear selection</b> clears it.</li>
     <li>The <b>pin</b> at a box's top-right corner keeps its connections lit while you look elsewhere.</li>
-    <li><b>Right-click</b> a box for everything its card offers: start or stop, details, install,
-      models, update, remove, and more.</li>
+    <li><b>Right-click</b> a box for everything its card on My setup offers: start or stop, details,
+      install, sign in, models, update, remove, and more.</li>
+    <li><b>▶</b> on an agent's box starts it in a terminal in the window.</li>
+    <li>The agents always stay in the middle of the map's visible part while you scroll.</li>
     <li>Each agent's active path — agent → provider in use → its model — is drawn bold. While an
       agent is working, light runs along that line.</li>
     <li>When a program that is not on the map uses a local LLM, the line from that LLM to the model
       turns bold in a colour of its own (purple or cyan, whichever stands out from the theme's other
       colours), and light runs along it. See <a href="#outside-use">Used by other apps</a>.</li>
     <li>Zoom with <b>− 100&nbsp;% +</b>, <kbd>Ctrl</kbd>+scroll or <kbd>Ctrl</kbd>+<kbd>+</kbd> / <kbd>−</kbd> / <kbd>0</kbd>.</li>
-    <li>Drag the line between the cards and the map to make the cards wider; double-click it to go
-      back to the default width.</li>
   </ul>
   <div class="tip"><p><b>Tip</b> In a narrow window (below about 1300 pixels, such as half the
-  screen) only the cards are shown and pages open over them. Maximize the window to see the map.</p></div>
+  screen) the map scrolls sideways, and <b>Maximize for more room</b> in the header gives it the
+  whole screen (Settings › <b>Too narrow for the map</b> chooses what that button does).</p></div>
 
   <h2 id="health">Health check</h2>
-  <p>The <b>Health check</b> line above the cards sums up how well the setup works, for example
+  <p>The <b>Health check</b> line above the map sums up how well the setup works, for example
   <i>1 thing to fix · 3 tips</i>. <b>Open ›</b> lists by area — this PC, agents, local LLMs and
   models, tools — what is fine, what are tips and what to fix, each with what to do and, where
   possible, a button that does it. It also tells you what the setup is good for (everyday help,
@@ -266,7 +279,7 @@
   never while the map is still empty.</p>
 
   <h2 id="hints">Hints and updates</h2>
-  <p>Below the cards, a hint area appears when there is something to say: new programs or skills
+  <p>Above the map, below the health check, hint lines appear when there is something to say: new programs or skills
   found on this PC, updates for installed agents and local LLMs, and how many more things you could
   set up. Updates are checked in the background when the window opens, at most every six hours.
   Nothing is installed by the check itself; an update starts only when you click <b>Update</b>.</p>
@@ -276,9 +289,10 @@
 <section class="chapter" id="agents">
   <h1>Agents</h1>
 
-  <h2 id="agent-cards">Agent cards and details</h2>
-  <p>Every coding agent is listed, installed ones first with their version; the default agent is
-  marked. Click <b>ⓘ Details</b> on a card to see:</p>
+  <h2 id="agent-cards">Agent details</h2>
+  <p>Every coding agent has a card on My setup, installed ones with their version. Click an installed
+  agent's card (<span class="badge">Asterism</span> or <b>⋯</b> › <b>Details</b>), or right-click its box on
+  the map › <b>Details</b>, to see:</p>
   <ul>
     <li>whether the agent is ready (and if not, why), whether it is running now or when it was last used;</li>
     <li>today's and the last seven days' tokens and sessions, the plan, a chart of tokens per day,
@@ -299,7 +313,8 @@
 
   <h2 id="running-agents">Starting and stopping agents</h2>
   <ul>
-    <li><b>Start here</b> runs the agent in a terminal inside the window, beside the cards. This needs VTE (<code>vte4</code>).</li>
+    <li><b>▶</b> on the agent's box, or <b>Start here</b> in its menu, runs the agent in a terminal inside
+      the window, in place of the map. This needs VTE (<code>vte4</code>).</li>
     <li><b>Start in terminal</b> opens it in a terminal window of its own.</li>
     <li>While it runs inside the window: <b>Show terminal</b> and <b>Stop</b>. Stop ends the agent and
       everything it started, such as its MCP servers.</li>
@@ -310,8 +325,28 @@
   <p>An agent with an open instance anywhere on the computer gets a green dot and <i>running</i>,
   and the model box it runs with says <i>in use · &lt;agent&gt;</i>.</p>
 
+  <h2 id="sign-in">Signing in</h2>
+  <p><b>Sign in…</b> in an agent's menu (on My setup or on the map) shows what the agent needs and its
+  own ways to sign in:</p>
+  <ul>
+    <li><b>A subscription or an account</b> — the agent's own sign-in runs in a terminal in the window
+      (for example <code>claude auth login</code> or <code>codex login</code>). Your password or browser
+      login stays between you and the agent; the app never sees it. Where the agent asks for it,
+      the terminal says what to type (Pi and Copilot: <code>/login</code>).</li>
+    <li><b>An API key</b> — for agents that read one: the key goes into a password field, then
+      straight to the agent's own command (Codex stores it itself) or into the file the agent reads
+      (Gemini: <code>~/.gemini/.env</code>, readable only by you). It never goes into a command line,
+      a log or the app's settings, and the app does not keep it. Claude Code's API billing is its own
+      Anthropic Console sign-in, so no key passes through the app.</li>
+  </ul>
+  <div class="figure">
+    <img src="images/sign-in.jpg" alt="The Sign in to Claude Code dialog: what Claude Code needs, a note that the agent's own sign-in runs in a terminal, and the buttons API billing (Anthropic Console), Claude subscription and Cancel">
+    <p class="caption">Signing in to Claude Code: a subscription or API billing, both with Claude Code's own sign-in.</p>
+  </div>
+  <p>Afterwards the map shows the agent's online provider and its models.</p>
+
   <h2 id="agent-updates">Updating agents</h2>
-  <p>When a newer version of an installed agent is out, the hint area names it. <b>Update</b> runs
+  <p>When a newer version of an installed agent is out, a hint line above the map names it. <b>Update</b> runs
   the update the same way the agent was installed — for example <code>mise upgrade &lt;tool&gt;</code>
   or <code>claude update</code> — in a terminal window of its own, so you can follow it.</p>
 
@@ -577,7 +612,6 @@
     <tbody>
       <tr><td><b>Language</b></td><td>The system language, or English, Deutsch, Français, Español, Italiano, Português, Nederlands, Polski.</td></tr>
       <tr><td><b>Look</b> <span class="badge omarchy">Omarchy</span></td><td>The Omarchy theme colours, or GNOME's Adwaita look with the system's light/dark mode and accent colour.</td></tr>
-      <tr><td><b>Sidebar</b></td><td>Cards or a compact tree.</td></tr>
       <tr><td><b>Animate active lines</b></td><td>Light runs along the line of a working agent.</td></tr>
       <tr><td><b>Terminal tabs above the map</b></td><td>One tab per agent terminal in the window.</td></tr>
       <tr><td><b>Corners</b></td><td>Like windows, rounded or square.</td></tr>
@@ -825,7 +859,7 @@
   <h2 id="addons-new-harness">A new agent on your computer</h2>
   <p>When you install an agent Asterism does not know yet, it looks in the catalog (Settings ›
   <b>Look for add-ons online</b>, on by default: the list is read from GitHub every few hours, nothing
-  is sent but the request). If an add-on knows that agent, you see a line at the bottom of the cards
+  is sent but the request). If an add-on knows that agent, you see a hint line above the map
   (<i>"Kilo Code is on this PC but not on the map"</i>) and a card under <b>Suggested for this PC</b>; one click installs it. If no add-on exists yet, the
   agent's details say so, with a link to ask for one.</p>
 </section>
@@ -856,7 +890,7 @@
   <table class="faq">
     <thead><tr><th>Problem</th><th>What to do</th></tr></thead>
     <tbody>
-      <tr><td>The map is missing; only cards are shown.</td><td>The window is narrower than about 1300 pixels. Maximize it, or press <kbd>Ctrl</kbd>+<kbd>B</kbd> to hide the cards.</td></tr>
+      <tr><td>The map is cramped or cut off.</td><td>The window is narrower than about 1300 pixels. Click <b>Maximize for more room</b> in the header, or zoom out (<kbd>Ctrl</kbd>+<kbd>−</kbd>).</td></tr>
       <tr><td>A box I expect is not on the map.</td><td>The map shows only what is set up: check <b>My setup</b> (an add-on switched off, an MCP server no agent uses), the <b>All · Online · Local LLMs</b> switch and the <b>Show</b> toggles.</td></tr>
       <tr><td><b>Start here</b> is missing or does nothing.</td><td>Install VTE for GTK&nbsp;4 (<code>vte4</code>), or use <b>Start in terminal</b>.</td></tr>
       <tr><td>Agent icons are boxes.</td><td>Install a Nerd Font (Symbols Nerd Font).</td></tr>
@@ -879,7 +913,7 @@
     <tbody>
       <tr><th scope="row"><kbd>F1</kbd></th><td>Help</td></tr>
       <tr><th scope="row"><kbd>Ctrl</kbd>+<kbd>,</kbd></th><td>Settings</td></tr>
-      <tr><th scope="row"><kbd>Ctrl</kbd>+<kbd>B</kbd></th><td>Show or hide the cards</td></tr>
+      <tr><th scope="row"><kbd>F5</kbd></th><td>Refresh My setup</td></tr>
       <tr><th scope="row"><kbd>Ctrl</kbd>+<kbd>+</kbd> / <kbd>Ctrl</kbd>+<kbd>−</kbd> / <kbd>Ctrl</kbd>+<kbd>0</kbd></th><td>Zoom the map in, out, back to 100&nbsp;%</td></tr>
       <tr><th scope="row"><kbd>Ctrl</kbd>+scroll</th><td>Zoom the map</td></tr>
       <tr><th scope="row"><kbd>Shift</kbd>+click</th><td>Add to or remove from the selection</td></tr>
