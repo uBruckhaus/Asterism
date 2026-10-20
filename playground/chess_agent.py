@@ -18,13 +18,18 @@ import chess_rules as rules
 import harnesses
 from i18n import _
 
-# Thinking time: how long one answer may take, how hard the model thinks (the adapter's ask.effort
-# options for that level) and how strongly the agent is asked to play.
-THINKING = {"quick": (30, "at the level of a casual club player"),
-            "normal": (90, "strongly, at the level of a good club player"),
-            "deep": (180, "at master level"),
-            "max": (360, "as strongly as you can")}
+# Thinking time: how long one answer may take (seconds) and how hard the model thinks (the
+# adapter's ask.effort options for that level).
+THINKING = {"quick": 30, "normal": 90, "deep": 180, "max": 360}
 DEFAULT_THINKING = "normal"
+# Strength: how strongly the agent is asked to play (the chess page's Strength).
+STRENGTH = {"beginner": "like a beginner who has just learned the rules: simple moves, and now and then "
+                        "miss a threat or leave a piece undefended",
+            "casual": "at the level of a casual club player",
+            "club": "strongly, at the level of a good club player",
+            "master": "at master level",
+            "max": "as strongly as you can"}
+DEFAULT_STRENGTH = "club"
 MAX_ANSWER = 64 * 1024     # bytes read of it
 MAX_COMMENT = 600          # characters of the agent's words shown
 LANGUAGES = {"de": "German", "fr": "French", "es": "Spanish", "it": "Italian", "pt": "Portuguese",
@@ -53,11 +58,11 @@ def side_name(side: str) -> str:
 
 
 def seconds(level: str) -> int:
-    return THINKING.get(level, THINKING[DEFAULT_THINKING])[0]
+    return THINKING.get(level, THINKING[DEFAULT_THINKING])
 
 
 def prompt(start_pos: rules.Position, moves: list, agent_side: str, language: str = "en",
-           level: str = DEFAULT_THINKING) -> str:
+           level: str = DEFAULT_THINKING, strength: str = DEFAULT_STRENGTH) -> str:
     """The text the agent gets for its next move."""
     pos = start_pos
     for move in moves:
@@ -79,7 +84,7 @@ def prompt(start_pos: rules.Position, moves: list, agent_side: str, language: st
         lines.append("You make the first move.")
     lines += [
         f"Your legal moves: {legal}",
-        f"Play {THINKING.get(level, THINKING[DEFAULT_THINKING])[1]}; you have about {seconds(level) * 2 // 3} "
+        f"Play {STRENGTH.get(strength, STRENGTH[DEFAULT_STRENGTH])}; you have about {seconds(level) * 2 // 3} "
         "seconds to think.",
         "Answer with your move in standard algebraic notation (SAN) alone on the first line.",
         "Then say in at most two short sentences what the idea of your move is"

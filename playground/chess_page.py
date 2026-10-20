@@ -1,6 +1,5 @@
-"""The chess page: a game against an agent that is set up (the header's chess button, with it selected).
-It opens in a window of its own (floating or placed like any other) or as a page of the main window,
-as Settings › Chess opens in says; the game is the same in each.
+"""AI Playground's chess tab (a mixin of ai_playground.Playground): a game against an agent that
+is set up, or two agents against each other.
 
 The board in the middle; above it a card for each kind of Black piece, below it one for each kind
 of White piece, with how many are on the board. A choice above starts a new game with White or
@@ -18,14 +17,12 @@ import time
 import gi
 
 gi.require_version("Gtk", "4.0")
-gi.require_version("Adw", "1")
 gi.require_version("PangoCairo", "1.0")
-from gi.repository import Adw, Gdk, GLib, Gtk, Pango, PangoCairo  # noqa: E402
+from gi.repository import Gdk, GLib, Gtk, Pango, PangoCairo  # noqa: E402
 
 import ai_core  # noqa: E402
 import chess_agent  # noqa: E402
 import chess_rules as rules  # noqa: E402
-import desktop  # noqa: E402
 import i18n  # noqa: E402
 from i18n import _, N_  # noqa: E402
 
@@ -35,13 +32,21 @@ KINDS = ("K", "Q", "R", "B", "N", "P")
 KIND_NAMES = {"K": N_("King"), "Q": N_("Queen"), "R": N_("Rook"), "B": N_("Bishop"), "N": N_("Knight"),
               "P": N_("Pawn")}
 CHOICES = (("white", N_("New game with White")), ("black", N_("New game with Black")),
-           ("define", N_("Define position")))
+           ("agents", N_("Agent against agent")), ("define", N_("Define position")))
+AGENTS_PAUSE_MS = 1200     # agent against agent: a moment to see each move before the next is asked
 # Thinking time (chess_agent.THINKING): longer is stronger.
 THINKING_LABELS = (("quick", N_("Quick (30 s)")), ("normal", N_("Normal (1½ min)")), ("deep", N_("Deep (3 min)")),
                    ("max", N_("Maximum (6 min)")))
+# Strength (chess_agent.STRENGTH): how strongly the agent is asked to play.
+STRENGTH_LABELS = (("beginner", N_("Beginner")), ("casual", N_("Casual player")), ("club", N_("Club player")),
+                   ("master", N_("Master")), ("max", N_("As strong as it can")))
+# Board and pieces (settings chess_board, chess_pieces): the squares' colours (light, dark; "theme": from
+# the theme's colours) and how the pieces are drawn.
+BOARDS = (("theme", N_("Theme colours"), None), ("wood", N_("Wood"), ("#f0d9b5", "#b58863")),
+          ("green", N_("Green"), ("#eeeed2", "#769656")), ("blue", N_("Blue"), ("#dee3e6", "#8ca2ad")),
+          ("grey", N_("Grey"), ("#e6e6e6", "#9a9a9a")))
+PIECE_STYLES = (("classic", N_("Classic")), ("flat", N_("Flat")), ("theme", N_("Theme colours")))
 BOARD_MIN, BOARD_MAX = 320, 560
-CHESS_WINDOW_SIZE = (760, 960)    # the chess window's first size: the biggest board with its cards
-CHESS_MODES = ("floating", "window", "page")   # Settings › Chess opens in (settings_schema "chess_window")
 TAKEN_W = 40                     # the columns of captured pieces beside the board
 TAKEN_ORDER = "QRBNP"            # how they are listed: the strongest first
 # Fonts whose chess glyphs are solid shapes (others, Font Awesome for one, draw them differently).
@@ -68,40 +73,12 @@ class ChessPage:
     # --- building -------------------------------------------------------------------------------
 
     def build_chess_page(self) -> Gtk.Widget:
-        """The main window's chess page: a holder for the game, which moves into the chess window
-        when it opens there (chess_place)."""
         page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=ai_core.GAP, vexpand=True)
-        self.chess_widget = page
-        self.chess_window = None
-        self.chess_window_box = None
         header = Gtk.Box(spacing=8)
-        back = Gtk.Button()
-        back.add_css_class("flat")
-        back.add_css_class("am-header-btn")
-        back.add_css_class("am-back-bordered")
-        back_box = Gtk.Box(spacing=6)
-        self.chess_back_icon = Gtk.Image.new_from_icon_name("go-previous-symbolic")
-        back_box.append(self.chess_back_icon)
-        self.chess_back_label = Gtk.Label(label=_("Back"))
-        back_box.append(self.chess_back_label)
-        self.chess_back_keys = Gtk.Label(label="· ⌫")
-        back_box.append(self.chess_back_keys)
-        back.set_child(back_box)
-        back.set_tooltip_text(_("Back (Backspace, Esc)"))
-        back.connect("clicked", lambda *_a: self.close_chess())
-        header.append(back)
-        self.chess_back = back
         self.chess_title = Gtk.Label(xalign=0, hexpand=True)
         self.chess_title.add_css_class("am-section-title")
         header.append(self.chess_title)
-        # Back keeps the game going (the agent's card on the map leads back to it); × ends it.
-        end = Gtk.Button.new_from_icon_name("window-close-symbolic")
-        end.add_css_class("flat")
-        end.add_css_class("am-header-btn")
-        end.set_tooltip_text(_("End the game and close the page"))
-        end.connect("clicked", lambda *_a: self.end_chess())
-        header.append(end)
-        self.chess_end = end
+        header.append(self.build_chess_look())
         page.append(header)
         rule = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
         rule.add_css_class("am-settings-rule")
@@ -118,16 +95,40 @@ class ChessPage:
         self.chess_choice.connect("notify::selected", lambda *_a: self.chess_choice_ready and self.chess_start_choice())
         self.chess_choice_ready = False
         controls.append(self.chess_choice)
+        # Agent against agent: who plays White against the opened agent (Black); it may be the same one.
+        self.chess_rival_agents = []
+        self.chess_rival_choice = Gtk.DropDown(model=Gtk.StringList(), visible=False)
+        self.chess_rival_choice.set_tooltip_text(_("The agent that plays White against it"))
+        self.chess_rival_choice.connect("notify::selected", lambda *_a: self.chess_choice_ready
+                                        and CHOICES[self.chess_choice.get_selected()][0] == "agents"
+                                        and self.chess_start_choice())
+        controls.append(self.chess_rival_choice)
         self.chess_thinking_choice = Gtk.DropDown.new_from_strings([_(label) for _key, label in THINKING_LABELS])
-        self.chess_thinking_choice.set_selected([k for k, _l in THINKING_LABELS].index(chess_agent.DEFAULT_THINKING))
+        self.chess_thinking_choice.set_selected([k for k, _l in THINKING_LABELS].index(
+            self.chess_saved("chess_thinking", THINKING_LABELS, chess_agent.DEFAULT_THINKING)))
         self.chess_thinking_choice.set_tooltip_text(
-            _("Thinking time: how long the agent may take for a move. Longer also lets its model think harder "
-              "and asks it to play more strongly."))
+            _("Thinking time: how long the agent may take for a move. Longer also lets its model think harder."))
+        self.chess_thinking_choice.connect("notify::selected", lambda d, *_a: self.save_setting(
+            chess_thinking=THINKING_LABELS[d.get_selected()][0]))
         controls.append(self.chess_thinking_choice)
+        self.chess_strength_choice = Gtk.DropDown.new_from_strings([_(label) for _key, label in STRENGTH_LABELS])
+        self.chess_strength_choice.set_selected([k for k, _l in STRENGTH_LABELS].index(
+            self.chess_saved("chess_strength", STRENGTH_LABELS, chess_agent.DEFAULT_STRENGTH)))
+        self.chess_strength_choice.set_tooltip_text(
+            _("Strength: how strongly the agent is asked to play. A beginner makes mistakes now and then; "
+              "the strongest play also wants a long thinking time."))
+        self.chess_strength_choice.connect("notify::selected", lambda d, *_a: self.save_setting(
+            chess_strength=STRENGTH_LABELS[d.get_selected()][0]))
+        controls.append(self.chess_strength_choice)
         start = Gtk.Button(label=_("Start"))
         start.add_css_class("am-small-btn")
         start.connect("clicked", lambda *_a: self.chess_start_choice())
         controls.append(start)
+        self.chess_pause = Gtk.ToggleButton(label=_("Pause"), visible=False)
+        self.chess_pause.add_css_class("am-small-btn")
+        self.chess_pause.set_tooltip_text(_("Agent against agent: no new move is asked for until you go on"))
+        self.chess_pause.connect("toggled", lambda b: None if b.get_active() else self.chess_ask_agent())
+        controls.append(self.chess_pause)
         self.chess_spinner = Gtk.Spinner()
         controls.append(self.chess_spinner)
         body.append(controls)
@@ -231,98 +232,73 @@ class ChessPage:
         self.chess_side = BOARD_MAX
         board.add_tick_callback(self.chess_fit)
         self.chess_agent = None
+        self.chess_rival = None
+        self.chess_said_by = ""
         self.chess_token = 0
         self.chess_reset(rules.start(), "w")
-        holder = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, vexpand=True)
-        holder.append(page)
-        self.chess_holder = holder
-        return holder
-
-    # --- where it shows: a page of the main window, or a window of its own ------------------------
+        return page
 
     @staticmethod
-    def chess_opens_in() -> str:
-        mode = ai_core.setting("chess_window")
-        return mode if mode in CHESS_MODES else CHESS_MODES[0]
+    def chess_saved(key: str, choices, default: str) -> str:
+        value = ai_core.setting(key)
+        return value if value in [c[0] for c in choices] else default
 
-    def chess_window_card(self) -> Gtk.Box:
-        """The chess window, made the first time: themed as the main window (its name carries the
-        CSS), closing it only hides it (the game goes on), Esc and Backspace close it."""
-        if self.chess_window is None:
-            window = Adw.ApplicationWindow(application=self)
-            window.set_decorated(desktop.decorated())
-            window.set_name("aiagentsmap-window")
-            window.set_icon_name(desktop.app_id())
-            window.set_title(_("Chess"))
-            window.set_default_size(*CHESS_WINDOW_SIZE)
-            window.connect("close-request", lambda *_a: (self.close_chess(), True)[1])
-            keys = Gtk.EventControllerKey()
-            keys.connect("key-pressed", self.chess_window_key)
-            window.add_controller(keys)
-            card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, hexpand=True, vexpand=True)
-            card.add_css_class("am-card")
-            if desktop.decorated():
-                toolbar = Adw.ToolbarView()
-                toolbar.add_top_bar(Adw.HeaderBar())
-                toolbar.set_content(card)
-                window.set_content(toolbar)
-            else:
-                window.set_content(card)
-            self.chess_window = window
-            self.chess_window_box = card
-        return self.chess_window_box
+    def build_chess_look(self) -> Gtk.Widget:
+        """The header's Board and pieces menu: the squares' colours, how the pieces are drawn, and
+        the coordinates; the board shows each change at once."""
+        button = Gtk.MenuButton(valign=Gtk.Align.CENTER)
+        mark = Gtk.Label(label="\U000F03D8")                 # Nerd Font palette
+        mark.add_css_class("am-gear")
+        button.set_child(mark)
+        button.add_css_class("am-gear-btn")
+        button.set_tooltip_text(_("Board and pieces"))
+        grid = Gtk.Grid(row_spacing=8, column_spacing=12)
+        grid.set_margin_top(8)
+        grid.set_margin_bottom(8)
+        grid.set_margin_start(8)
+        grid.set_margin_end(8)
+        self.chess_board_style = self.chess_saved("chess_board", BOARDS, "theme")
+        self.chess_piece_style = self.chess_saved("chess_pieces", PIECE_STYLES, "classic")
+        self.chess_coordinates = ai_core.setting("chess_coordinates") is not False
 
-    def chess_window_key(self, _controller, keyval, _keycode, _state) -> bool:
-        if keyval in (Gdk.KEY_Escape, Gdk.KEY_BackSpace):
-            self.close_chess()
-            return True
-        return False
+        def choice(row, title, entries, current, on_pick):
+            label = Gtk.Label(label=title, xalign=0)
+            label.add_css_class("am-dim")
+            grid.attach(label, 0, row, 1, 1)
+            drop = Gtk.DropDown.new_from_strings([_(e[1]) for e in entries])
+            drop.set_selected([e[0] for e in entries].index(current))
+            drop.connect("notify::selected", lambda d, *_a: on_pick(entries[d.get_selected()][0]))
+            grid.attach(drop, 1, row, 1, 1)
+        choice(0, _("Board"), BOARDS, self.chess_board_style,
+               lambda key: self.chess_set_look(chess_board=key))
+        choice(1, _("Pieces"), PIECE_STYLES, self.chess_piece_style,
+               lambda key: self.chess_set_look(chess_pieces=key))
+        label = Gtk.Label(label=_("Coordinates"), xalign=0)
+        label.add_css_class("am-dim")
+        grid.attach(label, 0, 2, 1, 1)
+        switch = Gtk.Switch(active=self.chess_coordinates, halign=Gtk.Align.START)
+        switch.connect("notify::active", lambda w, *_a: self.chess_set_look(chess_coordinates=w.get_active()))
+        grid.attach(switch, 1, 2, 1, 1)
+        popover = Gtk.Popover()
+        popover.set_child(grid)
+        button.set_popover(popover)
+        return button
 
-    def chess_in_window(self) -> bool:
-        return self.chess_window is not None and self.chess_widget.get_parent() is self.chess_window_box
+    def chess_set_look(self, **values):
+        self.save_setting(**values)
+        self.chess_board_style = values.get("chess_board", self.chess_board_style)
+        self.chess_piece_style = values.get("chess_pieces", self.chess_piece_style)
+        self.chess_coordinates = values.get("chess_coordinates", self.chess_coordinates)
+        self.chess_board.queue_draw()
 
-    def chess_place(self):
-        """The game into the chess window or the main window's chess page, as Settings say. In the
-        window its Back is Close (the desktop's own close button where it draws a title bar)."""
-        in_window = self.chess_opens_in() != "page"
-        target = self.chess_window_card() if in_window else self.chess_holder
-        parent = self.chess_widget.get_parent()
-        if parent is not target:
-            if parent is not None:
-                parent.remove(self.chess_widget)
-            target.append(self.chess_widget)
-        self.chess_back_icon.set_visible(not in_window)
-        self.chess_back_label.set_label(_("Close") if in_window else _("Back"))
-        self.chess_back_keys.set_label("· Esc" if in_window else "· ⌫")
-        self.chess_back.set_tooltip_text(_("Close (Esc); the game goes on") if in_window
-                                         else _("Back (Backspace, Esc)"))
-        self.chess_back.set_visible(not (in_window and desktop.decorated()))
-        self.chess_end.set_tooltip_text(_("End the game and close the window") if in_window
-                                        else _("End the game and close the page"))
+    def chess_squares(self, bg, fg, accent):
+        """The light and dark squares' colours of the chosen board."""
+        fixed = next((c for k, _l, c in BOARDS if k == self.chess_board_style), None)
+        if fixed is None:
+            return _mix(bg, fg, 0.62), _mix(bg, accent, 0.45)
+        return _rgb(fixed[0]), _rgb(fixed[1])
 
-    def set_chess_opens_in(self, mode: str):
-        """Settings › Chess opens in: an open game goes on; the knight opens it in the new place."""
-        self.save_setting(chess_window=mode)
-        if self.chess_window is not None:
-            self.chess_window.set_visible(False)
-        self.chess_place()
-
-    def chess_show_window(self, title: str, floating: bool):
-        """To the front; under Hyprland floated at its size and centred (it would be tiled), once
-        Hyprland lists it (a few tenths of a second after present)."""
-        self.chess_window.present()
-        tries = [0]
-
-        def place():
-            if self.chess_window is None or not self.chess_window.get_visible():
-                return GLib.SOURCE_REMOVE
-            if desktop.place_window(title, floating, CHESS_WINDOW_SIZE):
-                return GLib.SOURCE_REMOVE
-            tries[0] += 1
-            return tries[0] < 15
-        GLib.timeout_add(100, place)
-
-    # --- open / close ------------------------------------------------------------------------------
+    # --- where it shows: a page of the main window, or a window of its own ------------------------
 
     def chess_set_up(self, agent) -> bool:
         """Is the agent set up to play: signed in, or connected to a local LLM it may use."""
@@ -344,11 +320,10 @@ class ChessPage:
         return chess_agent.can_play(agent, agent is not None and agent.installed and self.chess_set_up(agent))
 
     def open_chess(self, agent):
-        """A game against this agent; back to the page, the game goes on where it was."""
+        """A game against this agent (the same agent again: the game goes on)."""
         same = self.chess_agent is not None and self.chess_agent.command == agent.command
         self.chess_agent = agent
-        title = _("Chess") + " · " + agent.name
-        self.chess_title.set_label(title.upper())
+        self.chess_fill_rivals()
         if not same or (not self.chess_moves_played and self.chess_mode != "define"):
             self.chess_choice_ready = False
             self.chess_choice.set_selected(0)
@@ -356,78 +331,49 @@ class ChessPage:
             self.chess_new_game("w")
         else:
             self.chess_refresh()
-        self.chess_place()
-        mode = self.chess_opens_in()
-        if mode == "page":
-            if self.page_name() not in ("settings", "help", "chess"):
-                self.remember_page()                 # back to a terminal or details page, as from Settings
-            self.show_page("chess")
-        else:
-            if self.page_name() == "chess":
-                self.back_to_last_page()
-            self.chess_window.set_title(title)       # place_window finds it by this title
-            self.chess_show_window(title, mode == "floating")
-        self.chess_mark_map()
+        self.chess_title.set_label(self.chess_title_text().upper())
 
-    def close_chess(self):
-        """Back, or closing the chess window: the game goes on (an answer on its way is still
-        played); the knights lead back."""
-        if self.chess_in_window():
-            self.chess_window.set_visible(False)
-        elif self.page_name() == "chess":
-            self.back_to_last_page()
-        self.chess_mark_map()
+    def chess_title_text(self) -> str:
+        """Chess · the agent, or Chess · White's agent – Black's agent."""
+        if self.chess_agent is None:
+            return _("Chess")
+        if self.chess_rival is not None:
+            return _("Chess") + " · " + self.chess_rival.name + " – " + self.chess_agent.name
+        return _("Chess") + " · " + self.chess_agent.name
 
-    def end_chess(self):
-        """× or the agent's stop button: the game ends (an answer on its way is dropped) and the
-        page closes if it is open."""
-        self.chess_reset(rules.start(), "w")
-        self.chess_agent = None
-        if self.chess_window is not None:
-            self.chess_window.set_visible(False)
-        if self.page_name() == "chess":
-            self.back_to_last_page()
-        self.chess_mark_map()
+    def chess_playable_agents(self) -> list:
+        """The agents that can play (the host's agent_list)."""
+        return [a for a in getattr(self, "agent_list", []) if self.can_play_chess(a)]
+
+    def chess_fill_rivals(self):
+        """The rival choice: every agent that plays, the opened one first (it may play itself)."""
+        agents = self.chess_playable_agents()
+        if self.chess_agent is not None:
+            agents = [self.chess_agent] + [a for a in agents if a.command != self.chess_agent.command]
+        current = self.chess_rival.command if self.chess_rival is not None else None
+        ready, self.chess_choice_ready = self.chess_choice_ready, False
+        self.chess_rival_agents = agents
+        self.chess_rival_choice.set_model(Gtk.StringList.new([a.name for a in agents]))
+        commands = [a.command for a in agents]
+        self.chess_rival_choice.set_selected(commands.index(current) if current in commands
+                                             else (1 if len(agents) > 1 else 0))
+        self.chess_choice_ready = ready
+
+    def chess_agent_for(self, side: str):
+        """The agent playing this side; None: you play it."""
+        if side != self.chess_player:
+            return self.chess_agent
+        return self.chess_rival
 
     def chess_game_with(self, agent) -> bool:
         """A game against this agent is open (the page may be closed)."""
         return agent is not None and self.chess_agent is not None and self.chess_agent.command == agent.command
 
-    def chess_selected_agent(self):
-        """The agent selected on the map, where it can play chess."""
-        command = next((i.partition(":")[2] for i in getattr(self, "selection", []) if i.startswith("agent:")), None)
-        agent = next((a for a in getattr(self, "agent_list", []) if a.command == command), None)
-        return agent if agent is not None and self.can_play_chess(agent) else None
-
-    def on_chess_button(self):
-        agent = self.chess_selected_agent() or self.chess_agent
-        if agent is not None:
-            self.open_chess(agent)
-
-    def chess_mark_map(self):
-        """The header's chess button: a game against the selected agent where it plays one, back to
-        the game while one is open, else greyed. While a game is open, on the agent's card a stop
-        button (it ends the game) and a chess button, back to the game."""
-        button = getattr(self, "chess_button", None)
-        if button is not None:
-            agent = self.chess_selected_agent()
-            if agent is not None and not self.chess_game_with(agent):
-                tip = _("Play chess") + "\n" + _("A game of chess against {0}; it is asked for each move").format(agent.name)
-            elif agent is not None or self.chess_agent is not None:
-                tip = _("Back to the chess game")
-            else:
-                tip = _("Play chess: select an agent on the map that plays it (Claude Code, Codex, Hermes or Pi, set up)")
-            button.set_sensitive(agent is not None or self.chess_agent is not None)
-            button.set_tooltip_text(tip)
-        view = getattr(self, "side_map", None)
-        if view is not None:
-            view.chess_node = f"agent:{self.chess_agent.command}" if self.chess_agent is not None else None
-            view.queue_draw()
-
     # --- game state --------------------------------------------------------------------------------
 
-    def chess_reset(self, start_pos, player: str, mode: str = "game"):
+    def chess_reset(self, start_pos, player: str, mode: str = "game", rival=None):
         self.chess_token += 1                       # an answer still on its way is dropped
+        self.chess_rival = rival                    # agent against agent: it plays player's side
         self.chess_start_pos = start_pos
         self.chess_pos = start_pos
         self.chess_moves_played = []
@@ -438,10 +384,17 @@ class ChessPage:
         self.chess_last = None
         self.chess_thinking = False
         self.chess_said = ""
+        self.chess_said_by = ""
         self.chess_error = ""
 
     def chess_start_choice(self):
         key = CHOICES[self.chess_choice.get_selected()][0]
+        self.chess_rival_choice.set_visible(key == "agents")
+        if key == "agents":
+            index = self.chess_rival_choice.get_selected()
+            rival = self.chess_rival_agents[index] if 0 <= index < len(self.chess_rival_agents) else self.chess_agent
+            self.chess_new_game("w", rival=rival)
+            return
         if key == "define":
             self.chess_reset(self.chess_pos, self.chess_player, "define")
             self.chess_turn_choice.set_selected(0 if self.chess_pos.turn == "w" else 1)
@@ -449,10 +402,13 @@ class ChessPage:
         else:
             self.chess_new_game("w" if key == "white" else "b")
 
-    def chess_new_game(self, player: str, start_pos=None):
-        self.chess_reset(start_pos or rules.start(), player)
+    def chess_new_game(self, player: str, start_pos=None, rival=None):
+        self.chess_reset(start_pos or rules.start(), player, rival=rival)
+        self.chess_pause.set_active(False)
+        self.chess_pause.set_visible(rival is not None)
+        self.chess_title.set_label(self.chess_title_text().upper())
         self.chess_refresh()
-        if self.chess_pos.turn != player:
+        if self.chess_agent_for(self.chess_pos.turn) is not None:
             self.chess_ask_agent()
 
     def chess_setup_fill(self, fen: str):
@@ -475,9 +431,8 @@ class ChessPage:
     def chess_over_text(self, pos) -> str:
         state = rules.status(pos)
         if state == "checkmate":
-            winner = "b" if pos.turn == "w" else "w"
-            return _("Checkmate: you win.") if winner == self.chess_player else _("Checkmate: {0} wins.").format(
-                self.chess_agent.name if self.chess_agent else "")
+            winner = self.chess_agent_for("b" if pos.turn == "w" else "w")
+            return _("Checkmate: you win.") if winner is None else _("Checkmate: {0} wins.").format(winner.name)
         return {"stalemate": _("Stalemate: a draw."), "fifty": _("Draw by the fifty-move rule."),
                 "material": _("Draw: neither side can still mate.")}.get(state, "")
 
@@ -490,16 +445,19 @@ class ChessPage:
     # --- the agent's move --------------------------------------------------------------------------
 
     def chess_ask_agent(self, retry_of: str = ""):
-        agent = self.chess_agent
-        if agent is None or self.chess_mode != "game" or self.chess_pos.turn == self.chess_player:
+        agent = self.chess_agent_for(self.chess_pos.turn) if self.chess_agent is not None else None
+        if agent is None or self.chess_mode != "game":
             return
-        if rules.status(self.chess_pos) != "ongoing":
+        if rules.status(self.chess_pos) != "ongoing" or self.chess_thinking and not retry_of:
+            return
+        if self.chess_rival is not None and self.chess_pause.get_active():
             return
         self.chess_token += 1
         token, pos = self.chess_token, self.chess_pos
         level = THINKING_LABELS[self.chess_thinking_choice.get_selected()][0]
+        strength = STRENGTH_LABELS[self.chess_strength_choice.get_selected()][0]
         text = chess_agent.prompt(self.chess_start_pos, list(self.chess_moves_played),
-                                  self.chess_pos.turn, i18n.current(), level)
+                                  self.chess_pos.turn, i18n.current(), level, strength)
         if retry_of:
             text = chess_agent.retry_prompt(text, retry_of)
         self.chess_thinking = True
@@ -518,6 +476,7 @@ class ChessPage:
                 return False                       # a new game or a move undone meanwhile
             self.chess_thinking = False
             self.chess_said = reply.comment
+            self.chess_said_by = agent.name
             if reply.error:
                 self.chess_error = reply.error
             elif reply.move is None:
@@ -527,6 +486,10 @@ class ChessPage:
                 self.chess_error = _("{0} did not name one of its legal moves.").format(agent.name)
             else:
                 self.chess_play(reply.move)
+                if self.chess_rival is not None:          # agent against agent: the other one next
+                    after = self.chess_token
+                    GLib.timeout_add(AGENTS_PAUSE_MS, lambda: after == self.chess_token
+                                     and self.chess_ask_agent() and False)
             self.chess_refresh()
             return False
 
@@ -540,11 +503,12 @@ class ChessPage:
         self.chess_setup_row.set_visible(define)
         self.chess_fill_cards(self.chess_top_cards, "b")
         self.chess_fill_cards(self.chess_bottom_cards, "w")
-        if self.chess_player == "b" and not define:   # your pieces at the bottom
+        if self.chess_player == "b" and not define:   # your pieces (agent against agent: White's) at the bottom
             self.chess_fill_cards(self.chess_top_cards, "w")
             self.chess_fill_cards(self.chess_bottom_cards, "b")
         self.chess_fill_taken(define)
-        name = self.chess_agent.name if self.chess_agent else ""
+        mover = self.chess_agent_for(pos.turn) if self.chess_agent is not None else None
+        name = mover.name if mover is not None else ""
         if define:
             status = _("Pick a piece below or above, then click squares; a right click empties a square.")
         elif self.chess_thinking:
@@ -554,7 +518,7 @@ class ChessPage:
                                                               f"{limit // 60}:{limit % 60:02d}")
         else:
             status = self.chess_over_text(pos) or (
-                _("Your move.") if pos.turn == self.chess_player else _("{0} is to move.").format(name))
+                _("Your move.") if mover is None else _("{0} is to move.").format(name))
             if rules.in_check(pos, pos.turn) and rules.status(pos) == "ongoing":
                 status += " " + _("Check!")
         self.chess_set_status(status)
@@ -563,7 +527,8 @@ class ChessPage:
         else:
             self.chess_spinner.stop()
         said = self.chess_said or ""
-        self.chess_answer_title.set_label(_("{0} says").format(name) if said or self.chess_error else "")
+        self.chess_answer_title.set_label(_("{0} says").format(self.chess_said_by or name)
+                                          if said or self.chess_error else "")
         self.chess_answer.set_label("\n".join(t for t in (said, self.chess_error) if t))
         self.chess_answer_box.set_visible(bool(said or self.chess_error) and not define)
         self.chess_retry.set_visible(bool(self.chess_error) and not self.chess_thinking)
@@ -579,7 +544,8 @@ class ChessPage:
         return True
 
     def chess_refresh_status_only(self):
-        name = self.chess_agent.name if self.chess_agent else ""
+        mover = self.chess_agent_for(self.chess_pos.turn) if self.chess_agent is not None else None
+        name = mover.name if mover is not None else ""
         spent = int(time.monotonic() - self.chess_think_start)
         limit = self.chess_think_limit
         self.chess_set_status(_("{0} is thinking… {1} of {2}").format(
@@ -683,7 +649,7 @@ class ChessPage:
         colors = self.theme.colors
         bg, fg = _rgb(colors.get("background", "#1e1e2e")), _rgb(colors.get("foreground", "#cdd6f4"))
         accent, red = _rgb(colors.get("accent", "#89b4fa")), _rgb(colors.get("red", "#f04452"))
-        light, dark = _mix(bg, fg, 0.62), _mix(bg, accent, 0.45)
+        light, dark = self.chess_squares(bg, fg, accent)
         x0, y0, cell = self.chess_geometry(width, height)
         flipped = self.chess_player == "b" and self.chess_mode == "game"
         pos = self.chess_pos
@@ -720,12 +686,12 @@ class ChessPage:
                     cr.fill()
                 # File letters on the bottom row, rank numbers on the left column.
                 ink = dark if base == light else light
-                if row == 7:
+                if row == 7 and self.chess_coordinates:
                     coords.set_text(rules.FILES[file_], -1)
                     cr.set_source_rgb(*ink)
                     cr.move_to(x + cell - cell // 5, y + cell - cell // 4)
                     PangoCairo.show_layout(cr, coords)
-                if col == 0:
+                if col == 0 and self.chess_coordinates:
                     coords.set_text(str(rank + 1), -1)
                     cr.set_source_rgb(*ink)
                     cr.move_to(x + 3, y + 2)
@@ -751,11 +717,46 @@ class ChessPage:
             self.chess_paint_piece(cr, layout, self.chess_drag["piece"], self.chess_drag["x"], self.chess_drag["y"],
                                    cell * 1.1)
 
-    @staticmethod
-    def chess_paint_piece(cr, layout, piece: str, cx: float, cy: float, cell: float):
-        """A piece centred on (cx, cy). White: the solid shape filled light, its contours and details
-        (the outline glyph) dark on top. Black: a light halo round the solid shape, the shape dark."""
+    def chess_paint_piece(self, cr, layout, piece: str, cx: float, cy: float, cell: float):
+        """A piece centred on (cx, cy), as Board and pieces › Pieces says.
+        Classic: White the solid shape filled light, its contours and details (the outline glyph) dark
+        on top; Black a light halo round the solid shape, the shape dark. Flat: both the solid shape
+        alone, with a thin edge. Theme colours: White in the theme's text colour with details in its
+        background, Black in a dark tint of its accent with an edge in its text colour."""
         kind = piece.upper()
+        style = getattr(self, "chess_piece_style", "classic")
+        light, ink = (0.97, 0.96, 0.93), (0.10, 0.10, 0.12)
+        if style == "theme":
+            colors = self.theme.colors
+            bg = _rgb(colors.get("background", "#1e1e2e"))
+            light = _rgb(colors.get("foreground", "#cdd6f4"))
+            dark = _mix(bg, _rgb(colors.get("accent", "#89b4fa")), 0.3)    # dark: it stands out on any square
+        if style in ("flat", "theme"):
+            layout.set_text(GLYPHS[kind], -1)
+            _ink, logical = layout.get_pixel_extents()
+            cr.save()
+            cr.new_path()
+            cr.move_to(cx - logical.width / 2, cy - logical.height / 2)
+            PangoCairo.layout_path(cr, layout)
+            fill = (light if piece.isupper() else dark) if style == "theme" else (light if piece.isupper() else ink)
+            edge = (bg if piece.isupper() else light) if style == "theme" else (ink if piece.isupper() else light)
+            cr.set_source_rgba(*edge, 0.9)
+            cr.set_line_width(max(1.2, cell / 30))
+            cr.set_line_join(1)                      # round
+            cr.stroke_preserve()
+            cr.set_source_rgb(*fill)
+            cr.fill()
+            if style == "theme" and piece.isupper():  # White's details, as Classic's
+                layout.set_text(OUTLINES[kind], -1)
+                cr.translate(cx, cy)
+                cr.scale(1.12, 1.12)
+                cr.translate(-cx, -cy)
+                cr.move_to(cx - logical.width / 2, cy - logical.height / 2)
+                PangoCairo.layout_path(cr, layout)
+                cr.set_source_rgb(*bg)
+                cr.fill()
+            cr.restore()
+            return
         cr.save()
         if piece.isupper():                         # the outline glyphs are drawn a little smaller
             cr.translate(cx, cy)
@@ -805,7 +806,7 @@ class ChessPage:
     def chess_your_turn(self) -> bool:
         pos = self.chess_pos
         return (self.chess_mode == "game" and not self.chess_thinking and pos.turn == self.chess_player
-                and rules.status(pos) == "ongoing")
+                and self.chess_rival is None and rules.status(pos) == "ongoing")
 
     def chess_drag_begin(self, _gesture, x, y):
         sq = self.chess_square_at(x, y)

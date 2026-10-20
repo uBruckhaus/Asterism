@@ -4,6 +4,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
+if not (ROOT / "ai_core.py").is_file():
+    sys.path.insert(0, str(ROOT.parent))           # Asterism's playground/ folder: the core is one up
 import chess_rules as c  # noqa: E402
 
 KIWIPETE = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1"

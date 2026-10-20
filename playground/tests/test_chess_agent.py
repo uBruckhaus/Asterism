@@ -6,6 +6,8 @@ from types import SimpleNamespace
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
+if not (ROOT / "ai_core.py").is_file():
+    sys.path.insert(0, str(ROOT.parent))           # Asterism's playground/ folder: the core is one up
 import adapter_data  # noqa: E402
 import chess_agent  # noqa: E402
 import chess_rules as rules  # noqa: E402
@@ -113,8 +115,14 @@ class WhoCanPlay(unittest.TestCase):
         quick = seen["timeout"]
         chess_agent.ask("claude", "p", pos, runner=run, level="max")
         self.assertLess(quick, seen["timeout"])
-        self.assertIn("as strongly as you can", chess_agent.prompt(start, [], "w", level="max"))
-        self.assertIn("casual club player", chess_agent.prompt(start, [], "w", level="quick"))
+        self.assertIn("about 240 seconds", chess_agent.prompt(start, [], "w", level="max"))
+
+    def test_strength_is_its_own_choice(self):
+        start = rules.start()
+        self.assertIn("good club player", chess_agent.prompt(start, [], "w"))
+        self.assertIn("as strongly as you can", chess_agent.prompt(start, [], "w", level="quick", strength="max"))
+        self.assertIn("beginner", chess_agent.prompt(start, [], "w", level="max", strength="beginner"))
+        self.assertIn("good club player", chess_agent.prompt(start, [], "w", strength="nonsense"))
 
     def test_effort_goes_where_the_adapter_says(self):
         # Hermes takes the prompt right after -z: its adapter puts the effort options at {effort}.

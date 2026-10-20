@@ -357,21 +357,9 @@
   <p>An agent with an open instance anywhere on the computer gets a green dot and <i>running</i>,
   and the model box it runs with says <i>in use · &lt;agent&gt;</i>.</p>
 
-  <h2 id="chess">Playing chess</h2>
-  <p>Agents that can answer a single prompt without tools (Claude Code, Codex, Hermes and Pi) can play chess against you. Select a fully set-up agent's box on the map and click the chess knight in the header (greyed while no such agent is selected). The game opens in a floating window of its own; <b>Settings › Chess opens in</b> also offers a window placed like any other, or a page of the main window, like Settings. Closing the chess window (Esc) keeps the game going: the knight brings it back.</p>
-  <ul>
-    <li><b>New game with White</b> or <b>New game with Black</b> starts a game at once; with Black the board is turned, so your pieces are always at the bottom. <b>Define position</b>: pick a piece in the cards (or drag it onto the board) and click squares, a right click empties one; then <b>Play it with White</b> or <b>Play it with Black</b>. <b>Start</b> begins the chosen entry again.</li>
-    <li>Drag a piece to move it, or click it and then the square it should go to.</li>
-    <li>The thinking time (<b>Quick (30 s)</b> to <b>Maximum (6 min)</b>) is how long the agent may take for a move. Longer also lets its model think harder and asks it to play more strongly.</li>
-    <li>After each of your moves the agent is asked for its move. It gets the position, the game so far and its legal moves, runs in an empty private folder without tools, and answers with one move and a sentence or two about it. An answer without a legal move is asked once more; after that, <b>Ask again</b> appears.</li>
-    <li>The <b>Game</b> card at the bottom shows whose move it is, what the agent said and the moves. Click its heading to fold it; folded, it still shows whose move it is.</li>
-    <li><b>Back</b> leaves the game running. While it runs, a chess button in the header and one on the agent's box lead back to it, as does <b>Back to the chess game</b> in the agent's menu. <b>×</b> on the page, or the stop button that the agent's box shows during a game, ends it.</li>
-  </ul>
-  <div class="tip"><p><b>Tip</b> An agent on a local LLM plays with that model. Hermes needs a context window of at least 64,000 tokens: load the model with that context size (in LM Studio, for example) before you play.</p></div>
-  <div class="figure half">
-    <img src="images/chess.jpg" alt="The chess page: the board in the middle, cards with each side's pieces above and below it, captured pieces beside it, and the Game card with Claude Code's comment and the moves">
-    <p class="caption">A game against Claude Code: the pieces each side still has above and below the board, the captured ones beside it, and below, the agent's words and the moves.</p>
-  </div>
+  <h2 id="playground">AI Playground</h2>
+  <p>Chess and other tests with your agents are in an app of their own: <b>AI Playground</b>. It lets an agent play chess against you (or two agents against each other), compares speed and cost, judges two answers blind, tests pictures and video frames, and asks your local LLMs. It uses the agents that are set up here.</p>
+  <p>When AI Playground is installed (the Omarchy plugin, or the <code>ai-playground</code> app on other desktops), its button, a gamepad, appears in the header. Select an agent on the map first, and AI Playground opens with that agent chosen. On Omarchy the <b>ⓘ Information</b> page tells more about it and links to its page in the Omarchy Plugin Marketplace.</p>
 
   <h2 id="sign-in">Signing in</h2>
   <p><b>Sign in…</b> in an agent's menu (on Setup or on the map) shows what the agent needs and its
