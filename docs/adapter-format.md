@@ -53,6 +53,7 @@ little code for what facts cannot say (hooks.py)".
 | `details = {reader, dir}` | most agents | its model and providers, by a reader the app has (`adapter_data.DETAIL_READERS`; `dir` for `pi`) |
 | `models = {reader}` | Claude Code, Codex | the online models the map can switch it to (`adapter_data.MODEL_READERS`) |
 | `program_dir = "~/…"` | Hermes | its program inside its data folder (measured once, as the program) |
+| `start = [words]` | DeepSeek Harness | arguments ▶ starts it with (`["--profile", "web"]`), plain words |
 | `web_search = true` | Claude Code, Codex, Gemini, Grok, Copilot, Cursor | it searches the web itself (no MCP server needed) |
 | `chat_app = true` | LM Studio Bionic | a chat app, not a coding agent in a terminal |
 | `herdr = "<name>"` | Cursor CLI | herdr's name for it when it is not the command |

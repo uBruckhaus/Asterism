@@ -12,9 +12,8 @@ tests), icons/, translations/, LICENSE, and data/user-manual*.pdf → assets/. T
 out: their absence is what limits the plugin to numbers (edition.maximum(); ai_popup works without
 them), and the marketplace reviewed the plugin without them.
 
-AI Playground (the plugin whose manifest id is ubruckhaus.ai-playground) is made from the same
-tree: the core modules it uses (PLAYGROUND_CORE), playground/*.py (its own, chess too) at its top,
-playground/tests in tests/, adapters/, icons/, translations/ and LICENSE.
+AI Playground (ubruckhaus.ai-playground) is a plugin of its own since 2026-10-21: its checkout is
+its own source, not made from this tree; this tool refuses it.
 
 The plugin's own files (BarWidget.qml, I18n.js, manifest.json, preview.png, README.md, .gitignore,
 the bar toggle with its local-only part, its other assets) are never touched. Anything else in a
@@ -38,41 +37,21 @@ ADDON_IMPORT = re.compile(r"^(import|from) (addons|addon_api|addon_store|addons_
 SHARED_DIRS = ("tests", "icons", "translations", "adapters")   # mirrored whole (minus what is left out)
 SKIP = {"__pycache__", ".git", ".pytest_cache"}
 PLAYGROUND_ID = "ubruckhaus.ai-playground"
-# What AI Playground imports (a run that opened every tab, 2026-10-20), and desktop_generic for
-# other desktops. Its tests import each of them, so a missing one fails there.
-PLAYGROUND_CORE = ("adapter_data", "agent_details", "agent_status", "ai_core", "claude_sessions", "corners", "dsh_ctl",
-                   "desktop", "desktop_generic", "desktop_omarchy", "gpu_usage", "harnesses", "i18n", "icons",
-                   "loopback", "more_plugins", "netfetch", "online_models", "palette", "runtime_ctl", "settings_schema", "signin",
-                   "text_guard", "theme_css")
 
 
-def edition(plugin: Path) -> str:
-    """"playground" for AI Playground, else "map" (AI Agents Map)."""
+def refuse_playground(plugin: Path):
+    """AI Playground keeps its own source: never sync, check or hook it from here."""
     try:
         import json
-        return "playground" if json.loads((plugin / "manifest.json").read_text()).get("id") == PLAYGROUND_ID \
-            else "map"
+        own = json.loads((plugin / "manifest.json").read_text()).get("id") == PLAYGROUND_ID
     except (OSError, ValueError):
-        return "map"
+        own = False
+    if own:
+        sys.exit(f"{plugin}: AI Playground is a plugin of its own; it is not made from Asterism")
 
 
-def wanted_playground() -> dict[str, Path]:
-    files = {f"{name}.py": ROOT / f"{name}.py" for name in PLAYGROUND_CORE}
-    files.update({source.name: source for source in sorted((ROOT / "playground").glob("*.py"))})
-    files.update({f"tests/{source.name}": source for source in sorted((ROOT / "playground/tests").glob("*.py"))})
-    for folder in ("icons", "translations", "adapters"):
-        for source in sorted((ROOT / folder).rglob("*")):
-            rel = source.relative_to(ROOT)
-            if source.is_file() and not SKIP & set(rel.parts) and source.suffix != ".pyc":
-                files[str(rel)] = source
-    files["LICENSE"] = ROOT / "LICENSE"
-    return files
-
-
-def wanted(kind: str = "map") -> dict[str, Path]:
+def wanted() -> dict[str, Path]:
     """{path in the plugin: source file here} for everything shared."""
-    if kind == "playground":
-        return wanted_playground()
     files = {}
     for source in sorted(ROOT.glob("*.py")):
         if source.name not in ASTERISM_ONLY:
@@ -110,7 +89,7 @@ def present(plugin: Path) -> set[str]:
 
 def differences(plugin: Path) -> tuple[list, list, list]:
     """(missing in the plugin, different there, stale there)."""
-    files, have = wanted(edition(plugin)), present(plugin)
+    files, have = wanted(), present(plugin)
     missing = [rel for rel in files if not (plugin / rel).is_file()]
     changed = [rel for rel in files if (plugin / rel).is_file()
                and not filecmp.cmp(files[rel], plugin / rel, shallow=False)]
@@ -130,7 +109,7 @@ def describe() -> str:
 
 def sync(plugin: Path) -> int:
     missing, changed, stale = differences(plugin)
-    files = wanted(edition(plugin))
+    files = wanted()
     for rel in missing + changed:
         target = plugin / rel
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -189,6 +168,7 @@ def main() -> int:
     mode.add_argument("--install-hook", action="store_true", help="pre-commit check in the plugin")
     args = parser.parse_args()
     plugin = args.plugin.expanduser().resolve()
+    refuse_playground(plugin)
     if not is_plugin(plugin):
         print(f"not the plugin: {plugin}", file=sys.stderr)
         return 2
