@@ -16,8 +16,8 @@ _adapters=0.10.0              # the adapter add-ons' own release (signed separat
 source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/v$pkgver.tar.gz"
         "adapters-$_adapters.zip::$_addons/adapters-$_adapters/adapters-$_adapters.zip")
 noextract=("adapters-$_adapters.zip")
-sha256sums=('0d383580a66320adf5a96a1bd8fb92335094476cdf88dc1dbd515b3cab6b69ed'
-            '7edf7b674406e995bab1ce22c419aae723167e145b11dd512f265b9bf7882a6d')
+sha256sums=('39e7508ab0b64a7b28ba96f2b635c62c9341e5ae37bccb7b32a858691fec84a9'
+            '39a70e5f112f3e6314051fd8a3897cb041901e0853716b86e1d21b25d0c1674c')
 
 package() {
     cd "Asterism-$pkgver"          # GitHub names the folder after the repository
