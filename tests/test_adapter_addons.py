@@ -25,6 +25,9 @@ def same(a, b) -> list:
         x, y = getattr(a, f.name), getattr(b, f.name)
         if callable(x) and callable(y):
             x, y = x.__name__, y.__name__
+        elif hasattr(x, "owns_process") and hasattr(y, "owns_process"):
+            # llm_engine.Engine: the add-on's own copy of the class; same name and same bases
+            x, y = [[c.__name__ for c in type(e).__mro__] for e in (x, y)]
         elif dataclasses.is_dataclass(x) and not isinstance(x, type) and type(x) is type(y):
             out += [f"{f.name}.{n}" for n in same(x, y)]
             continue
