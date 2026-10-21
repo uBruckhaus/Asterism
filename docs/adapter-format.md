@@ -31,6 +31,8 @@ says `"hook"` (or `hook = true`) where a hook is used; the functions have fixed 
 | `skills_listed`, `skills_write` | Hermes (YAML text); Pi writes only | keeps a folder list in the agent's own settings |
 | `mcp_read`, `mcp_write`, `mcp_native` | DeepSeek Harness (YAML profile); OpenClaw writes only (JSON5) | an MCP format the app does not know |
 | `security(report)` | OpenCode | its permission field takes several forms |
+| `details(details)` | none yet | its model and providers, from settings no reader of the app knows (`[details] hook = true`) |
+| `models_choices(current, home)`, `models_plan(model, home)` | none yet | the online models it can be switched to, and the switch (`[models] hook = true`; plan returns `(file, old text, new text, provider)`) |
 
 A data-only add-on is shown as "Brings no code", one with hooks as "Facts about the agent, and a
 little code for what facts cannot say (hooks.py)".
@@ -46,6 +48,25 @@ little code for what facts cannot say (hooks.py)".
 | `login_status = {argv, no, yes}` | Cursor CLI | a command whose output says whether it is signed in |
 | `installer = "<name>"` | Antigravity CLI | an installer the app has (`adapter_data.INSTALLERS`) |
 | `sessions.reader`, `update.latest` | Claude Code | readers the app has (`adapter_data.READERS`, `LATEST`) |
+| `home = "~/…"` | every agent | the folder of its settings (shown in its card, counted on Disk space) |
+| `activity = ["~/…"]` | most agents | files and folders whose last change is its last use |
+| `details = {reader, dir}` | most agents | its model and providers, by a reader the app has (`adapter_data.DETAIL_READERS`; `dir` for `pi`) |
+| `models = {reader}` | Claude Code, Codex | the online models the map can switch it to (`adapter_data.MODEL_READERS`) |
+| `program_dir = "~/…"` | Hermes | its program inside its data folder (measured once, as the program) |
+| `web_search = true` | Claude Code, Codex, Gemini, Grok, Copilot, Cursor | it searches the web itself (no MCP server needed) |
+| `chat_app = true` | LM Studio Bionic | a chat app, not a coding agent in a terminal |
+| `herdr = "<name>"` | Cursor CLI | herdr's name for it when it is not the command |
+| `access.logout = [argv]` | Claude Code, Codex | its own sign-out, run in a terminal when its line to a provider is dropped |
+| `research = {argv}` | Claude Code, Codex | one web look-up with no other tools (`{prompt}`, `{schema}`: the answer's JSON schema file) |
+| `rewrite = {argv}` | Claude Code, Codex | one prompt on stdin with no tools at all (`{answer}`: the file it writes its answer to) |
+| `tools = {file, key}` | Pi, Oh My Pi | the tools it is given (a JSON list) |
+| `security.sandbox`, `security.asks` | most agents | the settings that are its sandbox and say when it asks first (the Risks list) |
+| `warn = {title, explain, fix}` on a security setting | Claude Code | a low risk shown while a choice of risk 1 is set |
+
+`research`, `rewrite`, `ask` and `configure` commands start with the agent's own command and hold
+each placeholder as an argument of its own: never a shell, never another program. An agent add-on
+signed before these facts existed gets them from the app's own adapter for the same command
+(`harnesses.NEWER_FACTS`) until it is signed again.
 
 `adapter_data.check()` refuses anything else; `tests/test_adapter_data.py` holds a snapshot of what
 every file yields (made from the Python adapter it replaced) — after an intended change:
