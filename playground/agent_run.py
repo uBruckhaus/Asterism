@@ -10,6 +10,8 @@ agent takes pictures (each checked with its --help, Claude's also with a run, 20
 - codex: `-i <file>` per picture, then `-`: the question on stdin (claude's too, without pictures:
   a question in argv is visible to other local accounts while the agent runs);
 - pi: `@<file>` per picture, before the question;
+- think=False (a chess frame read by a local model): agents in NO_THINKING are asked not to think
+  (a local model thought ~1000 tokens for a one-line answer); the others at the level asked;
 - the others take none (they are left out of the Vision tab).
 
 Pictures are copied into the private folder first, so a file name never reaches argv as an option.
@@ -35,6 +37,7 @@ MAX_IMAGES = 8
 IMAGE_TYPES = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp",
                ".gif": "image/gif"}
 IMAGE_WAYS = {"claude": "stdin", "codex": "-i", "pi": "@"}
+NO_THINKING = {"pi": ["--thinking", "off"]}       # options instead of the level's (pi --help, 2026-10-20)
 JSON_ANSWER = {"claude"}         # asked with --output-format json: the text with tokens and cost
 # The question on stdin, not as an argument: an argument is visible to other local accounts in
 # /proc/<pid>/cmdline while the agent runs (claude -p reads stdin without one, codex exec with "-").
@@ -59,6 +62,18 @@ def takes_images(command: str) -> bool:
     return command in IMAGE_WAYS and can_ask(command)
 
 
+# Agents whose ask command has no tools at all: no shell, no file reads, no MCP servers (their
+# adapters' [ask] argv: claude --tools "" --strict-mcp-config, hermes -t todo, pi --no-tools, which
+# also turns off extension tools). Only these are given what comes from the web (a video's
+# description, captions and frames): words planted there cannot make them read local files. Codex's
+# read-only sandbox still lets it read any file, so it is never one of them.
+NO_TOOLS = frozenset({"claude", "hermes", "pi"})
+
+
+def reads_untrusted(command: str) -> bool:
+    return command in NO_TOOLS and can_ask(command)
+
+
 def _media_type(path: Path) -> str:
     return IMAGE_TYPES.get(path.suffix.lower(), "")
 
@@ -76,10 +91,11 @@ def check_image(path) -> str:
     return ""
 
 
-def build(command: str, prompt: str, images: list, folder: str, level: str = chess_agent.DEFAULT_THINKING):
+def build(command: str, prompt: str, images: list, folder: str, level: str = chess_agent.DEFAULT_THINKING,
+          think: bool = True, model: str = ""):
     """(argv, stdin bytes or None) for this question; images are paths inside folder already."""
     marker = "\x00prompt\x00"
-    argv = chess_agent.run_argv(command, marker, level)
+    argv = chess_agent.run_argv(command, marker, level, None if think else NO_THINKING.get(command), model)
     if not argv:
         return [], None
     at = argv.index(marker)
@@ -138,7 +154,7 @@ def parse(command: str, out: str) -> Result:
 
 
 def ask(command: str, prompt: str, images=(), level: str = chess_agent.DEFAULT_THINKING,
-        timeout: float | None = None, runner=None) -> Result:
+        timeout: float | None = None, runner=None, think: bool = True, model: str = "") -> Result:
     """Ask once (blocking: call it off the main thread)."""
     import ai_core
     images = list(images)[:MAX_IMAGES]
@@ -154,7 +170,7 @@ def ask(command: str, prompt: str, images=(), level: str = chess_agent.DEFAULT_T
             copy = os.path.join(folder, f"picture-{i + 1}{Path(image).suffix.lower()}")
             shutil.copyfile(image, copy)
             copies.append(copy)
-        argv, stdin = build(command, prompt, copies, folder, level)
+        argv, stdin = build(command, prompt, copies, folder, level, think, model)
         if not argv:
             return Result(error=_("This agent cannot be asked."))
         run = runner or ai_core.read_bounded_output

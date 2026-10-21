@@ -15,6 +15,7 @@ from __future__ import annotations
 import shutil
 import tempfile
 import threading
+from contextlib import ExitStack
 from urllib.parse import unquote, urlparse
 
 from gi.repository import Gdk, Gio, GLib, Gtk, Pango
@@ -23,7 +24,9 @@ import agent_run
 import ai_core
 import chess_rules as rules
 import chess_video
+import frame_check
 import gpu_check
+import local_hold
 from i18n import _, ngettext
 
 DROP_MIMES = ("text/uri-list", "text/plain;charset=utf-8", "text/plain")
@@ -308,7 +311,13 @@ class ChessImport:
         dialog.open(self.window, None, picked)
 
     def chess_readers(self) -> list:
-        return [a for a in self.ready_agents if agent_run.takes_images(a.command)]
+        """The agents that take pictures (one on a local model is checked when it is chosen: frame_check)
+        and have no tools (agent_run.NO_TOOLS: a video's text and frames come from the web)."""
+        return [a for a in self.video_readers() if agent_run.takes_images(a.command)]
+
+    def video_readers(self) -> list:
+        """The agents a video's description, captions or frames may go to: only those without tools."""
+        return [a for a in self.ready_agents if agent_run.reads_untrusted(a.command)]
 
     def chess_import_ask(self, path: str = "", url: str = "") -> bool:
         """The import dialog: which agent reads, how often a frame is taken, what it costs."""
@@ -326,14 +335,18 @@ class ChessImport:
             self.toast(_("A YouTube link needs yt-dlp; install it, or drop the video file."))
             return False
         seeing = self.chess_readers()                  # agents that take pictures: the frames
-        everyone = list(self.ready_agents)             # any agent set up: the fast way (text only)
+        everyone = self.video_readers()                # any agent without tools: the fast way (text only)
         if not (everyone if url else seeing):
-            blind = [a.name for a in self.ready_agents]
+            blind = [a.name for a in self.ready_agents if agent_run.reads_untrusted(a.command)]
+            tools = [a.name for a in self.ready_agents if not agent_run.reads_untrusted(a.command)]
             self.chess_notice(_("No agent here can read a video"),
-                              _("Reading the moves needs an agent that sees pictures: Claude Code, Codex or Pi, "
-                                "signed in or connected to a local vision model.") + "\n\n"
-                              + (_("Set up here: {0}. They cannot see pictures.").format(", ".join(blind)) if blind
-                                 else _("No agent is set up here yet.")) + "\n\n"
+                              _("Reading the moves needs an agent that sees pictures and runs without tools: "
+                                "Claude Code or Pi, signed in or connected to a local vision model.") + "\n\n"
+                              + (_("Set up here: {0}. They cannot see pictures.").format(", ".join(blind)) + "\n\n"
+                                 if blind else "")
+                              + (_("Left out: {0}. It can read files on this computer, and a video's text or pictures "
+                                   "could ask it to.").format(", ".join(tools)) + "\n\n" if tools else "")
+                              + (_("No agent is set up here yet.") + "\n\n" if not self.ready_agents else "")
                               + _("Set up one of them (AI Agents Map can install it and sign you in), then drop the "
                                   "video again."))
             return False
@@ -386,6 +399,87 @@ class ChessImport:
         local = Gtk.Label(xalign=0, wrap=True, max_width_chars=48)
         local.add_css_class("am-warning-text")
         box.append(local)
+        # A reader on a local model: checked (and set up where it can be) before it reads frames.
+        checking = Gtk.Box(spacing=8)
+        spinner = Gtk.Spinner()
+        verdict = Gtk.Label(xalign=0, wrap=True, max_width_chars=44, hexpand=True)
+        checking.append(spinner)
+        checking.append(verdict)
+        fetch = Gtk.Button(label=_("Download the vision file"))
+        fetch.set_halign(Gtk.Align.START)
+        box.append(checking)
+        box.append(fetch)
+        checking.set_visible(False)
+        fetch.set_visible(False)
+        check = {"token": 0, "dialog": None, "closed": False, "download": None, "agent": None}
+
+        def readable(ok: bool):
+            if check["dialog"] is not None:
+                check["dialog"].set_response_enabled("read", ok)
+
+        def show_check(token, agent, result):
+            if token != check["token"] or check["closed"]:
+                return False
+            spinner.stop()
+            verdict.set_label(result.message)
+            for name in ("am-chess-said", "am-warning-text"):
+                verdict.remove_css_class(name)
+            verdict.add_css_class("am-chess-said" if result.state == "ready" else "am-warning-text")
+            check["download"] = result.download
+            fetch.set_visible(result.state == "download")
+            fetch.set_sensitive(True)
+            fetch.set_label(_("Download the vision file ({0:.1f} GB)").format(result.download.size / 1024 ** 3)
+                            if result.download else _("Download the vision file"))
+            readable(result.state == "ready")
+            return False
+
+        def start_check(agent, fresh: bool = False):
+            if check["dialog"] is None:                # built, not shown yet: checked once it is
+                return
+            check["token"] += 1
+            token = check["token"]
+            check["agent"] = agent
+            used = gpu_check.agent_model(agent.command) if agent is not None and watching() else None
+            checking.set_visible(bool(used))
+            fetch.set_visible(False)
+            if not used:
+                readable(True)
+                return
+            readable(False)
+            spinner.start()
+            verdict.set_label(_("Checking whether {0} can read the frames with {1} (one test picture)…").format(
+                agent.name, used[1]))
+            threading.Thread(target=lambda: GLib.idle_add(show_check, token, agent,
+                                                          frame_check.check(agent, fresh)), daemon=True).start()
+
+        def download(_button):
+            wanted, agent, token = check["download"], check["agent"], check["token"]
+            if wanted is None or agent is None:
+                return
+            fetch.set_sensitive(False)
+            spinner.start()
+
+            def progress(part):
+                GLib.idle_add(lambda: (token == check["token"] and verdict.set_label(
+                    _("Downloading the vision file… {0:.0f} %").format(part * 100)), False)[1])
+
+            def worker():
+                why = frame_check.fetch_mmproj(wanted, progress, lambda: check["closed"])
+                frame_check.forget(agent)
+
+                def after():
+                    if check["closed"] or token != check["token"]:
+                        return False
+                    if why:
+                        spinner.stop()
+                        verdict.set_label(_("The vision file could not be set up: {0}").format(why))
+                        fetch.set_sensitive(True)
+                    else:
+                        start_check(agent, fresh=True)
+                    return False
+                GLib.idle_add(after)
+            threading.Thread(target=worker, daemon=True).start()
+        fetch.connect("clicked", download)
 
         def watching() -> bool:
             return not url or way.get_selected() == 1
@@ -398,6 +492,7 @@ class ChessImport:
                               "(Claude Code and Codex read them right); the fast way does not need pictures.").format(
                 agent.name, used[1]) if used else "")
             local.set_visible(bool(used))
+            start_check(agent)
 
         def fill_readers(*_a):
             """The fast way: every agent set up; the frames: the agents that see pictures."""
@@ -429,7 +524,11 @@ class ChessImport:
         dialog.set_response_appearance("read", Adw.ResponseAppearance.SUGGESTED)
         dialog.set_default_response("read")
         dialog.set_close_response("cancel")
+        check["dialog"] = dialog
+        check_reader()                                 # again, now that the Read button exists
+
         def answered(_d, answer):
+            check["closed"] = True
             index = reader.get_selected()
             if answer != "read" or not (0 <= index < len(readers)):
                 return
@@ -475,12 +574,30 @@ class ChessImport:
             GLib.idle_add(apply)
 
         cancel = state                                 # work() reads cancel["cancel"]
+        stack, held = ExitStack(), set()
+
+        def hold(agent) -> str:
+            """Keep the agent's local LLM up until the import is done (local_hold); why not, else ""."""
+            used = gpu_check.agent_model(agent.command)
+            if used is None or used[0] in held:
+                return ""
+            show(_("Starting the local LLM…"))
+            keeper = stack.enter_context(local_hold.Hold(used[0]))
+            if keeper.error:
+                return _("The local LLM for {0} did not start: {1}").format(agent.name, keeper.error)
+            held.add(used[0])
+            return ""
+
         def work():
+            if not all(agent_run.reads_untrusted(a.command) for a in (reader, watcher) if a is not None):
+                return GLib.idle_add(done, None, _("Only an agent without tools may read a video."))
             folder = tempfile.mkdtemp(prefix="ai-playground-video-")       # private (0700)
             try:
                 video, name = path, title
                 eyes = reader                               # the agent that watches the frames
                 if fast:
+                    if (problem := hold(reader)):
+                        return GLib.idle_add(done, None, problem)
                     found = self.chess_read_text(url, reader, show)
                     if found is not None:
                         return GLib.idle_add(done, *found)
@@ -494,6 +611,13 @@ class ChessImport:
                     video, name = chess_video.download(url, folder)
                     if not video:
                         return GLib.idle_add(done, None, _("The video could not be downloaded."))
+                if eyes is not reader:                      # the fast way found nothing: is this one able?
+                    show(_("Checking whether {0} can read the frames…").format(eyes.name))
+                    verdict = frame_check.check(eyes)
+                    if verdict.state not in ("ready", "cloud"):
+                        return GLib.idle_add(done, None, verdict.message)
+                if (problem := hold(eyes)):
+                    return GLib.idle_add(done, None, problem)
                 show(_("Taking frames…"))
                 shots = chess_video.frames(video, folder, gap, limit)
                 if not shots:
@@ -507,10 +631,11 @@ class ChessImport:
                         previous = thumb
                         picks.append(shot)
                 reading = chess_video.Reading()
-                at_once = 1 if gpu_check.agent_model(eyes.command) else ASK_AT_ONCE
+                local = gpu_check.agent_model(eyes.command) is not None
+                at_once = 1 if local else ASK_AT_ONCE
 
-                def position(shot):
-                    answer = agent_run.ask(eyes.command, chess_video.PROMPT, [shot], level="quick")
+                def position(shot):                         # a local model: one line, no thinking
+                    answer = agent_run.ask(eyes.command, chess_video.PROMPT, [shot], level="quick", think=not local)
                     return chess_video.placement(answer.text)
                 from concurrent.futures import ThreadPoolExecutor
                 with ThreadPoolExecutor(max_workers=at_once) as pool:
@@ -530,6 +655,7 @@ class ChessImport:
                                              len(reading.moves)))), answered / max(1, len(picks)))
                 GLib.idle_add(done, reading, name, "frames")
             finally:
+                stack.close()                               # the local LLM may be stopped again
                 shutil.rmtree(folder, ignore_errors=True)
 
         def done(reading, name_or_error, how="frames"):
@@ -572,6 +698,8 @@ class ChessImport:
     def chess_read_text(self, url: str, reader, show):
         """The fast way (blocking): (reading, title, how) from the video's description, else from its
         description and captions through one question to the agent; None when they give no game."""
+        if not agent_run.reads_untrusted(reader.command):          # web text only to an agent without tools
+            return None
         show(_("Reading the video's description…"))
         info = chess_video.video_info(url)
         if not info:

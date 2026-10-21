@@ -42,7 +42,7 @@ PLAYGROUND_ID = "ubruckhaus.ai-playground"
 # other desktops. Its tests import each of them, so a missing one fails there.
 PLAYGROUND_CORE = ("adapter_data", "agent_details", "agent_status", "ai_core", "claude_sessions", "corners", "dsh_ctl",
                    "desktop", "desktop_generic", "desktop_omarchy", "gpu_usage", "harnesses", "i18n", "icons",
-                   "loopback", "more_plugins", "netfetch", "palette", "runtime_ctl", "settings_schema", "signin",
+                   "loopback", "more_plugins", "netfetch", "online_models", "palette", "runtime_ctl", "settings_schema", "signin",
                    "text_guard", "theme_css")
 
 
