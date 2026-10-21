@@ -1,0 +1,17 @@
+{
+  "api": 1,
+  "privacy": "numbers",
+  "needs": "asterism >= 0.9.0",
+  "id": "llm-example",
+  "name": "Example LLM",
+  "version": "1.0.0",
+  "kind": "provider",
+  "icon": "network-server-symbolic",
+  "summary": "A made-up local LLM: the template for a local LLM add-on",
+  "description": "Teaches Asterism the local LLM Example LLM: how to find it and its models, start and stop it, connect agents to it.",
+  "capabilities": ["provider"],
+  "provides": ["examplellm"],
+  "reads": ["Example LLM's model folder and its own settings"],
+  "detect": {"commands": ["example-server"], "paths": ["~/.example-llm"]},
+  "homepage": "https://example.org"
+}

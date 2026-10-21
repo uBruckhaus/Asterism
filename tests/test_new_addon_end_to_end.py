@@ -1,4 +1,5 @@
-"""A local LLM and an agent the app has never heard of, each as a signed add-on and nothing else:
+"""A local LLM and an agent the app has never heard of, each as a signed add-on and nothing else
+(the templates in templates/):
 both appear and work everywhere the built-in ones do (map, connect, models, folders, security,
 disk space), with no change in the core. This is the promise of the provider engines and adapters:
 a new provider or agent is one add-on."""
@@ -21,135 +22,7 @@ import addons  # noqa: E402
 import harnesses  # noqa: E402
 import providers  # noqa: E402
 
-LLM_META = {"api": 1, "privacy": "numbers", "needs": f"asterism >= {addons.ASTERISM_VERSION}", "id": "llm-example",
-            "name": "Example LLM", "version": "1.0.0", "kind": "provider", "capabilities": ["provider"],
-            "provides": ["examplellm"], "reads": ["its model folder"], "summary": "A made-up local LLM"}
-LLM_SOURCE = '''
-import os
-from pathlib import Path
-
-import llm_engine
-from providers import Provider
-
-
-def _detect(processes):
-    import inventory
-    names = sorted(p.stem for p in Path(os.path.expanduser("~/models")).glob("*.gguf"))
-    return inventory.Runtime("examplellm", "Example LLM", installed=True, running=False, service="example-llm",
-                             address="127.0.0.1:9123", models_dir="~/models", models=names)
-
-
-class Engine(llm_engine.Engine):
-    programs = ("example-server",)
-    start_command = "example-server --models <folder>"
-    ports = (9123,)
-    gguf_folder = True
-    reorganize = True
-    download = "file"
-    removable = "file"
-    context_settable = True
-    context_effect = "restart"
-
-    def models_page_note(self, rt):
-        return "Example LLM reads every GGUF file in its folder."
-
-
-PROVIDER = Provider("examplellm", "Example LLM", "local", detect=_detect, engine=Engine(),
-                    connect_key="example-local", connect_label="Example LLM (local)",
-                    data=("~/.example-llm",))
-
-
-def register(api):
-    api.add_provider(PROVIDER)
-'''
-
-AGENT_META = {"api": 1, "privacy": "numbers", "needs": f"asterism >= {addons.ASTERISM_VERSION}",
-              "id": "agent-exampleagent", "name": "Example Agent", "version": "1.0.0", "kind": "agent",
-              "capabilities": ["agent"], "harnesses": ["exampleagent"], "provides": ["exampleagent"],
-              "reads": ["its own settings"], "summary": "A made-up coding agent"}
-AGENT_TOML = '''
-command = "exampleagent"
-name = "Example Agent"
-icon = "U+F06C4"
-data = ["~/.exampleagent"]
-home = "~/.exampleagent"
-activity = ["~/.exampleagent/sessions"]
-web_search = true
-
-[details]
-hook = true
-
-[local_llm]
-files = ["~/.exampleagent/config.json"]
-hooks = true
-
-[mcp]
-path = "~/.exampleagent/config.json"
-format = "json"
-key = "mcpServers"
-
-[research]
-argv = ["exampleagent", "ask", "--web-only", "{prompt}"]
-
-[security]
-file = "~/.exampleagent/config.json"
-format = "json"
-asks = "permissions.ask"
-
-[[security.settings]]
-key = "permissions.ask"
-title = "Before commands"
-explain = "Whether it asks before it runs a command."
-default = "always"
-recommended = "always"
-choices = [
-  { value = "always", label = "Ask", explain = "Asks every time.", risk = 0 },
-  { value = "never", label = "Never ask", explain = "Runs them at once.", risk = 3 },
-]
-'''
-AGENT_HOOKS = '''
-import json
-
-
-def _json(text):
-    try:
-        data = json.loads(text) if text.strip() else {}
-    except ValueError:
-        data = {}
-    return data if isinstance(data, dict) else {}
-
-
-def details(details):
-    import agent_details as ad
-    config = ad.read_json(ad._expand("~/.exampleagent/config.json"))
-    details.model = str(config.get("model") or "")
-    for name, entry in (config.get("providers") or {}).items():
-        details.providers.append(ad.provider_for_url(name, entry.get("url"), len(entry.get("models", [])),
-                                                     active=name == config.get("provider")))
-
-
-def local_llm_connected(texts, provider):
-    return provider in _json(texts[0]).get("providers", {})
-
-
-def local_llm_active(texts, provider):
-    return _json(texts[0]).get("provider") == provider
-
-
-def local_llm_transform(texts, provider, label, url, models, context, model, use_now, remove):
-    data = _json(texts[0])
-    found = data.setdefault("providers", {})
-    if remove:
-        found.pop(provider, None)
-        if data.get("provider") == provider:
-            data.pop("provider", None)
-            data.pop("model", None)
-    else:
-        found[provider] = {"name": label, "url": url, "models": list(models)}
-        if use_now and model:
-            data["provider"], data["model"] = provider, model
-    return [json.dumps(data, indent=2) + "\\n"]
-'''
+TEMPLATES = ROOT / "templates"          # the template add-ons (docs/addons.md): proven here
 
 
 @unittest.skipUnless(shutil.which("ssh-keygen"), "needs OpenSSH's ssh-keygen")
@@ -163,15 +36,9 @@ class NewAddonEndToEndTest(unittest.TestCase):
         cls.signers = f'{addons.PRINCIPAL} namespaces="{addons.NAMESPACE}" ' + \
             " ".join(key.with_suffix(".pub").read_text().split()[:2])
         cls.out = tmp / "addons"
-        llm = cls.out / "llm-example"
-        llm.mkdir(parents=True)
-        (llm / "addon.json").write_text(json.dumps(LLM_META))
-        (llm / "addon.py").write_text(LLM_SOURCE)
-        agent = cls.out / "agent-exampleagent"
-        agent.mkdir()
-        (agent / "addon.json").write_text(json.dumps(AGENT_META))
-        (agent / "agent.toml").write_text(AGENT_TOML)
-        (agent / "hooks.py").write_text(AGENT_HOOKS)
+        llm, agent = cls.out / "llm-example", cls.out / "agent-exampleagent"
+        for folder in (llm, agent):
+            shutil.copytree(TEMPLATES / folder.name, folder, ignore=shutil.ignore_patterns("__pycache__"))
         for folder in (llm, agent):
             names = sorted(str(p.relative_to(folder)) for p in folder.rglob("*") if p.is_file())
             (folder / "MANIFEST.sha256").write_text("".join(

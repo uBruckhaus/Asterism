@@ -553,7 +553,7 @@
   <p>Drag from an agent to a local LLM, or back. Choose the model and whether the agent uses it right
   away. To change a connection, select its agent (or click the line): every line that can be moved or removed shows an <b>orange hook</b> at its end. Drag the hook to another local LLM — or onto empty space to remove it; hovering a hook says what dragging it does. With an agent selected, clicking a model of a connected local
   LLM makes that model the agent's model.</p>
-  <p>Supported agents: Hermes, Pi, OpenCode, OpenClaw and DeepSeek Harness.</p>
+  <p>Supported agents: Hermes, Pi, Oh My Pi, OpenCode, OpenClaw and DeepSeek Harness.</p>
 
   <h2 id="connect-mcp">Agent ↔ MCP server</h2>
   <p>Drag from an agent to an MCP server. The server's settings are copied into that agent's own
@@ -926,6 +926,14 @@
   is sent but the request). If an add-on knows that agent, <b>Updates and suggestions</b> (the
   header's <b>!</b>) says so (<i>"Kilo Code is on this PC but not on the map"</i>) and a card under <b>Suggested for this PC</b>; one click installs it. If no add-on exists yet, the
   agent's details say so, with a link to ask for one.</p>
+
+  <h2 id="addons-make">Making an add-on</h2>
+  <p>A new local LLM or a new agent needs nothing but an add-on: Asterism builds its card, its box and
+  lines on the map, its details, the Models page and the Security page from what the add-on says about
+  it. If you can program a little, start from the templates in the Asterism repository
+  (<code>templates/</code>, explained in <code>docs/addons.md</code>): one file for a local LLM, a file
+  of facts for an agent. Send the add-on to <code>github.com/uBruckhaus/asterism-addons</code>; once it
+  is reviewed and signed, it appears under <b>Available</b> for everyone.</p>
 </section>
 
 <section class="chapter" id="privacy">

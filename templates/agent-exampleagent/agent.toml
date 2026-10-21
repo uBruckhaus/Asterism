@@ -1,0 +1,42 @@
+# Example Agent: a template for an agent add-on (docs/addons.md, every key: docs/adapter-format.md).
+# Facts only, nothing in this file runs; hooks.py holds what facts cannot say. The built-in agents
+# (adapters/*.toml) are made the same way. tests/test_new_addon_end_to_end.py loads this folder as
+# a signed add-on and checks it works.
+command = "exampleagent"
+name = "Example Agent"
+icon = "U+F06C4"                       # a Nerd Font glyph (or icon.svg in the add-on)
+data = ["~/.exampleagent"]             # its settings and sessions: never removed by the app
+home = "~/.exampleagent"               # shown in its card
+activity = ["~/.exampleagent/sessions"]  # their last change is its last use
+web_search = true                      # it searches the web itself
+
+[details]                              # its model and providers: hooks.py details()
+hook = true
+
+[local_llm]                            # the map can point it at a local LLM: hooks.py local_llm_*()
+files = ["~/.exampleagent/config.json"]
+hooks = true
+
+[mcp]                                  # where it keeps its MCP servers
+path = "~/.exampleagent/config.json"
+format = "json"
+key = "mcpServers"
+
+[research]                             # one web look-up with no other tools (Add skills, MCP)
+argv = ["exampleagent", "ask", "--web-only", "{prompt}"]
+
+[security]                             # its settings on the Security page, and its risks
+file = "~/.exampleagent/config.json"
+format = "json"
+asks = "permissions.ask"               # the setting that says when it asks first
+
+[[security.settings]]
+key = "permissions.ask"
+title = "Before commands"
+explain = "Whether it asks before it runs a command."
+default = "always"
+recommended = "always"
+choices = [
+  { value = "always", label = "Ask", explain = "Asks every time.", risk = 0 },
+  { value = "never", label = "Never ask", explain = "Runs them at once.", risk = 3 },
+]
