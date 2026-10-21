@@ -1,6 +1,6 @@
 # Maintainer: Uwe Bruckhaus
 pkgname=asterism
-pkgver=0.9.0
+pkgver=0.10.0
 pkgrel=1
 pkgdesc="Your AI agents, models and tools on one map (GTK4/libadwaita)"
 arch=('any')
@@ -12,7 +12,7 @@ optdepends=('vte4: agents in a terminal inside the window'
             'mise: updates for agents installed with mise')
 # The signed agent and provider add-ons (switched off until the first start's Set up).
 _addons=https://github.com/uBruckhaus/asterism-addons/releases/download
-_adapters=0.9.0              # the adapter add-ons' own release (signed separately)
+_adapters=0.10.0              # the adapter add-ons' own release (signed separately)
 source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/v$pkgver.tar.gz"
         "adapters-$_adapters.zip::$_addons/adapters-$_adapters/adapters-$_adapters.zip")
 noextract=("adapters-$_adapters.zip")

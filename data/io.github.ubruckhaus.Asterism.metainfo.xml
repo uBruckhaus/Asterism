@@ -25,6 +25,18 @@
   <url type="bugtracker">https://github.com/uBruckhaus/Asterism/issues</url>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.10.0" date="2026-10-21">
+      <description>
+        <p>A new local LLM or a new agent is now one add-on: the app asks each local LLM's engine and each
+        agent's facts and never names them, and templates plus a guide show how to make one. Local LLMs
+        that serve several models get a models-at-once setting with GPU memory warnings, also before an
+        agent starts; different models of one local LLM get violet lines.</p>
+        <p>Each agent has a network page (traffic in and out, where it goes), the header's symbols can be
+        reordered by dragging, and an Information page lists the author's other plugins. Configure… opens
+        an agent's or local LLM's own setup in a terminal. Connect pages and the MCP page share a clearer
+        layout; Oh My Pi connects to local LLMs; freshly installed local LLMs are found and explained.</p>
+      </description>
+    </release>
     <release version="0.9.0" date="2026-10-20">
       <description>
         <p>Play chess against your agents. Claude Code, Codex, Hermes and Pi can be asked for one move at a
