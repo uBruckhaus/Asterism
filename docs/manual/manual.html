@@ -176,12 +176,12 @@
   <div class="figure wide annotated">
     <div class="shot">
       <img src="images/main-window.jpg" alt="The main window with numbered areas">
-      <span class="pin" style="left:71.1%;top:2.6%">1</span>
-      <span class="pin" style="left:80.6%;top:2.6%">2</span>
+      <span class="pin" style="left:63.2%;top:2.6%">1</span>
+      <span class="pin" style="left:79.5%;top:2.6%">2</span>
       <span class="pin" style="left:1.3%;top:12.9%">3</span>
       <span class="pin" style="left:0.6%;top:27.9%">4</span>
       <span class="pin" style="left:50.0%;top:34.9%">5</span>
-      <span class="pin" style="left:40.7%;top:46.2%">6</span>
+      <span class="pin" style="left:40.7%;top:43.6%">6</span>
     </div>
     <p class="caption">The main window. The numbers match the list below.</p>
   </div>
@@ -191,9 +191,13 @@
       Setup has every agent, local LLM, MCP server, skill folder and model as a card: install, update,
       sign in, remove (see below).</li>
     <li>The header's symbols: <b>!</b> open problems and updates (red: something to fix; the accent
-      colour: only updates and suggestions; not there when there is nothing), <b>ⓘ</b> the legend (what
-      every dot, line and mark on the map means), the add-ons <span class="badge">Asterism</span>,
-      <b>?</b> Help (<kbd>F1</kbd>) and the gear for Settings (<kbd>Ctrl</kbd>+<kbd>,</kbd>).</li>
+      colour: only updates and suggestions; not there when there is nothing), the gamepad for AI
+      Playground (when it is installed), <b>ⓘ</b> the legend (what every dot, line and mark on the map
+      means), <b>⇅</b> the network traffic of the running agents (see <a href="#network">Network
+      traffic</a>), the add-ons <span class="badge">Asterism</span>, the filled <b>i</b> for Information
+      (see <a href="#help">Help</a>), <b>?</b> Help (<kbd>F1</kbd>) and the gear for Settings
+      (<kbd>Ctrl</kbd>+<kbd>,</kbd>). Hold the left mouse button on a symbol and drag it sideways to put
+      it elsewhere: a bar shows where it lands, and the order is kept.</li>
     <li><b>GPU</b> — GPU memory and GPU activity: how the graphics card is used right now, in a card that
       folds (folded, its line keeps the numbers).</li>
     <li><b>Show</b> toggles — shorten the map to the categories you are working on.</li>
@@ -271,6 +275,8 @@
       agent is working, light runs along that line.</li>
     <li>A red dotted line joins an agent to a provider it is set up for but does not use now (no model
       of it in use).</li>
+    <li>When agents use different models of one local LLM, the lines to those models are violet: it
+      keeps them loaded at once, or swaps them (see <a href="#models-at-once">Models at once</a>).</li>
     <li>An online agent's box has the same battery as its card on Setup: what is left of its limits; a
       running local LLM's box, the GPU memory still free.</li>
     <li>When a program that is not on the map uses a local LLM, the line from that LLM to the model
@@ -355,6 +361,21 @@
   <b>×</b> closes an ended one.</p>
   <p>An agent with an open instance anywhere on the computer gets a green dot and <i>running</i>,
   and the model box it runs with says <i>in use · &lt;agent&gt;</i>.</p>
+
+  <h2 id="network">Network traffic</h2>
+  <p>A running agent's box and card show what it receives and sends (↓ in, ↑ out). Click that line,
+  or <b>⇅</b> in the header for all running agents, to open its network page: <b>Now</b>, <b>The last
+  5 minutes</b> as a chart (in green, out blue), <b>Where it goes</b> — online APIs, local LLMs, this PC
+  and your local network, each with its share — and <b>Programs</b>: the agent itself and the
+  programs started by it, such as its MCP servers. It is counted from the agent's own TCP connections
+  while the app is open (no administrator rights needed; UDP is not counted) and stays on this PC.</p>
+
+  <h2 id="configure">Configure…</h2>
+  <p>Right-click an agent or a local LLM › <b>Configure…</b> opens its own setup in a terminal tab of
+  the window, for what the app does not set itself — for example <code>hermes setup</code> or Ollama's
+  own menu; LM Studio opens its window. A program without a setup command shows its
+  <code>--help</code>. When it ends, the map looks again and shows what changed, and a running local LLM
+  is offered a restart.</p>
 
   <h2 id="playground">AI Playground</h2>
   <p>Chess and other tests with your agents are in an app of their own: <b>AI Playground</b>. It lets an agent play chess against you (or two agents against each other), compares speed and cost, judges two answers blind, tests pictures and video frames, and asks your local LLMs. It uses the agents that are set up here.</p>
@@ -457,6 +478,17 @@
 
   <p>A local LLM that holds GPU memory gets a red stop button on its box. It asks first: <b>Free GPU memory</b> unloads its models; <b>Stop</b> ends it. For LM Studio the button is <b>Stop server</b>: only its server ends, and the app stays open with its models loaded. A model that a local LLM has loaded, but no agent uses, is joined to it by a solid light line.</p>
   <p>LM Studio can be open without its server. Its box then says <i>server off</i> with a yellow dot, agents cannot reach it, and its menu offers <b>Start server</b> (<code>lms server start</code>).</p>
+
+  <h2 id="models-at-once">Models at once</h2>
+  <p>llama.cpp, LM Studio and Ollama can keep more than one model loaded. When you connect agents to
+  different models of one local LLM, the app sets how many it keeps loaded at once to the number its
+  agents use — with the same preview, backup and Undo as the connection — and offers to restart it
+  if it is running, because it reads the number when it starts. Where that number is not the app's
+  to change (a system install, or your own start command), a note says where to set it.</p>
+  <p>When the models together do not fit in the GPU's memory, a warning says so: the local LLM then
+  swaps them, which is slow, or part of a model runs on the processor. Starting an agent checks the
+  same: if loading its model needs more GPU memory than is free, you are asked first, with what holds
+  the memory now — <b>Free GPU memory, then start</b>, <b>Start anyway</b> or <b>Cancel</b>.</p>
 
   <h2 id="outside-use">Used by other apps</h2>
   <p>Local LLMs are not only used by agents. A plugin such as Video Trans, a chat app or your own
@@ -678,9 +710,12 @@
   <p><b>?</b> (<kbd>F1</kbd>) opens Help: <b>Open user manual</b> opens this manual (the copy that
   came with your version) in your PDF viewer; <b>Disk space</b> (below); an animation of setting up by
   drawing; and LLM Monitor, a companion bar plugin that shows what a local LLM is doing (a small
-  animation of its bar item and panel). Both animations, and the one in Settings › <b>Too narrow for
-  the map</b>, are drawn in your theme's colours and follow a theme change at once. The <b>ⓘ</b>
-  legend in the header explains every dot, line and mark of the map.</p>
+  animation of its bar item and panel). Both animations are drawn in your theme's colours and follow
+  a theme change at once. The <b>ⓘ</b> legend in the header explains every dot, line and mark of the
+  map.</p>
+  <p>The filled <b>i</b> in the header opens <b>Information</b>: cards for the author's other plugins,
+  read from the Omarchy Plugin Marketplace when the page opens, at most once an hour (without the
+  network, the list this version knows). Clicking a card opens the plugin's page in the marketplace.</p>
 
   <h2 id="disk-space">Disk space</h2>
   <p><b>Disk space: agents, local LLMs and models</b> shows how much room your AI setup takes and where

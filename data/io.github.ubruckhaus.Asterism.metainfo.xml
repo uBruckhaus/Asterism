@@ -25,6 +25,13 @@
   <url type="bugtracker">https://github.com/uBruckhaus/Asterism/issues</url>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.10.1" date="2026-10-21">
+      <description>
+        <p>The user manual catches up with 0.10.0, in all eight languages: models at once and the GPU
+        memory check before an agent starts, the violet lines, the network page, Configure…, reordering the
+        header's symbols, the Information page and a new picture of the main window.</p>
+      </description>
+    </release>
     <release version="0.10.0" date="2026-10-21">
       <description>
         <p>A new local LLM or a new agent is now one add-on: the app asks each local LLM's engine and each
