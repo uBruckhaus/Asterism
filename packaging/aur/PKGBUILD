@@ -16,7 +16,7 @@ _adapters=0.10.0              # the adapter add-ons' own release (signed separat
 source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/v$pkgver.tar.gz"
         "adapters-$_adapters.zip::$_addons/adapters-$_adapters/adapters-$_adapters.zip")
 noextract=("adapters-$_adapters.zip")
-sha256sums=('39e7508ab0b64a7b28ba96f2b635c62c9341e5ae37bccb7b32a858691fec84a9'
+sha256sums=('e5e735af7438716ff7cf7ad099d42e7038f4296ffb218cfd8eb77f452e6d0c07'
             '39a70e5f112f3e6314051fd8a3897cb041901e0853716b86e1d21b25d0c1674c')
 
 package() {
