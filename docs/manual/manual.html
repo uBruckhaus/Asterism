@@ -193,7 +193,8 @@
     <li>The header's symbols: <b>!</b> open problems and updates (red: something to fix; the accent
       colour: only updates and suggestions; not there when there is nothing), <b>ⓘ</b> the legend (what every dot, line and mark on the map
       means), <b>⇅</b> the network traffic of the running agents (see <a href="#network">Network
-      traffic</a>), the add-ons <span class="badge">Asterism</span>, the filled <b>i</b> for Information
+      traffic</a>), the two sparkles for <b>Smart Check</b> (only while Claude Code or Codex is installed,
+      see <a href="#smart-check">Smart Check</a>), the add-ons <span class="badge">Asterism</span>, the filled <b>i</b> for Information
       (see <a href="#help">Help</a>), <b>?</b> Help (<kbd>F1</kbd>) and the gear for Settings
       (<kbd>Ctrl</kbd>+<kbd>,</kbd>). Hold the left mouse button on a symbol and drag it sideways to put
       it elsewhere: a bar shows where it lands, and the order is kept.</li>
@@ -308,6 +309,9 @@
   <b>Update</b>). With only these and no problem, the header's <b>!</b> shows in the accent colour.
   Updates are checked in the background when the window opens, at most every six hours. Nothing is
   installed by the check itself; an update starts only when you click <b>Update</b>.</p>
+  <p>With Settings › <b>Daily AI checks</b> on, the MCP server updates an agent found on the web are
+  listed here too, with <b>Release page</b> and <b>Do it with …</b>; once the new version is on this
+  PC, the line offers <b>Use it…</b> instead (see <a href="#smart-updates">Updates found</a>).</p>
 </section>
 
 <!-- ============================== 4 Agents ============================== -->
@@ -617,7 +621,7 @@
     <thead><tr><th>Tab</th><th>Contents</th></tr></thead>
     <tbody>
       <tr><td><b>Recommended</b></td><td>The MCP project's reference servers (Filesystem, Fetch, Git, Memory, Sequential Thinking, Time, Everything) and official servers of well-known makers (GitHub, Playwright, Chrome DevTools, Brave Search, Context7), grouped by purpose and pinned to their newest version.</td></tr>
-      <tr><td><b>MCP registry</b></td><td>A search of the official MCP registry. Each result names its publisher as the registry checked it. The search can take ten seconds or more.</td></tr>
+      <tr><td><b>MCP registry</b></td><td>A search of the official MCP registry. Each result names its publisher as the registry checked it. The search can take ten seconds or more. The results come 20 at a time; the line under the list pages through them and shows where you are, for example <b>‹ Previous 20</b> · 21 – 40 / 200 · <b>Next 20 ›</b> (with <i>/ 40+</i> when the registry does not say how many there are).</td></tr>
       <tr><td><b>On this PC</b></td><td>Programs on this computer that offer an MCP server, found by reading their files — nothing is started. AppImages are only looked into when you click <b>Look inside…</b>.</td></tr>
       <tr><td><b>By hand</b></td><td>A command line, or a web address with headers.</td></tr>
     </tbody>
@@ -687,10 +691,12 @@
       <tr><td><b>Map animations</b></td><td>Light runs along the lines on the map: <b>Agents and other programs</b> (a working agent's line, and a local LLM's line to a model another program uses), <b>Only my agents</b>, or <b>Off</b>. A small animated map under the setting shows what each choice moves.</td></tr>
       <tr><td><b>Terminal tabs above the map</b></td><td>One tab per agent terminal in the window.</td></tr>
       <tr><td><b>Corners</b></td><td>Like windows, rounded or square.</td></tr>
-      <tr><td><b>Look up new agents</b></td><td>Ask an installed agent where an unknown agent keeps its settings.</td></tr>
       <tr><td><b>Start local LLMs with their agents</b></td><td>The background watcher described in <a href="#start-with-agents">Starting and stopping with agents</a>.</td></tr>
       <tr><td><b>In the app launcher</b></td><td>The launcher entry; off removes it.</td></tr>
       <tr><td><b>Agents start in</b></td><td>The folder agents start in.</td></tr>
+      <tr><td><b>AI features</b>: <b>Look up new agents</b></td><td>Ask an installed agent where an unknown agent keeps its settings (on by default).</td></tr>
+      <tr><td><b>AI features</b>: <b>Daily AI checks</b></td><td>Once a day, an agent looks on the web for new versions of your MCP servers (off by default; it uses the agent's tokens). See <a href="#smart-check">Smart Check</a>.</td></tr>
+      <tr><td><b>AI features</b>: <b>Agent for AI checks</b></td><td>Claude Code or Codex: does the AI checks and look-ups and takes the <b>Do it with …</b> and <b>Fix it with …</b> tasks.</td></tr>
       <tr><td><b>Models folder</b></td><td>One folder for all models, with <b>Reorganize models…</b>.</td></tr>
       <tr><td><b>Add-ons</b> <span class="badge">Asterism</span></td><td><b>Look for add-ons online</b>, the Add-ons page, and <b>Setup</b>.</td></tr>
       <tr><td><b>About</b></td><td>The version, the author and the license; <b>Website</b> opens the project on GitHub and <b>Report an Issue</b> its issue list.</td></tr>
@@ -740,6 +746,65 @@
   data holds your sessions and settings. When space runs out, look at old program versions and at
   models you no longer use first.</p></div>
   <p>Sizes are space on disk: a file kept in two places counts once, and links are not followed.</p>
+</section>
+
+<!-- ============================== Smart Check ============================== -->
+<section class="chapter" id="smart-check">
+  <h1>Smart Check</h1>
+  <p class="lead">Smart Check lets an installed online agent — Claude Code or Codex — look at this PC's
+  AI setup, find updates for your MCP servers and do fixes for you, and shows what that cost in tokens.
+  The two sparkles in the header open it; they show only while one of these agents is installed.
+  Settings › <b>Agent for AI checks</b> picks which one.</p>
+
+  <div class="figure wide">
+    <img src="images/smart-check.jpg" alt="The Smart Check page: the summary of the last check, the At your own risk card, PC setup summary with Check now and its findings (three problems and four tips with Fix it with Claude Code…, four good points), and the folded Updates found card">
+    <p class="caption">Smart Check after a check by Claude Code: problems (!), tips (·) and what is good (✓).</p>
+  </div>
+
+  <div class="warn"><p><b>At your own risk</b> An agent's findings, answers and changes can be wrong,
+  incomplete or out of date. Read what it proposes before you agree to a step, and keep backups. Its
+  look-ups and tasks use your tokens or plan limits. The app gives no warranty for what an agent does.
+  The same note heads Settings › <b>AI features</b>.</p></div>
+
+  <h2 id="smart-summary">PC setup summary</h2>
+  <p><b>Check now</b> gives the agent a short text about the setup — the graphics card and memory, the
+  agents with their models, the local LLMs, the MCP servers with their versions, the skills and what
+  <a href="#health">Open problems</a> found — and lets it look things up on the web. No keys, headers or
+  settings values are in it. It takes a minute or more in the background; the line under the button
+  says how many tokens the last check used. The answer is a short summary and a list of findings:
+  <b>!</b> problems, <b>·</b> tips and <b>✓</b> what is good. Answers that do not hold up are left out.</p>
+  <p><b>Fix it with …</b> next to a problem or tip opens the agent in a terminal tab in the window with
+  that finding as its task: it looks whether it is so, explains, and asks you before each step that
+  changes anything. Moving MCP servers to a new version is left to the app's <b>Update</b> (below),
+  which changes every agent's settings at once, with a backup and Undo.</p>
+
+  <h2 id="smart-updates">Updates found</h2>
+  <p>New versions of your MCP servers, from two sources:</p>
+  <ul>
+    <li><b>The daily AI checks</b> (Settings › <b>Daily AI checks</b>, off by default): once a day the
+      agent looks on the official release pages for newer versions of servers whose version the app can
+      tell — apps unpacked in <code>~/Applications/&lt;app&gt;-&lt;version&gt;/</code> and npm or PyPI
+      packages pinned to a version. <b>Check now</b> on this card asks at once, also while the daily
+      checks are off. Each find has <b>Release page</b> and <b>Do it with …</b>: the agent downloads
+      the new AppImage in a terminal tab, asking before each step.</li>
+    <li><b>The app's own scan</b>: a newer version is already on this PC, but an agent still starts the
+      old one (the same as the update on the server's card on Setup).</li>
+  </ul>
+  <p>Once the new version is on this PC, its line says so and offers <b>Use it…</b>: the update
+  preview shows which agents move to it; <b>Update</b> changes them all, keeps the old version with the
+  backup and tests each server afterwards. A server whose agents all start the new version drops off
+  the list.</p>
+  <div class="tip"><p><b>Tip</b> After an action started here — an update, or a task in a terminal tab —
+  <b>Back</b> brings you to Smart Check again, up to date.</p></div>
+
+  <h2 id="smart-tokens">Token statistics</h2>
+  <p>Tokens used today and in the last 30 days, a chart per day, and the totals by agent and by plugin
+  (other Omarchy plugins that use the same AI helper show up here too). <b>API value</b> is what the
+  runs would cost at API prices, and the line under it says whether your subscription covers it or it
+  is charged to an API key. A task in a terminal tab counts in its agent's own session; the agent's
+  details page shows those tokens.</p>
+  <p>Below, one card per kind of task — the setup check, MCP server updates, looking up new agents,
+  fixes — with its runs, tokens and the latest results.</p>
 </section>
 
 <!-- ============================== 11 Healthy & Security check ============================== -->
@@ -984,6 +1049,10 @@
       and can be undone. Settings that may hold keys are written readable only by you.</li>
     <li><b>Bounded.</b> Every program runs without a shell, and every answer is read with a size and
       time limit.</li>
+    <li><b>AI features only when you choose them.</b> Smart Check's look-ups run on a click, the daily
+      AI checks only when switched on. The agent gets a short summary (names, versions, models), never
+      keys or settings values; its answers are checked before they are shown and never run. Tasks run
+      in a terminal you watch, and the agent asks before each step. You use them at your own risk.</li>
   </ul>
   <p>The README in each repository lists in full what is read, started and written.</p>
 </section>
@@ -1033,7 +1102,8 @@
       <tr><td><code>~/.local/state/ai-agents-map/backups/</code></td><td>Backups of every file the app changed.</td></tr>
       <tr><td><code>~/.local/state/ai-agents-map/jobs.json</code></td><td>Interrupted downloads and installs.</td></tr>
       <tr><td><code>~/.local/state/ai-agents-map/reorganize.json</code></td><td>The journal of the last reorganize, for Undo.</td></tr>
-      <tr><td><code>~/.cache/ai-agents-map/</code></td><td>Scan results, tool lists, update checks.</td></tr>
+      <tr><td><code>~/.cache/ai-agents-map/</code></td><td>Scan results, tool lists, update checks, the last Smart Check (<code>smart-check.json</code>) and the AI checks' MCP updates (<code>mcp-updates.json</code>).</td></tr>
+      <tr><td><code>~/.local/state/omarchy-plugin-ai/runs.json</code></td><td>The AI look-ups and tasks of this app and other plugins, with their tokens: Smart Check's statistics.</td></tr>
       <tr><td><code>~/.config/systemd/user/ai-agents-map-providers.service</code></td><td>The watcher that starts local LLMs with their agents.</td></tr>
     </tbody>
   </table>

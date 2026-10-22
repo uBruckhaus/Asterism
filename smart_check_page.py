@@ -267,8 +267,12 @@ class SmartCheckPage:
 
     def fill_smart_category(self, body, category):
         task = smart_check.TASKS.get(category.task)
-        title = _(task) if task and category.plugin == ai_helper.plugin_id() else \
-            f"{self.plugin_title(category.plugin)} · {category.task}"
+        if task and category.plugin == ai_helper.plugin_id():
+            title = _(task)
+        elif task and category.plugin in ("ai-agents-map", "asterism"):     # the same app's other edition
+            title = f"{self.plugin_title(category.plugin)} · {_(task)}"
+        else:
+            title = f"{self.plugin_title(category.plugin)} · {category.task}"
         totals = category.totals
         failed = totals.runs - totals.ok
         summary = " · ".join(filter(None, [
