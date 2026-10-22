@@ -103,3 +103,35 @@ class ReadersTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class OmpTest(unittest.TestCase):
+    """Oh My Pi's client_usage rows, read-only; a linked database is not opened."""
+
+    def setUp(self):
+        import sqlite3
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.db = Path(self.tmp.name) / "agent.db"
+        con = sqlite3.connect(self.db)
+        con.execute("CREATE TABLE client_usage (id INTEGER PRIMARY KEY, recorded_at, install_id, app, provider, model,"
+                    " requests, input_tokens, output_tokens, cache_read_tokens, cache_write_tokens, cost_usd)")
+        con.executemany("INSERT INTO client_usage VALUES (?, ?, 'i', 'omp', 'anthropic', ?, ?, ?, ?, ?, ?, 0)", [
+            (1, int((NOW - 3600) * 1000), "claude-opus-5-5", 2, 100, 20, 300, 4),
+            (2, "2026-10-22T10:00:00Z", "gpt-6-luna", 1, 10, 1, 0, 0),
+            (3, int((NOW - (a.DAYS + 2) * 86400) * 1000), "claude-opus-5-5", 1, 9, 9, 9, 9)])
+        con.commit()
+        con.close()
+
+    def test_rows_of_the_last_days(self):
+        found = a.omp_db(self.db, NOW)
+        self.assertIn("omp:1", found)
+        self.assertNotIn("omp:3", found)                         # too old
+        self.assertEqual(found["omp:1"].tokens, {"claude-opus-5-5": [100, 20, 300, 4]})
+        self.assertEqual(found["omp:1"].replies, 2)
+
+    def test_linked_or_missing_database(self):
+        link = Path(self.tmp.name) / "link.db"
+        os.symlink(self.db, link)
+        self.assertEqual(a.omp_db(link, NOW), {})
+        self.assertEqual(a.omp_db(Path(self.tmp.name) / "none.db", NOW), {})

@@ -100,7 +100,7 @@ REQUIRED = {"top": ("command", "name"), "way": ("kind",), "login": ("label", "ar
 # Readers and version sources the app has; a file names them.
 READERS = {"claude-files": ("claude_sessions", "collect_by_id"),
            "codex-files": ("agent_sessions", "codex_files"), "pi-files": ("agent_sessions", "pi_files"),
-           "dsh-files": ("agent_sessions", "dsh_files")}
+           "dsh-files": ("agent_sessions", "dsh_files"), "omp-db": ("agent_sessions", "omp_db")}
 LATEST = {"claude-channel": ("agent_updates", "claude_channel_latest")}
 INSTALLERS = {"agy": ("install_ctl", "Agy"), "dsh": ("install_ctl", "Dsh"),   # installers the app has
               "bionic": ("install_ctl", "Bionic")}

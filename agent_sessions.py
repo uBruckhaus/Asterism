@@ -11,6 +11,9 @@ map's cost label. Which agent uses which reader comes from its adapter ([session
 - dsh-files: ~/.dsh/sessions/<folder>/session-*/session.v4.jsonl.zstd (zstd, Python 3.14's
   compression.zstd); each assistant/message's usage (inputTokens, outputTokens, cacheReadTokens,
   cacheWriteTokens) under its model.
+- omp-db: Oh My Pi's ~/.omp/agent/agent.db, table client_usage (read-only): per row its model,
+  requests and input, output, cache read and cache write tokens (input without the cached ones, as
+  in Pi), each row one entry here.
 
 Only numbers, times, model names and working folders are taken, never what was said. This account's
 own regular files only, never through a link; files written in the last DAYS days, at most MAX_FILES
@@ -223,6 +226,42 @@ def collect(form: str, root: Path | None = None, now: float | None = None) -> di
             _KEPT[key] = (mark, session)
         if session is not None:
             found[str(path)] = session
+    return found
+
+
+MAX_ROWS = 100_000
+
+
+def omp_db(db: Path | None = None, now: float | None = None) -> dict:
+    """{"omp:<row id>": Session} from Oh My Pi's client_usage table, the last DAYS days."""
+    import sqlite3
+    db = db or HOME / ".omp/agent/agent.db"
+    now = time.time() if now is None else now
+    try:
+        info = os.lstat(db)
+    except OSError:
+        return {}
+    if not stat.S_ISREG(info.st_mode) or info.st_uid != os.getuid():
+        return {}
+    try:
+        con = sqlite3.connect(f"file:{db}?mode=ro", uri=True, timeout=1.0)
+    except sqlite3.Error:
+        return {}
+    try:
+        rows = con.execute("SELECT id, recorded_at, model, requests, input_tokens, output_tokens, cache_read_tokens,"
+                           " cache_write_tokens FROM client_usage ORDER BY id DESC LIMIT ?", (MAX_ROWS,)).fetchall()
+    except sqlite3.Error:
+        return {}
+    finally:
+        con.close()
+    found = {}
+    for row_id, recorded, model, requests, *counts in rows:
+        when = _epoch(recorded)
+        if when is None or now - when > DAYS * 86400:
+            continue
+        session = Session(first=when, last=when, replies=_int(requests))
+        _add(session, _text(model), [_int(n) for n in counts])
+        found[f"omp:{_int(row_id)}"] = session
     return found
 
 
