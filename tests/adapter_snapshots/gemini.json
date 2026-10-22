@@ -56,7 +56,6 @@
  "sandbox_setting": "",
  "replies": [],
  "subagents": [],
- "prices": [],
  "asks_setting": "",
  "access": {
   "how": "A Google account (free tier), or an API key from aistudio.google.com",

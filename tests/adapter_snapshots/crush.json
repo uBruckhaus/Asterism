@@ -57,7 +57,6 @@
  "sandbox_setting": "",
  "replies": [],
  "subagents": [],
- "prices": [],
  "asks_setting": "",
  "access": {
   "how": "An API key for a provider, or a local LLM from the map",
