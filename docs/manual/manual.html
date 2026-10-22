@@ -286,8 +286,8 @@
       running local LLM's box, the GPU memory still free.</li>
     <li>An agent paid per token — signed in with an API key, so it has no plan limits for a battery —
       shows instead what its sessions active today cost at API prices, as a small <b>“$3.40 today”</b>
-      on its box and card: an estimate from its token counts and the prices its adapter names (Claude
-      Code), refreshed every minute.</li>
+      on its box and card: green, yellow from 75&nbsp;% of the day's limit and red over it (Settings ›
+      <b>Costs</b>), refreshed every minute. Its details show the whole <a href="#api-cost">API cost</a>.</li>
     <li>When a program that is not on the map uses a local LLM, the line from that LLM to the model
       turns bold in a colour of its own (purple or cyan, whichever stands out from the theme's other
       colours), and light runs along it. See <a href="#outside-use">Used by other apps</a>.</li>
@@ -345,6 +345,7 @@
     <thead><tr><th>Card</th><th>What it shows</th></tr></thead>
     <tbody>
       <tr><td><b>Usage and tokens</b></td><td>Where the agent records it: today's and the last seven days' tokens and sessions, the plan, a chart of tokens per day, rate limits with reset times and tokens by model.</td></tr>
+      <tr><td><b>API cost</b> / <b>API value</b></td><td>What its tokens cost at the providers' API prices: today, the last 7 and 30 days, and per model the split into input, output, cache read and cache write (tokens and amount). <b>API cost</b> for an agent paid per token (with its share of the day's limit), <b>API value</b> for one on a plan (the plan covers it). See <a href="#api-cost">API cost</a>.</td></tr>
       <tr><td><b>Projects, last 30 days</b></td><td>Per project folder: working time, sessions, tokens, subagent runs, lines changed and the API value.</td></tr>
       <tr><td><b>Topics</b> (Privacy)</td><td>What the sessions were about. It goes beyond numbers, so it is marked <b>Privacy</b> and filled only by an add-on (see below); the add-on names the card and its badge says how much it reads.</td></tr>
       <tr><td><b>Health</b></td><td>Every setup check with a ✓, or what to do next: sign in, install or start its local LLM, download a model, add MCP servers or skills.</td></tr>
@@ -352,9 +353,17 @@
       <tr><td><b>Configuration</b></td><td>The agent's settings, MCP servers, skills and settings folder.</td></tr>
     </tbody>
   </table>
-  <p>Projects are shown for Claude Code, OpenCode and Hermes:
+  <p>Projects are shown for every agent whose sessions the app reads — Claude Code, Codex, Pi, Oh My Pi,
+  OpenCode, Hermes, DeepSeek Harness, Goose, Gemini CLI and OpenClaw:
   working time, sessions, tokens, subagent runs, lines changed and what the tokens would cost at API
   prices. The numbers come from each agent's own session files or database; no text is read.</p>
+  <p id="api-cost"><b>API cost.</b> The amounts are an estimate: the token counts the agent keeps (input,
+  output, cache read and cache write, per model) at the providers' published API prices — Anthropic,
+  OpenAI, DeepSeek, xAI and Google, with the date they were taken. A session counts on the day of its
+  last reply; local models cost nothing. Crush keeps no token counts that add up, so its card shows the
+  cost Crush itself reports. For an agent that keeps no token counts on the PC (Cursor CLI, Antigravity,
+  Muse) the card says the cost is not known; its provider's account page has it. Amounts are shown in
+  US dollars, or in euros at the European Central Bank's daily rate (Settings › <b>Costs</b>).</p>
   <p><span class="badge">Asterism</span> With the <b>Insights</b> add-on (see <a href="#addons">Add-ons</a>) the <b>Topics</b> card shows first
   which topics took the most tokens in the last 30 days (<b>Most tokens</b>: sessions with the same title are one
   topic, each with its share of all tokens), then the titles the agent gave its sessions itself, per project
@@ -436,9 +445,12 @@
   or <code>claude update</code> — in a terminal window of its own, so you can follow it.</p>
 
   <h2 id="installed-agents">Agents the app can install</h2>
-  <p>Three agents can be installed, updated and uninstalled from the map (right-click the agent ›
+  <p>Four agents can be installed, updated and uninstalled from the map (right-click the agent ›
   <b>Install…</b>):</p>
   <ul>
+    <li><b>Goose</b> (<code>goose</code>, from the Agentic AI Foundation, formerly Block), its GitHub release
+      through mise. It works with many providers and with local LLMs; <b>Configure…</b> runs
+      <code>goose configure</code>.</li>
     <li><b>DeepSeek Harness</b> (<code>dsh</code>, developer preview), from npm. It can use local LLMs.</li>
     <li><b>Antigravity CLI</b> (<code>agy</code>, Google), from Google's release manifest; the
       download is checked against its SHA-512.</li>
@@ -617,7 +629,7 @@
 
   <h2 id="connect-mcp">Agent ↔ MCP server</h2>
   <p>Drag from an agent to an MCP server. The server's settings are copied into that agent's own
-  format. Supported: Claude Code, Codex, Copilot, Crush, Cursor, Gemini, Grok, Hermes, Muse,
+  format. Supported: Claude Code, Codex, Copilot, Crush, Cursor, Gemini, Goose, Grok, Hermes, Muse,
   Oh My Pi, OpenClaw, OpenCode and Pi. Settings files that may hold keys are always written so that
   only you can read them.</p>
 
@@ -720,6 +732,7 @@
       <tr><td><b>Map animations</b></td><td>Light runs along the lines on the map: <b>Agents and other programs</b> (a working agent's line, and a local LLM's line to a model another program uses), <b>Only my agents</b>, or <b>Off</b>. A small animated map under the setting shows what each choice moves.</td></tr>
       <tr><td><b>Usage statistics box</b></td><td>The numbers along a working agent's line (see <a href="#map">Working with the map</a>): on or off, which of <b>Tokens per second</b>, <b>Context size</b> and <b>Context used</b> it shows, and its <b>Text size</b> (7&nbsp;pt by default).</td></tr>
       <tr><td><b>Subagents</b></td><td>For the <a href="#subagents">Subagents</a> page: how long finished subagents stay (<b>30 minutes</b> by default; 10, 30, 60 or 120) and how many at most (<b>10</b> by default; 5, 10, 20 or 40). Working ones are always shown.</td></tr>
+      <tr><td><b>Costs</b></td><td><b>Currency</b>: US dollar, or Euro at the European Central Bank's daily reference rate (fetched once a day from ecb.europa.eu). <b>A day's limit</b> for an agent paid per token (<b>100</b> by default; 10 to 500): its cost label turns yellow from 75&nbsp;% of it and red over it.</td></tr>
       <tr><td><b>Terminal tabs above the map</b></td><td>One tab per agent terminal in the window.</td></tr>
       <tr><td><b>Corners</b></td><td>Like windows, rounded or square.</td></tr>
       <tr><td><b>Start local LLMs with their agents</b></td><td>The background watcher described in <a href="#start-with-agents">Starting and stopping with agents</a>.</td></tr>
