@@ -69,6 +69,7 @@
   ],
   "env": [],
   "local_ok": true,
+  "per_token": false,
   "logins": [
    {
     "label": "A provider (account or key)",

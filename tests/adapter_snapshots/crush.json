@@ -69,6 +69,7 @@
    "OPENAI_API_KEY"
   ],
   "local_ok": true,
+  "per_token": false,
   "logins": [
    {
     "label": "Inside Crush (it asks for a key)",

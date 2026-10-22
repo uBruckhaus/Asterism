@@ -126,7 +126,7 @@ class RegistryTest(unittest.TestCase):
         self.assertEqual(len(commands), len(set(commands)))
         self.assertEqual(harnesses.get("opencode").name, "OpenCode")
         self.assertIsNone(harnesses.get("nope"))
-        self.assertEqual({h.command for h in harnesses.with_sessions()}, {"claude", "hermes", "opencode"})
+        self.assertEqual({h.command for h in harnesses.with_sessions()}, {"claude", "hermes", "opencode", "codex", "pi", "dsh"})
         self.assertEqual(len(commands), 16)
 
     def test_notes_name_the_harness(self):

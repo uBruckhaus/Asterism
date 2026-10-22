@@ -2651,5 +2651,6 @@
  "{0}, last 30 days": "{0}, ultimi 30 giorni",
  "What an agent paid per token cost is shown in. Euros use the European Central Bank's daily reference rate, fetched once a day from ecb.europa.eu.": "In cosa si mostra quanto costa un agente pagato a token. Gli euro usano il tasso di riferimento giornaliero della Banca centrale europea, preso una volta al giorno da ecb.europa.eu.",
  "For an agent paid per token: its cost label turns yellow from 75 % of this a day, and red over it. In the currency above.": "Per un agente pagato a token: l’indicazione del costo diventa gialla dal 75 % di questo al giorno, e rossa oltre. Nella valuta sopra.",
- "An estimate: the tokens of its sessions (counted on the day of their last reply) at the providers' API prices as of {0}.": "Una stima: i token delle sue sessioni (contati nel giorno dell’ultima risposta) ai prezzi API dei fornitori al {0}."
+ "An estimate: the tokens of its sessions (counted on the day of their last reply) at the providers' API prices as of {0}.": "Una stima: i token delle sue sessioni (contati nel giorno dell’ultima risposta) ai prezzi API dei fornitori al {0}.",
+ "Numbers from {0}'s session files (no text is read). The API value is what the tokens would cost at API prices, not what a plan costs.": "Numeri dai file di sessione di {0} (nessun testo viene letto). Il valore API è quanto costerebbero i token ai prezzi API, non quanto costa un piano."
 }

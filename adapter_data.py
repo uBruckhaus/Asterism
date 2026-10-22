@@ -79,7 +79,7 @@ MCP = {"path": STR, "format": STR, "key": STR, "shape": STR, "in_app": STR, "def
 LOCAL_LLM = {"files": STRS, "hooks": BOOL}             # the files connect.plan edits, by the local_llm_* hooks
 LOGIN_STATUS = {"argv": STRS, "no": STR, "yes": STR}     # a command whose output says signed in or not
 ACCESS = {"how": STR, "login": STR, "files": STRS, "env": STRS, "local_ok": BOOL, "logins": TABLES, "key": TABLE,
-          "logout": STRS}
+          "logout": STRS, "per_token": BOOL}   # per_token: every sign-in is an API key (no plans with limits)
 LOGIN = {"label": STR, "argv": STRS, "note": STR}
 CONFIGURE = {"label": STR, "argv": STRS, "note": STR}    # its own setup command, in a terminal (Configure…)
 KEY = {"var": STR, "url": STR, "stdin": STRS, "env_file": STR}
@@ -98,7 +98,9 @@ REQUIRED = {"top": ("command", "name"), "way": ("kind",), "login": ("label", "ar
             "listed": ("file", "format", "key"), "login_status": ("argv", "no", "yes"), "ask": ("argv",)}
 
 # Readers and version sources the app has; a file names them.
-READERS = {"claude-files": ("claude_sessions", "collect_by_id")}
+READERS = {"claude-files": ("claude_sessions", "collect_by_id"),
+           "codex-files": ("agent_sessions", "codex_files"), "pi-files": ("agent_sessions", "pi_files"),
+           "dsh-files": ("agent_sessions", "dsh_files")}
 LATEST = {"claude-channel": ("agent_updates", "claude_channel_latest")}
 INSTALLERS = {"agy": ("install_ctl", "Agy"), "dsh": ("install_ctl", "Dsh"),   # installers the app has
               "bionic": ("install_ctl", "Bionic")}
@@ -298,6 +300,7 @@ def _access(facts: dict):
         key = facts.get("key")
         return Access(_(facts["how"]), facts.get("login", ""), tuple(facts.get("files", ())),
                       tuple(facts.get("env", ())), local_ok=facts.get("local_ok", False),
+                      per_token=facts.get("per_token", False),
                       logins=tuple(Login(_(login["label"]), tuple(login["argv"]),
                                          _(login["note"]) if login.get("note") else "")
                                    for login in facts.get("logins", ())),

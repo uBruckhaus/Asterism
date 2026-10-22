@@ -359,7 +359,7 @@ def _extended(harness: Harness) -> Harness:
 # app's own adapter for the same agent gives them until the add-on is signed again.
 NEWER_FACTS = ("home", "activity", "details", "program_dir", "web_search", "chat_app", "herdr", "logout",
                "start", "research", "rewrite", "task", "models", "tools_setting", "sandbox_setting",
-               "asks_setting", "replies", "subagents")
+               "asks_setting", "replies", "subagents", "sessions")
 
 
 def _with_newer_facts(harness: Harness) -> Harness:

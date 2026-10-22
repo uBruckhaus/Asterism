@@ -421,6 +421,7 @@ class Access:
     files: tuple = ()        # credential files (relative to ~): only whether one exists is checked
     env: tuple = ()          # API-key variables: only whether one is set is checked
     local_ok: bool = False   # works with a local LLM, without any account
+    per_token: bool = False  # every sign-in is an API key: paid per token, no plan with limits
     logins: tuple = ()       # signin.Login: the agent's own sign-ins the app can start in a terminal
     key: object = None       # signin.KeyStep: how an API key gets where the agent reads it
 
@@ -449,9 +450,10 @@ def login_state(command: str) -> bool | None:
 
 def pays_per_token(command: str, details, environ=None) -> bool:
     """Whether the agent is paid per token (an API key or API billing) rather than with a plan whose
-    limits the battery shows: no limits known, and either one of its API-key variables is set (only
-    whether it is), or the desktop's usage record for it is there and names no plan. Without a
-    record it is not known: no."""
+    limits the battery shows: no limits known, and one of its API-key variables is set (only whether
+    it is), or it signs in with API keys only (access.per_token) and is signed in (its credential file
+    is there: never opened), or the desktop's usage record for it is there and names no plan. Without
+    any of these it is not known: no."""
     if details is None or details.limits:
         return False
     harness = harnesses.get(command)
@@ -459,6 +461,8 @@ def pays_per_token(command: str, details, environ=None) -> bool:
     environ = os.environ if environ is None else environ
     if access is not None and any(environ.get(name) for name in access.env):
         return True
+    if access is not None and access.per_token and credentials_present(access, HOME, environ):
+        return True              # signed in, and it has only API keys (DeepSeek): only whether a file is there
     return bool(details.has_usage) and not details.plan
 
 

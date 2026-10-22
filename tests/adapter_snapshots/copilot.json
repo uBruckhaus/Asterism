@@ -68,6 +68,7 @@
    "GH_TOKEN"
   ],
   "local_ok": false,
+  "per_token": false,
   "logins": [
    {
     "label": "GitHub account",

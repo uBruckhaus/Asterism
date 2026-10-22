@@ -336,3 +336,25 @@ class CostsTest(unittest.TestCase):
         harness = SimpleNamespace(sessions=SimpleNamespace(collect=lambda: local))
         with mock.patch.object(st.harnesses, "get", return_value=harness):
             self.assertIsNone(st.costs("hermes"))
+
+
+class PerTokenAccessTest(unittest.TestCase):
+    """An agent that signs in with API keys only (access.per_token) is paid per token once signed in."""
+
+    def test_signed_in_with_api_keys_only(self):
+        from unittest import mock
+        import tempfile
+        from types import SimpleNamespace
+        home = tempfile.TemporaryDirectory()
+        self.addCleanup(home.cleanup)
+        access = st.Access("API key", files=(".agent/.credentials.yaml",), env=("AGENT_KEY",), per_token=True)
+        harness = SimpleNamespace(access=lambda: access)
+        info = ad.Details()
+        with mock.patch.object(st.harnesses, "get", return_value=harness), mock.patch.object(st, "HOME", Path(home.name)):
+            self.assertFalse(st.pays_per_token("agent", info, {}))                # not signed in
+            (Path(home.name) / ".agent").mkdir()
+            (Path(home.name) / ".agent/.credentials.yaml").write_text("x")
+            self.assertTrue(st.pays_per_token("agent", info, {}))                 # its file is there
+            plain = st.Access("plan or key", files=(".agent/.credentials.yaml",))
+            harness.access = lambda: plain
+            self.assertFalse(st.pays_per_token("agent", info, {}))                # could be a plan

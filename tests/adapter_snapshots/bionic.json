@@ -64,6 +64,7 @@
   "files": [],
   "env": [],
   "local_ok": true,
+  "per_token": false,
   "logins": [],
   "key": null
  },

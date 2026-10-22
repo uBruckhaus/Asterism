@@ -2651,5 +2651,6 @@
  "{0}, last 30 days": "{0}, laatste 30 dagen",
  "What an agent paid per token cost is shown in. Euros use the European Central Bank's daily reference rate, fetched once a day from ecb.europa.eu.": "Waarin wordt getoond wat een agent kost die per token wordt betaald. Euro's gebruiken de dagelijkse referentiekoers van de Europese Centrale Bank, één keer per dag opgehaald van ecb.europa.eu.",
  "For an agent paid per token: its cost label turns yellow from 75 % of this a day, and red over it. In the currency above.": "Voor een agent die per token wordt betaald: zijn kostenaanduiding wordt geel vanaf 75 % hiervan per dag, en rood daarboven. In de valuta hierboven.",
- "An estimate: the tokens of its sessions (counted on the day of their last reply) at the providers' API prices as of {0}.": "Een schatting: de tokens van zijn sessies (geteld op de dag van hun laatste antwoord) tegen de API-prijzen van de aanbieders per {0}."
+ "An estimate: the tokens of its sessions (counted on the day of their last reply) at the providers' API prices as of {0}.": "Een schatting: de tokens van zijn sessies (geteld op de dag van hun laatste antwoord) tegen de API-prijzen van de aanbieders per {0}.",
+ "Numbers from {0}'s session files (no text is read). The API value is what the tokens would cost at API prices, not what a plan costs.": "Getallen uit de sessiebestanden van {0} (er wordt geen tekst gelezen). De API-waarde is wat de tokens tegen API-prijzen zouden kosten, niet wat een abonnement kost."
 }

@@ -164,6 +164,7 @@
   ],
   "env": [],
   "local_ok": true,
+  "per_token": false,
   "logins": [
    {
     "label": "Setup wizard (account or key)",

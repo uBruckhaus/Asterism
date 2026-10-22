@@ -69,6 +69,7 @@
    "GOOGLE_API_KEY"
   ],
   "local_ok": false,
+  "per_token": false,
   "logins": [
    {
     "label": "Google account",

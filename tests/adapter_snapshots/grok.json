@@ -63,6 +63,7 @@
    "XAI_API_KEY"
   ],
   "local_ok": false,
+  "per_token": false,
   "logins": [],
   "key": null
  },
