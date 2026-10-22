@@ -61,6 +61,7 @@ little code for what facts cannot say (hooks.py)".
 | `research = {argv}` | Claude Code, Codex | one web look-up with no other tools (`{prompt}`, `{schema}`: the answer's JSON schema file) |
 | `rewrite = {argv}` | Claude Code, Codex | one prompt on stdin with no tools at all (`{answer}`: the file it writes its answer to) |
 | `tools = {file, key}` | Pi, Oh My Pi | the tools it is given (a JSON list) |
+| `replies = {folder, depth, format, contexts}` | Claude Code, Codex, Pi | its session files (`~/…`, files `depth` folders down, a format the app has: `adapter_data.REPLY_FORMATS`) for the usage statistics box on its flowing line on the map (tokens per second, context size, context in use); `contexts`: context size by model name beginning (`""` for any) when its files do not say it |
 | `security.sandbox`, `security.asks` | most agents | the settings that are its sandbox and say when it asks first (the Risks list) |
 | `warn = {title, explain, fix}` on a security setting | Claude Code | a low risk shown while a choice of risk 1 is set |
 

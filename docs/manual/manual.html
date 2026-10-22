@@ -273,6 +273,11 @@
     <li>The agents always stay in the middle of the map's visible part while you scroll.</li>
     <li>Each agent's active path — agent → provider in use → its model — is drawn bold. While an
       agent is working, light runs along that line.</li>
+    <li>The <b>usage statistics box</b>: while an agent is working, small numbers are written along its
+      line to the provider, in the line's colour: how fast its latest reply came (<b>t/s</b>, tokens per
+      second), its context size (<b>1M</b>) and how much of it is in use (<b>%</b>, yellow from 75&nbsp;%,
+      red over 90&nbsp;%, like the batteries). They come from the agent's own session files (numbers
+      only; Claude Code, Codex and Pi). What it shows, and its text size, are in Settings.</li>
     <li>A red dotted line joins an agent to a provider it is set up for but does not use now (no model
       of it in use).</li>
     <li>When agents use different models of one local LLM, the lines to those models are violet: it
@@ -689,6 +694,7 @@
       <tr><td><b>Language</b></td><td>The system language, or English, Deutsch, Français, Español, Italiano, Português, Nederlands, Polski.</td></tr>
       <tr><td><b>Look</b> <span class="badge omarchy">Omarchy</span></td><td>The Omarchy theme colours, or GNOME's Adwaita look with the system's light/dark mode and accent colour.</td></tr>
       <tr><td><b>Map animations</b></td><td>Light runs along the lines on the map: <b>Agents and other programs</b> (a working agent's line, and a local LLM's line to a model another program uses), <b>Only my agents</b>, or <b>Off</b>. A small animated map under the setting shows what each choice moves.</td></tr>
+      <tr><td><b>Usage statistics box</b></td><td>The numbers along a working agent's line (see <a href="#map">Working with the map</a>): on or off, which of <b>Tokens per second</b>, <b>Context size</b> and <b>Context used</b> it shows, and its <b>Text size</b> (7&nbsp;pt by default).</td></tr>
       <tr><td><b>Terminal tabs above the map</b></td><td>One tab per agent terminal in the window.</td></tr>
       <tr><td><b>Corners</b></td><td>Like windows, rounded or square.</td></tr>
       <tr><td><b>Start local LLMs with their agents</b></td><td>The background watcher described in <a href="#start-with-agents">Starting and stopping with agents</a>.</td></tr>
