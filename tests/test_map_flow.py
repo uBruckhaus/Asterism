@@ -1,3 +1,4 @@
+import math
 import sys
 import unittest
 from unittest import mock
@@ -275,3 +276,50 @@ class SmallImagesTest(unittest.TestCase):
         comet = [("line", 0, 0, 40, 0, 4.0, (1, 1, 1, 1)), ("glow", 40, 0, 18, (1, 1, 1), (1, 1, 1), 1.0),
                  ("dot", 40, 0, 3.2, (1, 1, 1, 1))]
         self.assertEqual(map_view.comet_bounds(comet), (-3.0, -19.0, 59.0, 19.0))
+
+
+class UsageTextureTest(unittest.TestCase):
+    """The usage box is drawn once into a texture and kept while it shows the same."""
+
+    class Layer:
+        usage_texture = map_view.FlowLayer.usage_texture
+
+        def __init__(self, view):
+            self.view, self.box_textures, self.levels = view, {}, {"agent:claude": 1.0}
+
+        def get_scale_factor(self):
+            return 2
+
+        def create_pango_layout(self, _text):
+            import cairo
+            return map_view.PangoCairo.create_layout(cairo.Context(cairo.ImageSurface(cairo.FORMAT_ARGB32, 4, 4)))
+
+    def setUp(self):
+        self.view = UsageBoxTest.View()
+        self.view.colors = {}
+        self.view.zoom = 1.0
+        self.view.edge_points = lambda edge: (20, 60, 320, 90)
+        self.view.set_usage_box({"agent:claude": map_view.usage_box.Reading(60.0, 500, 1000, "m")})
+        self.layer = self.Layer(self.view)
+        self.calls = 0
+        glyphs = self.view.usage_glyphs
+
+        def counted(*args):
+            self.calls += 1
+            return glyphs(*args)
+        self.view.usage_glyphs = counted
+
+    def test_kept_while_the_same_and_drawn_again_on_change(self):
+        first = self.layer.usage_texture("agent:claude", [self.view.edge])
+        texture, bounds = first
+        self.assertEqual(texture.get_width(), math.ceil(bounds.get_width() * 2))   # sharp on a scale-2 display
+        self.assertIs(self.layer.usage_texture("agent:claude", [self.view.edge]), first)
+        self.assertEqual(self.calls, 1)
+        self.view.set_usage_box({"agent:claude": map_view.usage_box.Reading(80.0, 600, 1000, "m")})
+        self.assertIsNot(self.layer.usage_texture("agent:claude", [self.view.edge]), first)
+        self.assertEqual(self.calls, 2)
+
+    def test_no_reading_no_texture(self):
+        self.view.set_usage_box({})
+        self.assertIsNone(self.layer.usage_texture("agent:claude", [self.view.edge]))
+        self.assertEqual(self.layer.box_textures, {})

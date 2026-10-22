@@ -173,7 +173,7 @@ class MapView(Gtk.DrawingArea):
         self.usage_items = usage_box.ITEMS   # what the box shows (Settings › Usage statistics box)
         self.usage_size = usage_box.SIZES[0]  # its text size in pt
         self.outside = {}        # runtime id -> {model id: "in use · Video Trans"}: an app outside the map generates
-        self.set_draw_func(self.on_draw)
+        self.texture = None      # ((width, height, scale), Gdk.Texture): the map's last drawing
         self.scroll_adjustment = None
         self.connect("map", lambda *_: self.follow_scrolling())
         self.set_hexpand(True)
@@ -1494,6 +1494,25 @@ class MapView(Gtk.DrawingArea):
     def color(self, name: str, alpha: float = 1.0):
         return rgba(self.colors.get(name, "#888888"), alpha)
 
+    def queue_draw(self):
+        self.texture = None
+        super().queue_draw()
+
+    def do_snapshot(self, snapshot):
+        """The map's drawing as a texture, drawn again only after queue_draw or a new size. As a Cairo
+        drawing GTK painted it again on every frame of the lights over it (FlowLayer), on the CPU;
+        the GPU keeps a texture."""
+        width, height, scale = self.get_width(), self.get_height(), self.get_scale_factor()
+        if width <= 0 or height <= 0:
+            return
+        if self.texture is None or self.texture[0] != (width, height, scale):
+            surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, width * scale, height * scale)
+            cr = cairo.Context(surface)
+            cr.scale(scale, scale)
+            self.on_draw(self, cr, width, height)
+            self.texture = ((width, height, scale), cairo_texture(surface))
+        snapshot.append_texture(self.texture[1], Graphene.Rect().init(0, 0, width, height))
+
     def on_draw(self, _area, cr, width, height):
         if self.graph is None:
             return
@@ -2047,11 +2066,11 @@ class FlowLayer(Gtk.Widget):
     fade in and out (FLOW_FADE) instead of switching, and keep running FLOW_GRACE seconds after
     the agent was last seen running, so a missed process check does not blink them.
 
-    Each comet and usage box is drawn into a small Cairo image of its own: one image as large as
-    the map had to be painted and uploaded to the GPU every frame (about 3x the time with one agent
-    flowing). GSK strokes instead were slower still with several agents: hundreds of nodes made in
-    Python per frame. At most FLOW_FPS drawings a second, so a high-refresh display does not draw
-    it more often than the eye needs."""
+    Each comet is drawn into a small Cairo image of its own, each usage box into a texture kept
+    while it shows the same: one image as large as the map had to be painted and uploaded to the
+    GPU every frame (about 3x the time with one agent flowing). GSK strokes instead were slower
+    still with several agents: hundreds of nodes made in Python per frame. At most FLOW_FPS
+    drawings a second, so a high-refresh display does not draw it more often than the eye needs."""
 
     FLOW_FPS = 60
 
@@ -2066,6 +2085,7 @@ class FlowLayer(Gtk.Widget):
         self.stopped = {}            # agent id -> monotonic time it was no longer seen running
         self.levels = {}             # agent id -> 0..1, how bright its lights are now
         self.drawn_at = 0            # frame time (µs) the last drawing was due
+        self.box_textures = {}       # agent id -> (what its usage box shows, (texture, bounds) or None)
         self.set_can_target(False)
         # Hidden (the window closed to the background): no ticks at all, back when shown again.
         self.connect("unmap", lambda *_: self.pause())
@@ -2142,21 +2162,56 @@ class FlowLayer(Gtk.Widget):
             return
         try:
             marks = view.flow_marks(list(self.paths.items()), GLib.get_monotonic_time() / 1e6, self.levels)
-            layout = self.create_pango_layout(None)
-            boxes = [view.usage_glyphs(agent, edges, self.levels.get(agent, 0.0), layout)
-                     for agent, edges in self.paths.items() if agent.startswith("agent:")]
+            boxes = [self.usage_texture(agent, edges) for agent, edges in self.paths.items()
+                     if agent.startswith("agent:")]
         except KeyError:
             return                   # a box went away since the map was drawn: the next drawing fixes it
         for comet in comets(marks):
             cr = small_cairo(snapshot, comet_bounds(comet), view.zoom)
             draw_marks(cr, comet)
-        font = view.usage_font()
-        for glyphs in filter(None, boxes):
-            reach = max(max(g[4], g[5]) for g in glyphs) + view.UB_GAP + 2
-            cr = small_cairo(snapshot, (min(g[1] for g in glyphs) - reach, min(g[2] for g in glyphs) - reach,
-                                        max(g[1] for g in glyphs) + reach, max(g[2] for g in glyphs) + reach),
-                             view.zoom)
-            draw_glyphs(cr, glyphs, font, view.UB_GAP)
+        for texture, bounds in filter(None, boxes):
+            snapshot.append_texture(texture, bounds)
+
+    def usage_texture(self, agent: str, edges):
+        """(texture, bounds) of the agent's usage statistics box, or None. Its text changes about once a
+        second, so it is drawn once into a texture (which the GPU keeps) and only drawn again when what
+        it shows, where, how large or in which colour changes."""
+        view = self.view
+        level = round(self.levels.get(agent, 0.0), 2)
+        if view.ub.get(agent) is None or not edges or edges[0].source != agent or level <= 0:
+            self.box_textures.pop(agent, None)
+            return None
+        scale = self.get_scale_factor()
+        key = (view.ub[agent], view.usage_items, view.usage_size, view.edge_points(edges[0]), level, view.zoom,
+               view.line_color(edges[0]), id(view.colors), scale)
+        cached = self.box_textures.get(agent)
+        if cached is not None and cached[0] == key:
+            return cached[1]
+        glyphs = view.usage_glyphs(agent, edges, level, self.create_pango_layout(None))
+        made = usage_texture(glyphs, view.usage_font(), view.UB_GAP, view.zoom, scale) if glyphs else None
+        self.box_textures[agent] = (key, made)
+        return made
+
+
+def usage_texture(glyphs, font, gap: float, zoom: float, scale: int):
+    """MapView.usage_glyphs drawn into a texture: (Gdk.Texture, Graphene.Rect where it goes)."""
+    reach = max(max(g[4], g[5]) for g in glyphs) + gap + 2
+    x0, y0 = min(g[1] for g in glyphs) - reach, min(g[2] for g in glyphs) - reach
+    x1, y1 = max(g[1] for g in glyphs) + reach, max(g[2] for g in glyphs) + reach
+    width, height = math.ceil((x1 - x0) * zoom * scale), math.ceil((y1 - y0) * zoom * scale)
+    surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, width, height)
+    cr = cairo.Context(surface)
+    cr.scale(zoom * scale, zoom * scale)
+    cr.translate(-x0, -y0)
+    draw_glyphs(cr, glyphs, font, gap)
+    return cairo_texture(surface), Graphene.Rect().init(x0 * zoom, y0 * zoom, width / scale, height / scale)
+
+
+def cairo_texture(surface) -> Gdk.Texture:
+    """A Cairo image surface (ARGB32, premultiplied) as a texture."""
+    surface.flush()
+    return Gdk.MemoryTexture.new(surface.get_width(), surface.get_height(), Gdk.MemoryFormat.B8G8R8A8_PREMULTIPLIED,
+                                 GLib.Bytes.new(bytes(surface.get_data())), surface.get_stride())
 
 
 def comets(marks):
