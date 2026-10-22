@@ -287,6 +287,9 @@
     <li>When a program that is not on the map uses a local LLM, the line from that LLM to the model
       turns bold in a colour of its own (purple or cyan, whichever stands out from the theme's other
       colours), and light runs along it. See <a href="#outside-use">Used by other apps</a>.</li>
+    <li>When an agent started another one — Claude Code running <code>pi -p …</code> through its shell,
+      for example — an <b>arrow</b> runs along the left of the agents' card from the agent that uses
+      the other to the one it uses, with light running along it; its tooltip names both.</li>
     <li>The refresh symbol (<kbd>F5</kbd>) in the header row looks again at what is installed,
       set up and signed in, and runs the checks of a start again (new apps, add-ons, updates, open problems).</li>
     <li>Until the first line is drawn, a card above the map shows how, in three steps; <b>Watch how</b>
@@ -377,6 +380,23 @@
   and your local network, each with its share — and <b>Programs</b>: the agent itself and the
   programs started by it, such as its MCP servers. It is counted from the agent's own TCP connections
   while the app is open (no administrator rights needed; UDP is not counted) and stays on this PC.</p>
+
+  <h2 id="subagents">Subagents</h2>
+  <p>Claude Code and OpenCode can hand parts of a task to <b>subagents</b>. While one of an agent's
+  subagents works, its box on the map shows a small tree mark next to ⇅; while it has only finished
+  ones listed, the mark is dimmed. Click the mark to open the agent's <b>Subagents</b> page: a map of
+  its own, laid out like the big one, with the agent's card at the left and a <b>Subagents</b> card at
+  the right. Each box shows the subagent's task, its type, the folder its session works in, and
+  <b>working</b> or <b>done … minutes ago</b>. Light runs on the lines to the working ones; finished
+  ones are dimmed. Hover a box to read its whole task.</p>
+  <div class="figure wide">
+    <img src="images/subagents.jpg" alt="The Subagents page's map: Claude Code's card at the left with its subagents mark and network symbol, at the right a Subagents card with three boxes: two working subagents with light on their lines, one finished one dimmed">
+    <p class="caption">An agent's subagents: two at work, one finished.</p>
+  </div>
+  <p>How long finished subagents stay listed (30 minutes) and how many at most (10) is set in
+  Settings › <b>Subagents</b>; working ones are always shown. The page reads only each subagent's type
+  and the one-line description of its task, from the agent's own files (Claude Code's session
+  folders, OpenCode's database), never what the subagents say.</p>
 
   <h2 id="configure">Configure…</h2>
   <p>Right-click an agent or a local LLM › <b>Configure…</b> opens its own setup in a terminal tab of
@@ -695,6 +715,7 @@
       <tr><td><b>Look</b> <span class="badge omarchy">Omarchy</span></td><td>The Omarchy theme colours, or GNOME's Adwaita look with the system's light/dark mode and accent colour.</td></tr>
       <tr><td><b>Map animations</b></td><td>Light runs along the lines on the map: <b>Agents and other programs</b> (a working agent's line, and a local LLM's line to a model another program uses), <b>Only my agents</b>, or <b>Off</b>. A small animated map under the setting shows what each choice moves.</td></tr>
       <tr><td><b>Usage statistics box</b></td><td>The numbers along a working agent's line (see <a href="#map">Working with the map</a>): on or off, which of <b>Tokens per second</b>, <b>Context size</b> and <b>Context used</b> it shows, and its <b>Text size</b> (7&nbsp;pt by default).</td></tr>
+      <tr><td><b>Subagents</b></td><td>For the <a href="#subagents">Subagents</a> page: how long finished subagents stay (<b>30 minutes</b> by default; 10, 30, 60 or 120) and how many at most (<b>10</b> by default; 5, 10, 20 or 40). Working ones are always shown.</td></tr>
       <tr><td><b>Terminal tabs above the map</b></td><td>One tab per agent terminal in the window.</td></tr>
       <tr><td><b>Corners</b></td><td>Like windows, rounded or square.</td></tr>
       <tr><td><b>Start local LLMs with their agents</b></td><td>The background watcher described in <a href="#start-with-agents">Starting and stopping with agents</a>.</td></tr>
