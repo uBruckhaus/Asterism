@@ -389,3 +389,34 @@ class FrameCostTest(unittest.TestCase):
         walk(snapshot.to_node())
         self.assertGreaterEqual(len(sizes), 2)                       # comets and the usage box
         self.assertLess(max(sizes), 400 * 200)                       # the map here is 1366 x 1452
+
+
+class HelperLightsTest(unittest.TestCase):
+    """Lights on an arrow from an agent to one it uses, and on the lines to working subagents only."""
+
+    def test_arrows_and_working_subagents_get_lights(self):
+        g = graph.Graph()
+        g.add(graph.Node("agent:claude", 1, "Claude", kind="agent", status="running"))
+        g.add(graph.Node("agent:pi", 1, "Pi", kind="agent", status="running"))
+        g.add(graph.Node("sub:a", 2, "Working", kind="subagent", status="running"))
+        g.add(graph.Node("sub:b", 2, "Done", kind="subagent", dim=True))
+        g.link("agent:claude", "sub:a", "subagent")
+        g.link("agent:claude", "sub:b", "subagent")
+
+        class View:
+            helper_paths = map_view.MapView.helper_paths
+            drawn_agent_links = map_view.MapView.drawn_agent_links
+            agent_link_curve = map_view.MapView.agent_link_curve
+            bezier = staticmethod(map_view.MapView.bezier)
+            curve_point = map_view.MapView.curve_point
+
+        view = View()
+        view.graph, view.agent_links = g, {("agent:claude", "agent:pi")}
+        view.boxes = {"agent:claude": (100, 0, 200, 40), "agent:pi": (100, 50, 200, 40),
+                      "sub:a": (500, 0, 200, 40), "sub:b": (500, 50, 200, 40)}
+        paths = dict(view.helper_paths())
+        self.assertEqual(sorted(paths), ["link:agent:claude>agent:pi", "sub:sub:a"])
+        arc = paths["link:agent:claude>agent:pi"][0]
+        start, end = view.curve_point(arc, 0), view.curve_point(arc, 1)
+        self.assertEqual((round(start[0]), round(end[0])), (100, 93))     # from the user to the arrowhead
+        self.assertLess(view.curve_point(arc, 0.5)[0], 100)                # bowing out left of the card

@@ -30,6 +30,7 @@
     "setup_page.py",
     "skills_page.py",
     "smart_check_page.py",
+    "subagents_page.py",
     "terminal_pane.py",
     "text_guard.py",
     "theme_css.py",

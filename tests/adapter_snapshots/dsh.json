@@ -58,6 +58,7 @@
  "tools_setting": [],
  "sandbox_setting": "",
  "replies": [],
+ "subagents": [],
  "asks_setting": "",
  "access": {
   "how": "An API key from platform.deepseek.com, or a local LLM from the map",

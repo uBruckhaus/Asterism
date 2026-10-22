@@ -44,7 +44,7 @@ TOP = {"command": STR, "name": STR, "label": STR, "full_name": STR, "icon": STR,
        "access": TABLE, "security": TABLE, "login_status": TABLE, "installer": STR, "usage": STR,
        "local_llm": TABLE, "ask": TABLE, "configure": TABLES, "home": STR, "activity": STRS, "details": TABLE,
        "program_dir": STR, "start": STRS, "web_search": BOOL, "chat_app": BOOL, "herdr": STR, "research": TABLE, "rewrite": TABLE, "task": TABLE,
-       "models": TABLE, "tools": TABLE, "replies": TABLE}
+       "models": TABLE, "tools": TABLE, "replies": TABLE, "subagents": TABLE}
 WAY = {"kind": STR, "spec": STR, "tool": STR, "argv": STRS, "sudo": BOOL, "url": STR, "note": STR,
        "update": STRS, "packages": "a list of [manager, name]"}
 UPDATE = {"self": STRS, "latest": STR}
@@ -69,6 +69,8 @@ OUTPUTS = ("text", "claude-json", "codex-jsonl")
 # folders deep the files are in it, and their format (one usage_box.FORMATS has).
 REPLIES = {"folder": STR, "depth": INT, "format": STR, "contexts": TABLE}   # contexts: model name prefix -> tokens
 REPLY_FORMATS = ("claude-jsonl", "codex-jsonl", "pi-jsonl")
+SUBAGENTS = {"format": STR, "path": STR}
+SUBAGENT_FORMATS = ("claude-projects", "opencode-db")    # the readers subagents.py has
 SKILLS = {"dirs": STRS, "own": STR, "listed": TABLE_OR_HOOK, "settings_list": BOOL, "settings_file": STR,
           "write": HOOK}
 LISTED = {"file": STR, "format": STR, "key": STR}       # extra skill folders a settings file lists
@@ -206,6 +208,13 @@ def check(data: dict, name: str) -> None:
         if not all(isinstance(k, str) and len(k) <= 100 and _fits(v, INT) and 0 < v < 10 ** 9
                    for k, v in data["replies"].get("contexts", {}).items()):
             raise AdapterError(f"{name}: replies.contexts must map model name beginnings to token counts")
+    if "subagents" in data:
+        _check(data["subagents"], SUBAGENTS, f"{name}: subagents", ("format", "path"))
+        if data["subagents"]["format"] not in SUBAGENT_FORMATS:
+            raise AdapterError(f"{name}: subagents.format “{data['subagents']['format']}” is not one the app has "
+                               f"({', '.join(SUBAGENT_FORMATS)})")
+        if not data["subagents"]["path"].startswith("~/"):
+            raise AdapterError(f"{name}: subagents.path must start with “~/”")
     for i, entry in enumerate(data.get("configure", [])):
         _check(entry, CONFIGURE, f"{name}: configure[{i}]", REQUIRED["configure"])
         # The agent itself and plain words: never a shell, never another program.
@@ -452,6 +461,7 @@ def harness(data: dict, name: str = "adapter", hooks=None) -> Harness:
         tools_setting=(data["tools"]["file"], data["tools"]["key"]) if "tools" in data else (),
         replies=(data["replies"]["folder"], data["replies"].get("depth", 1), data["replies"]["format"],
                  tuple(sorted(data["replies"].get("contexts", {}).items()))) if "replies" in data else (),
+        subagents=(data["subagents"]["format"], data["subagents"]["path"]) if "subagents" in data else (),
         usage=ref(*USAGE[data["usage"]]) if "usage" in data else None,
         local_llm=llm, skills=skills, mcp=mcp,
         login_status=(tuple(data["login_status"]["argv"]), data["login_status"]["no"], data["login_status"]["yes"])

@@ -28,6 +28,10 @@ depth = 1
 format = "claude-jsonl"
 contexts = { "claude-opus-5" = 1000000, "" = 200000 }   # context size by model name beginning
 
+[subagents]                            # its subagents (Task/Agent tool): the map's subagents page
+format = "claude-projects"
+path = "~/.claude/projects"
+
 [skills]
 dirs = ["~/.claude/skills"]            # read by the agent itself
 own = "~/.claude/skills"               # where the app's links go

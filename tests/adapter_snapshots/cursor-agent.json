@@ -63,6 +63,7 @@
  "tools_setting": [],
  "sandbox_setting": "sandbox.mode",
  "replies": [],
+ "subagents": [],
  "asks_setting": "approvalMode",
  "access": {
   "how": "A Cursor account (cursor.com)",
