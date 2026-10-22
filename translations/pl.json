@@ -2706,5 +2706,7 @@
  "How many finished subagents it keeps, the newest first; working ones are always shown.": "Ile zakończonych podagentów zachowuje, najnowsze najpierw; pracujące są zawsze pokazywane.",
  "{0} subagents (default)": "{0} podagentów (domyślnie)",
  "{0} subagents": "{0} podagentów",
- "Its subagents of the last {0} minutes, all finished. Click to see them.": "Jego podagenci z ostatnich {0} minut, wszyscy zakończeni. Kliknij, aby ich zobaczyć."
+ "Its subagents of the last {0} minutes, all finished. Click to see them.": "Jego podagenci z ostatnich {0} minut, wszyscy zakończeni. Kliknij, aby ich zobaczyć.",
+ "{0} today": "{0} dziś",
+ "Paid per token, with no plan limits: about {0} today at API prices (estimated from the tokens of its sessions active today).": "Płatne za token, bez limitów planu: dziś około {0} w cenach API (szacunek z tokenów jego sesji aktywnych dziś)."
 }

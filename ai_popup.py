@@ -1152,6 +1152,7 @@ class AgentsMap(TextGuard, PageParts, SettingsPages, ThemeCss, InstallDialog, Se
 
         def done(usage, running, working, outside, stamp, mcp_busy, readings, helpers, using):
             self.gpu_reading = False
+            self.update_costs()
             self.set_subagent_lists(helpers)
             self.side_map.set_agent_links({(f"agent:{user}", f"agent:{used}") for user, used in using})
             self.side_map.set_working(working)
@@ -2339,6 +2340,40 @@ class AgentsMap(TextGuard, PageParts, SettingsPages, ThemeCss, InstallDialog, Se
         self.batteries = {**getattr(self, "agent_batteries", {}), **getattr(self, "gpu_batteries", {})}
         self.side_map.set_batteries(self.batteries)
 
+    COST_EVERY = 60          # seconds between looks at what agents paid per token spent today
+
+    def update_costs(self, force: bool = False):
+        """Agents paid per token (agent_status.pays_per_token: an API key, no plan limits) show today's
+        cost at API prices where a battery would be, on the map and on their card; read from their
+        session files in the background, at most every COST_EVERY seconds."""
+        now = time.monotonic()
+        if getattr(self, "costs_busy", False) or (not force and now - getattr(self, "costs_at", -1e9) < self.COST_EVERY):
+            return
+        infos = getattr(self, "agent_infos", {})
+        paying = [c for c, info in infos.items()
+                  if f"agent:{c}" not in self.agent_batteries and agent_status.pays_per_token(c, info)]
+        self.costs_at, self.costs_busy = now, True
+
+        def work():
+            found = {}
+            for command in paying:
+                usd = agent_status.cost_today(command)
+                if usd is not None:
+                    found[command] = usd
+            GLib.idle_add(done, found)
+
+        def done(found):
+            self.costs_busy = False
+            self.agent_costs = {f"agent:{c}": (_("{0} today").format(agent_status.cost_text(usd)),
+                                               _("Paid per token, with no plan limits: about {0} today at API prices "
+                                                 "(estimated from the tokens of its sessions active today).")
+                                               .format(agent_status.cost_text(usd)))
+                                for c, usd in found.items()}
+            self.side_map.set_costs(self.agent_costs)
+            return False
+
+        threading.Thread(target=work, daemon=True).start()
+
     def refresh_map(self):
         details = {a.command: agent_details.details_for(a.command) for a in self.agent_list if a.installed}
         # Online agents' limits (a session, a week…): a battery on the map's box and on Setup's card.
@@ -2348,6 +2383,8 @@ class AgentsMap(TextGuard, PageParts, SettingsPages, ThemeCss, InstallDialog, Se
             if level is not None:
                 self.agent_batteries[f"agent:{command}"] = (*level, agent_details.battery_tip(info.limits))
         self.show_batteries()
+        self.agent_infos = details
+        self.update_costs(force=True)
         labels = {"skills": lambda n: ngettext("1 skill", "{0} skills", n).format(n),
                   "more": lambda n: _("+{0} more").format(n),
                   "running": lambda n: _("running") if n == 1 else _("{0} running").format(n),

@@ -145,6 +145,8 @@ class MapView(Gtk.DrawingArea):
         self.start_rects = {}    # agent box id -> rectangle of its start button, for clicks
         self.stop_rects = {}     # agent box id -> rectangle of its stop button (while it runs here)
         self.batteries = {}      # box id -> (left 0..1, colour, tooltip): an online agent's limits, a local LLM's GPU
+        self.costs = {}          # agent box id -> (label, tooltip): paid per token, today's cost instead of a battery
+        self.cost_rects = {}     # agent box id -> rectangle of that label (its tooltip)
         self.battery_rects = {}  # agent box id -> rectangle of its battery, for the tooltip
         self.traffic = {}        # agent box id -> (in B/s, out B/s, moving): a running agent's ⇅
         self.traffic_rects = {}  # agent box id -> rectangle of its ⇅ (click: its network page)
@@ -216,6 +218,17 @@ class MapView(Gtk.DrawingArea):
         if batteries != self.batteries:
             self.batteries = dict(batteries)
             self.queue_draw()
+
+    def set_costs(self, costs: dict):
+        """{agent box id: (label, tooltip)}: an agent paid per token (no plan limits) shows today's cost
+        where a battery would be."""
+        if costs != self.costs:
+            self.costs = dict(costs)
+            self.queue_draw()
+
+    def cost_at(self, x, y):
+        return next((n for n, (bx, by, bw, bh) in self.cost_rects.items()
+                     if bx <= x <= bx + bw and by <= y <= by + bh and n in self.costs), None)
 
     def set_traffic(self, rates: dict):
         """{agent box id: (in, out, moving)} of the running agents (traffic_page.sample_traffic)."""
@@ -1072,6 +1085,8 @@ class MapView(Gtk.DrawingArea):
             self.set_tooltip_text(self.start_tips[1 if self.start_state(start) == "show" else 0])
         elif battery is not None:
             self.set_tooltip_text(self.batteries[battery][2])
+        elif (paid := self.cost_at(x, y)) is not None:
+            self.set_tooltip_text(self.costs[paid][1])
         elif (moving := self.traffic_at(x, y)) is not None and self.traffic_tip is not None:
             self.set_tooltip_text(self.traffic_tip(moving))
         elif (helped := self.subagents_at(x, y)) is not None and self.subagents_tip is not None:
@@ -1707,6 +1722,7 @@ class MapView(Gtk.DrawingArea):
         self.battery_rects = {}
         self.traffic_rects = {}
         self.subagent_rects = {}
+        self.cost_rects = {}
         # Each card with its boxes, one card after the other: a card moved by hand lies over the others.
         z = {key: i for i, (key, *_rest) in enumerate(self.group_labels)}
         cards_drawn = set()
@@ -1752,6 +1768,8 @@ class MapView(Gtk.DrawingArea):
                 right = self.draw_runtime_stop(cr, layout, node.id, x, y, w, h, faded)
             if node.kind in ("agent", "runtime") and node.id in self.batteries:
                 right += self.draw_battery(cr, node.id, x + w - PIN_W - (24 if selected else 4) - right, y, h, faded)
+            elif node.kind == "agent" and node.id in self.costs:
+                right += self.draw_cost(cr, layout, node.id, x + w - PIN_W - (24 if selected else 4) - right, y, h, faded)
             if node.kind == "agent" and node.id in self.traffic:
                 right += self.draw_traffic(cr, node.id, x + w - PIN_W - (24 if selected else 4) - right, y, h, faded)
             if node.kind == "agent" and node.id in self.subagents:
@@ -2061,6 +2079,21 @@ class MapView(Gtk.DrawingArea):
         cr.rectangle(bx + 2, by + 2, max(1.5, (bw - 4) * left), bh - 4)
         cr.fill()
         return bw + 9
+
+    def draw_cost(self, cr, layout, node_id, right, y, h, faded) -> int:
+        """Today's cost ending at `right` ("$3.40 today"), small, in the dim colour: an agent paid per
+        token has no limits for a battery. Returns the room it takes."""
+        layout.set_font_description(Pango.FontDescription.from_string("Sans 7.5"))
+        layout.set_width(-1)
+        layout.set_ellipsize(Pango.EllipsizeMode.NONE)
+        layout.set_text(self.costs[node_id][0], -1)
+        tw, th = layout.get_pixel_size()
+        tx, ty = right - tw - 5, y + (h - th) / 2
+        self.cost_rects[node_id] = (tx - 2, ty - 2, tw + 4, th + 4)
+        cr.set_source_rgba(*self.color("dim", 0.4 if faded else 1.0))
+        cr.move_to(tx, ty)
+        PangoCairo.show_layout(cr, layout)
+        return tw + 9
 
     def draw_traffic(self, cr, node_id, right, y, h, faded) -> int:
         """⇅ ending at `right`: an arrow down (in) and one up (out), in the accent colour while the

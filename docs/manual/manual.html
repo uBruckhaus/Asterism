@@ -284,6 +284,10 @@
       keeps them loaded at once, or swaps them (see <a href="#models-at-once">Models at once</a>).</li>
     <li>An online agent's box has the same battery as its card on Setup: what is left of its limits; a
       running local LLM's box, the GPU memory still free.</li>
+    <li>An agent paid per token — signed in with an API key, so it has no plan limits for a battery —
+      shows instead what its sessions active today cost at API prices, as a small <b>“$3.40 today”</b>
+      on its box and card: an estimate from its token counts and the prices its adapter names (Claude
+      Code), refreshed every minute.</li>
     <li>When a program that is not on the map uses a local LLM, the line from that LLM to the model
       turns bold in a colour of its own (purple or cyan, whichever stands out from the theme's other
       colours), and light runs along it. See <a href="#outside-use">Used by other apps</a>.</li>
