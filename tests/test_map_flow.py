@@ -131,10 +131,10 @@ class FadeTest(unittest.TestCase):
         self.assertEqual(self.layer.on_tick(None, self.clock), map_view.GLib.SOURCE_REMOVE)
         self.assertIsNone(self.layer.tick)
 
-    def test_a_60_hz_display_draws_every_frame(self):
+    def test_a_60_hz_display_draws_every_other_frame(self):
         self.layer.update([("agent:claude", ["e1"])], {"agent:claude"})
         self.run_for(1.0)
-        self.assertEqual(self.layer.draws, 60)   # smooth: no frame skipped
+        self.assertLessEqual(abs(self.layer.draws - map_view.FlowLayer.FLOW_FPS), 1)   # a steady beat
 
     def test_fades_in_and_out_never_switches(self):
         self.layer.update([("agent:claude", ["e1"])], {"agent:claude"})

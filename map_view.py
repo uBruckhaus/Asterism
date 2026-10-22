@@ -2061,7 +2061,7 @@ class FlowLayer(Gtk.Widget):
     """The lights on running agents' paths, drawn over the map in a layer of their own: only this
     layer is drawn again each frame (the map's drawing stays as it is), and it takes no clicks.
 
-    Against flicker: drawn on every frame of the display (smooth, no stepping); positions follow
+    Against flicker: drawn on a steady beat of FLOW_FPS frames a second; positions follow
     one steady clock, so a new drawing of the map never moves or restarts them; an agent's lights
     fade in and out (FLOW_FADE) instead of switching, and keep running FLOW_GRACE seconds after
     the agent was last seen running, so a missed process check does not blink them.
@@ -2069,10 +2069,11 @@ class FlowLayer(Gtk.Widget):
     Each comet is drawn into a small Cairo image of its own, each usage box into a texture kept
     while it shows the same: one image as large as the map had to be painted and uploaded to the
     GPU every frame (about 3x the time with one agent flowing). GSK strokes instead were slower
-    still with several agents: hundreds of nodes made in Python per frame. At most FLOW_FPS
-    drawings a second, so a high-refresh display does not draw it more often than the eye needs."""
+    still with several agents: hundreds of nodes made in Python per frame. 30 drawings a second
+    look smooth enough and cost less than a third of 60 (measured on 4K at scale 2: main thread
+    17 % -> 5 %), whatever the display's own refresh rate."""
 
-    FLOW_FPS = 60
+    FLOW_FPS = 30
 
     def __init__(self, view: MapView):
         super().__init__()
