@@ -79,7 +79,7 @@ def issue_text(kind: str) -> tuple[str, str, str]:
     }[kind]
 
 
-def load_issues(path: Path = None) -> dict:
+def load_issues(path: Path | None = None) -> dict:
     import json
     try:
         with open(path or ISSUES, "rb") as handle:
@@ -92,7 +92,7 @@ def load_issues(path: Path = None) -> dict:
             if isinstance(v, dict) and v.get("kind") in ISSUE_KINDS}
 
 
-def _save_issues(issues: dict, path: Path = None):
+def _save_issues(issues: dict, path: Path | None = None):
     import json
     path = path or ISSUES
     path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -103,13 +103,13 @@ def _save_issues(issues: dict, path: Path = None):
     os.replace(tmp, path)
 
 
-def remember_issue(command: str, kind: str, path: Path = None):
+def remember_issue(command: str, kind: str, path: Path | None = None):
     issues = load_issues(path)
     issues[command] = {"kind": kind, "when": dt.datetime.now().isoformat(timespec="seconds")}
     _save_issues(issues, path)
 
 
-def forget_issue(command: str, path: Path = None) -> bool:
+def forget_issue(command: str, path: Path | None = None) -> bool:
     issues = load_issues(path)
     if command not in issues:
         return False

@@ -70,7 +70,7 @@ class Way:
     tool: str = ""                    # tool: npm | pipx | uv
     argv: tuple = ()                  # command: the desktop's own installer (e.g. Omarchy's), plain words
     sudo: bool = False                # command: it asks for the password (in the terminal)
-    packages: tuple = ()              # package: ((manager, name), …), e.g. (("pacman", "hermes-desktop"),)
+    packages: tuple[tuple[str, str], ...] = ()   # package: ((manager, name), …), e.g. (("pacman", "hermes-desktop"),)
     url: str = ""                     # manual: where to get it
     note: str = ""                    # manual: one line of instruction (English)
     update: tuple = ()                # command: the argv that updates what it installed (plain words)

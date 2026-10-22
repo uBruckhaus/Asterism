@@ -14,6 +14,7 @@ import importlib.util
 import tomllib
 import types
 from pathlib import Path
+from typing import Callable
 
 import harnesses
 from harnesses import Harness, LocalLlm, Mcp, Sessions, Skills, Way, ref
@@ -382,7 +383,7 @@ def harness(data: dict, name: str = "adapter", hooks=None) -> Harness:
     """The Harness of a checked adapter file; hooks: its hook functions (a module), where it says "hook"."""
     check(data, name)
 
-    def hook(function: str):
+    def hook(function: str) -> Callable:
         found = getattr(hooks, function, None) if hooks is not None else None
         if not callable(found):
             raise AdapterError(f"{name}: needs the hook {function}() (adapters/<command>.py, in an add-on hooks.py)")
@@ -482,6 +483,7 @@ def hooks_module(command: str):
     if not path.is_file():
         return None
     spec = importlib.util.spec_from_file_location(f"adapter_hooks_{command.replace('-', '_')}", path)
+    assert spec is not None             # a .py file always has a loader
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
