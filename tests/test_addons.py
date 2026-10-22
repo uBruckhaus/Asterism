@@ -121,6 +121,7 @@ class AddonsTest(unittest.TestCase):
         claude = claude.replace('command = "claude"', 'command = "gemini-test"')
         claude = claude.replace('argv = ["claude", "-p"', 'argv = ["gemini-test", "-p"')   # its ask command too
         claude = claude.replace('argv = ["claude", "doctor"]', 'argv = ["gemini-test", "doctor"]')   # and Configure
+        claude = claude.replace('argv = ["claude", "{prompt}"]', 'argv = ["gemini-test", "{prompt}"]')   # and its task
         addon = self.verify(self.agent_addon(claude))
         addons.load(addon, self.hooks)                     # it has an updater, but no "updater" capability
         self.assertEqual(addon.state, "failed")
