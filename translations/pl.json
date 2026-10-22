@@ -2731,5 +2731,9 @@
  "What an agent paid per token cost is shown in. Euros use the European Central Bank's daily reference rate, fetched once a day from ecb.europa.eu.": "W czym pokazywany jest koszt agenta płatnego za token. Euro korzystają z dziennego kursu referencyjnego Europejskiego Banku Centralnego, pobieranego raz dziennie z ecb.europa.eu.",
  "For an agent paid per token: its cost label turns yellow from 75 % of this a day, and red over it. In the currency above.": "Dla agenta płatnego za token: jego wskaźnik kosztu robi się żółty od 75 % tej kwoty dziennie, a czerwony powyżej. W walucie powyżej.",
  "An estimate: the tokens of its sessions (counted on the day of their last reply) at the providers' API prices as of {0}.": "Szacunek: tokeny jego sesji (liczone w dniu ostatniej odpowiedzi) w cenach API dostawców z dnia {0}.",
- "Numbers from {0}'s session files (no text is read). The API value is what the tokens would cost at API prices, not what a plan costs.": "Liczby z plików sesji {0} (żaden tekst nie jest czytany). Wartość API to koszt tokenów w cenach API, nie koszt planu."
+ "Numbers from {0}'s session files (no text is read). The API value is what the tokens would cost at API prices, not what a plan costs.": "Liczby z plików sesji {0} (żaden tekst nie jest czytany). Wartość API to koszt tokenów w cenach API, nie koszt planu.",
+ "The cost {0} itself reports for each session (it keeps no token counts that add up).": "Koszt, który {0} sam podaje dla każdej sesji (nie prowadzi sumowalnych liczników tokenów).",
+ "{0} in 30 days as the agent itself reports it (it keeps no token counts to split).": "{0} w 30 dni według samego agenta (nie prowadzi liczników tokenów do podziału).",
+ "not known": "nieznany",
+ "{0} keeps no token counts on this PC that the app can read, so what it costs is not shown here. Its provider's own account page has it.": "{0} nie prowadzi na tym PC liczników tokenów, które aplikacja może odczytać, więc jego koszt nie jest tu pokazany. Ma go strona konta jego dostawcy."
 }

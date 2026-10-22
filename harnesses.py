@@ -280,7 +280,7 @@ def add_run(parent: Session, kind: str, run: Session) -> None:
 # --- the registry ----------------------------------------------------------------------------------
 
 _MODULES = ("claude", "codex", "copilot", "crush", "cursor_agent", "gemini", "grok", "hermes", "muse", "omp",
-            "openclaw", "opencode", "pi", "dsh", "bionic", "agy")     # Omarchy's menu order, then the app's own
+            "openclaw", "opencode", "pi", "dsh", "bionic", "agy", "goose")   # Omarchy's menu order, then the app's own
 
 
 _HIDDEN: set = set()       # built-in agents an installed add-on brings instead (hide_built_in)

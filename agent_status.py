@@ -482,6 +482,7 @@ class Costs:
     month: float = 0.0
     by_model: dict = field(default_factory=dict)   # model -> (provider, [4 token counts], [4 costs in USD])
     unpriced: dict = field(default_factory=dict)   # model -> its tokens (all four kinds together)
+    reported: float = 0.0    # of month: what the agent itself reports for sessions without token counts (Crush)
 
 
 def costs(command: str, today: dt.date | None = None, sessions=None) -> Costs | None:
@@ -521,6 +522,14 @@ def costs(command: str, today: dt.date | None = None, sessions=None) -> Costs | 
         for model, counts in (session.tokens or {}).items():
             if model not in split and model:
                 result.unpriced[model] = result.unpriced.get(model, 0) + sum(_int(n) for n in counts)
+        own = getattr(session, "cost", 0) or 0
+        if not session.tokens and isinstance(own, (int, float)) and own > 0:
+            # No token counts, only the agent's own cost for the session (Crush): that counts.
+            result.reported += own
+            result.month += own
+            result.week += own if age < 7 else 0.0
+            result.today += own if age == 0 else 0.0
+            any_price = True
     return result if any_price else None
 
 

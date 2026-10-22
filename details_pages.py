@@ -192,6 +192,11 @@ class DetailsPages:
         and per model the split into input, output, cache read and cache write. "API cost" for an agent
         paid per token (against Settings › Costs' day's limit), "API value" for one on a plan."""
         if spent is None:
+            harness = harnesses.get(agent.command)
+            if agent.installed and harness is not None and harness.sessions is None:
+                group = self.group_card(body, "cost", _("API cost"), "am-chart-symbolic", _("not known"))
+                self.note(group, _("{0} keeps no token counts on this PC that the app can read, so what it costs "
+                                   "is not shown here. Its provider's own account page has it.").format(agent.name))
             return
         currency, limit = ai_core.setting("cost_currency"), ai_core.setting("cost_limit")
         usd_per_eur = rate[0] if rate else None
@@ -221,6 +226,9 @@ class DetailsPages:
                     for kind, n, usd in zip(kinds, counts, parts) if n]
             rows.append((_("In all"), money(sum(parts)), ""))
             self.detail_grid(group, rows)
+        if spent.reported:
+            self.note(group, _("{0} in 30 days as the agent itself reports it (it keeps no token counts to split).")
+                      .format(money(spent.reported)))
         if spent.unpriced:
             local = ", ".join(f"{m} ({short_number(n)})" for m, n in sorted(spent.unpriced.items(), key=lambda x: -x[1])[:4])
             self.note(group, _("No API cost: {0} (tokens of models without a price, such as local LLMs).").format(local))

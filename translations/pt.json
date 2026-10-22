@@ -2652,5 +2652,9 @@
  "What an agent paid per token cost is shown in. Euros use the European Central Bank's daily reference rate, fetched once a day from ecb.europa.eu.": "Em que se mostra quanto custa um agente pago por token. Os euros usam a taxa de referência diária do Banco Central Europeu, obtida uma vez por dia de ecb.europa.eu.",
  "For an agent paid per token: its cost label turns yellow from 75 % of this a day, and red over it. In the currency above.": "Para um agente pago por token: a sua indicação de custo fica amarela a partir de 75 % disto por dia, e vermelha acima. Na moeda acima.",
  "An estimate: the tokens of its sessions (counted on the day of their last reply) at the providers' API prices as of {0}.": "Uma estimativa: os tokens das suas sessões (contados no dia da sua última resposta) aos preços de API dos fornecedores em {0}.",
- "Numbers from {0}'s session files (no text is read). The API value is what the tokens would cost at API prices, not what a plan costs.": "Números dos ficheiros de sessão de {0} (nenhum texto é lido). O valor de API é o que os tokens custariam a preços de API, não o que um plano custa."
+ "Numbers from {0}'s session files (no text is read). The API value is what the tokens would cost at API prices, not what a plan costs.": "Números dos ficheiros de sessão de {0} (nenhum texto é lido). O valor de API é o que os tokens custariam a preços de API, não o que um plano custa.",
+ "The cost {0} itself reports for each session (it keeps no token counts that add up).": "O custo que o próprio {0} indica para cada sessão (não guarda contagens de tokens que se possam somar).",
+ "{0} in 30 days as the agent itself reports it (it keeps no token counts to split).": "{0} em 30 dias, tal como o próprio agente o indica (não guarda contagens de tokens para dividir).",
+ "not known": "desconhecido",
+ "{0} keeps no token counts on this PC that the app can read, so what it costs is not shown here. Its provider's own account page has it.": "{0} não guarda neste PC contagens de tokens que a app consiga ler, por isso o seu custo não é mostrado aqui. A página da conta do seu fornecedor tem-no."
 }

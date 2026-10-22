@@ -100,7 +100,9 @@ REQUIRED = {"top": ("command", "name"), "way": ("kind",), "login": ("label", "ar
 # Readers and version sources the app has; a file names them.
 READERS = {"claude-files": ("claude_sessions", "collect_by_id"),
            "codex-files": ("agent_sessions", "codex_files"), "pi-files": ("agent_sessions", "pi_files"),
-           "dsh-files": ("agent_sessions", "dsh_files"), "omp-db": ("agent_sessions", "omp_db")}
+           "dsh-files": ("agent_sessions", "dsh_files"), "omp-db": ("agent_sessions", "omp_db"),
+           "goose-db": ("agent_sessions", "goose_db"), "gemini-files": ("agent_sessions", "gemini_files"),
+           "openclaw-db": ("agent_sessions", "openclaw_db"), "crush-db": ("agent_sessions", "crush_db")}
 LATEST = {"claude-channel": ("agent_updates", "claude_channel_latest")}
 INSTALLERS = {"agy": ("install_ctl", "Agy"), "dsh": ("install_ctl", "Dsh"),   # installers the app has
               "bionic": ("install_ctl", "Bionic")}
@@ -109,6 +111,7 @@ USAGE = {"pi": ("agent_status", "pi"), "hermes": ("agent_status", "hermes"),    
 DETAIL_READERS = {name: ("agent_readers", function) for name, function in (     # model + providers readers
     ("claude", "claude"), ("codex", "codex"), ("copilot", "copilot"), ("cursor", "cursor"),
     ("opencode", "opencode"), ("pi", "pi_like"), ("hermes", "hermes"), ("dsh", "dsh"), ("openclaw", "openclaw"),
+    ("goose", "goose"),
     ("lmstudio-app", "bionic"))}
 MODEL_READERS = {"claude": ("online_models", "claude_choices", "claude_plan"),       # online model switchers
                  "codex": ("online_models", "codex_choices", "codex_plan")}
