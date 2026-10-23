@@ -291,9 +291,13 @@
     <li>When a program that is not on the map uses a local LLM, the line from that LLM to the model
       turns bold in a colour of its own (purple or cyan, whichever stands out from the theme's other
       colours), and light runs along it. See <a href="#outside-use">Used by other apps</a>.</li>
-    <li>When an agent started another one — Claude Code running <code>pi -p …</code> through its shell,
-      for example — an <b>arrow</b> runs along the left of the agents' card from the agent that uses
-      the other to the one it uses, with light running along it; its tooltip names both.</li>
+    <li>When an agent started another one — Claude Code running <code>pi -p …</code> or
+      <code>codex exec …</code> through its shell, for example — an <b>arrow</b> runs along the left of
+      the agents' card from the agent that uses the other to the one it uses, with light running along
+      it; its tooltip names both. An agent can use several others at once, each with an arrow of its
+      own. While it is used, the agent it uses has its lines to its provider and on to its model in the
+      arrow's colour too, and the light on them runs in that colour: you see at a glance which provider
+      and model work for whom.</li>
     <li>The refresh symbol (<kbd>F5</kbd>) in the header row looks again at what is installed,
       set up and signed in, and runs the checks of a start again (new apps, add-ons, updates, open problems).</li>
     <li>Until the first line is drawn, a card above the map shows how, in three steps; <b>Watch how</b>
@@ -379,6 +383,18 @@
     <li><b>Start in terminal</b> opens it in a terminal window of its own.</li>
     <li>While it runs inside the window: <b>Show terminal</b> and <b>Stop</b>. Stop ends the agent and
       everything it started, such as its MCP servers.</li>
+    <li><b>Terminals…</b> lists where else the agent runs: <i>Here, in this window</i>, each
+      <i>Terminal window</i> (a click brings it to the front) and each instance <i>In the background</i>
+      — one with no window, such as <code>claude -p …</code> run by a script or by another agent. A
+      click on a background instance opens a terminal tab that shows what it writes, as it writes it:
+      questions, answers and the tools it uses (from its session file, or its output when that goes to
+      a file). The tab ends when the instance ends. This is the one place where the app shows
+      conversation text, and only for the instance you click.</li>
+    <li><b>Stop…</b> — also the small stop button left of <b>▶</b> on the agent's box — stops one of its
+      instances outside this window. Pick it from the list, which says where and when each one was
+      started. It is asked to end (SIGTERM) and, if it is still there after 3 seconds, ended. Only that
+      very process is stopped: if it has ended in the meantime and its process number now belongs to
+      another program, nothing happens.</li>
   </ul>
   <p>When agents have terminals in the window, a tab line above the map shows one tab per terminal
   with a dot for <i>working</i>, <i>running</i> or <i>ended</i>. Click a tab to show that terminal;
@@ -573,10 +589,24 @@
   means</b> explains the parts of the name, such as <i>35B-A3B</i> or <i>Q4_K_M</i>.</p>
   <p><b>Download options</b> lists every size with how it fits: in the graphics card, partly in
   system memory (works, but slower), or likely too large. The best fit is chosen for you;
-  <b>Download</b> gets it into the model folder.</p>
+  <b>Download</b> gets it into the model folder. For Ollama, which downloads by the size's name, only the sizes it can download are offered: a split file, one in a sub-folder or one Hugging Face refuses for Ollama is dimmed, with the reason, and never recommended.</p>
   <p>Downloads run in the background and show in a strip at the top of the main page. A broken
   connection is retried and the download resumes. If the app was closed during a download, it is
   listed as interrupted, with <b>Continue</b> or <b>Discard</b>.</p>
+
+  <h2 id="ask-model">Ask an agent which model fits</h2>
+  <p>Not sure which model to take? When an agent for AI checks is set up (Settings › <b>Agent for AI
+  checks</b>), the <b>Ask an agent</b> card under the search takes a question in your own words — for
+  example <i>a coding model with a long context that fits my graphics card</i>. <b>Ask</b> (or
+  <kbd>Ctrl</kbd>+<kbd>Enter</kbd>) sends it, together with your graphics card, its memory, the
+  computer's memory and the models you already have, to that agent, which looks on the web; a spinner
+  and the time taken so far show while it works. After a minute or two the card shows its short
+  summary, and the models it suggests appear in the result list below, headed <i>Suggested by …</i>:
+  each found on Hugging Face, with its size and why it fits, opening its page and download options on
+  a click like any search result. A suggestion Hugging Face does not have is named under the heading. It
+  suggests up to 10 models; <b>Suggestions</b>, at the right of the agent line, sets another number
+  (5, 10, 15 or 20). It uses the agent's tokens; the question is not kept, and each local LLM's page
+  asks on its own.</p>
 
   <h2 id="installed-models">Installed</h2>
   <div class="figure wide">
@@ -667,6 +697,7 @@
       <tr><td><b>By hand</b></td><td>A command line, or a web address with headers.</td></tr>
     </tbody>
   </table>
+  <p>Not sure which server you need? On the <b>MCP registry</b> tab, the <b>Ask an agent</b> card under the search takes a request in your own words — for example <i>read and write my Notion pages</i>. <b>Ask</b> (or <kbd>Ctrl</kbd>+<kbd>Enter</kbd>) has the agent for AI checks turn it into a few search words; the app searches the registry list it has downloaded with them, as the normal search does, and the agent picks the servers that fit from what was found, each with why. It does not search the web, sees only your request and the servers' public registry texts, and can only pick servers that are really in the list. A spinner and the time taken show while it works; after a few seconds to a minute the picks appear in the result list, up to 10 (<b>Suggestions</b> at the right of the agent line: 5, 10, 15 or 20). A search you type afterwards replaces them.</p>
 
   <h2 id="mcp-setup">Setting a server up</h2>
   <p>The server's page says who made it and how well that is checked, what it does (with things to
@@ -732,7 +763,7 @@
       <tr><td><b>Map animations</b></td><td>Light runs along the lines on the map: <b>Agents and other programs</b> (a working agent's line, and a local LLM's line to a model another program uses), <b>Only my agents</b>, or <b>Off</b>. A small animated map under the setting shows what each choice moves.</td></tr>
       <tr><td><b>Usage statistics box</b></td><td>The numbers along a working agent's line (see <a href="#map">Working with the map</a>): on or off, which of <b>Tokens per second</b>, <b>Context size</b> and <b>Context used</b> it shows, and its <b>Text size</b> (7&nbsp;pt by default).</td></tr>
       <tr><td><b>Subagents</b></td><td>For the <a href="#subagents">Subagents</a> page: how long finished subagents stay (<b>30 minutes</b> by default; 10, 30, 60 or 120) and how many at most (<b>10</b> by default; 5, 10, 20 or 40). Working ones are always shown.</td></tr>
-      <tr><td><b>Costs</b></td><td><b>Currency</b>: US dollar, or Euro at the European Central Bank's daily reference rate (fetched once a day from ecb.europa.eu). <b>A day's limit</b> for an agent paid per token (<b>100</b> by default; 10 to 500): its cost label turns yellow from 75&nbsp;% of it and red over it.</td></tr>
+      <tr><td><b>Costs</b></td><td><b>Currency</b>: US dollar, or Euro at the European Central Bank's daily reference rate (fetched once a day from ecb.europa.eu). <b>A day's limit</b> for an agent paid per token (<b>100</b> by default; 10 to 500). <b>Yellow from</b> and <b>Red from</b>: the share used at which a cost label or a battery turns yellow (75&nbsp;% by default) and red (90&nbsp;%). <b>Notify when red</b> (on by default): a desktop notification when an agent turns red — once for each limit until it resets, or once a day for a cost.</td></tr>
       <tr><td><b>Terminal tabs above the map</b></td><td>One tab per agent terminal in the window.</td></tr>
       <tr><td><b>Corners</b></td><td>Like windows, rounded or square.</td></tr>
       <tr><td><b>Start local LLMs with their agents</b></td><td>The background watcher described in <a href="#start-with-agents">Starting and stopping with agents</a>.</td></tr>
@@ -1084,7 +1115,9 @@
     <li><b>No credentials read.</b> It reads the agents' settings, but never their credential files.
       Whether an agent is signed in is judged from whether such a file exists. Values of keys and
       headers are never shown.</li>
-    <li><b>No conversations read.</b> Usage figures are read as numbers and times only.</li>
+    <li><b>No conversations read.</b> Usage figures are read as numbers and times only. The one
+      exception is watching an instance <i>In the background</i> (<a href="#running-agents">Terminals…</a>),
+      on your click, for that instance only; nothing of it is stored.</li>
     <li><b>Network only when asked</b> — searching models, MCP servers or skills, installing, testing
       a server — plus an update check every few hours.</li>
     <li><b>Checked downloads.</b> Programs are installed only when the download matches the checksum
@@ -1095,7 +1128,7 @@
       time limit.</li>
     <li><b>AI features only when you choose them.</b> Smart Check's look-ups run on a click, the daily
       AI checks only when switched on. The agent gets a short summary (names, versions, models), never
-      keys or settings values; its answers are checked before they are shown and never run. Tasks run
+      keys or settings values, handed over in a way other users of the computer cannot read; its answers are checked before they are shown and never run. Tasks run
       in a terminal you watch, and the agent asks before each step. You use them at your own risk.</li>
   </ul>
   <p>The README in each repository lists in full what is read, started and written.</p>
