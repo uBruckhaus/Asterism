@@ -263,8 +263,10 @@
 
   <h2 id="map">Working with the map</h2>
   <ul>
-    <li><b>Hover</b> a box to light it up together with everything it is joined to.</li>
-    <li><b>Click</b> a box to select it (✓); <kbd>Shift</kbd>+click adds more.
+    <li><b>Hover</b> a box to light it up together with everything it is joined to: their frames turn
+      the accent colour, the rest of the map dims. Otherwise every box has the same thin grey frame.</li>
+    <li><b>Click</b> a box to select it (✓); <kbd>Shift</kbd>+click adds more. The selected boxes and
+      everything joined to them keep the accent frame while the pointer is not over another box.
       <kbd>Esc</kbd> or <b>Clear selection</b> clears it.</li>
     <li>The <b>pin</b> at a box's top-right corner keeps its connections lit while you look elsewhere.</li>
     <li><b>Right-click</b> a box for everything its card on Setup offers: start or stop, details,
@@ -303,6 +305,16 @@
     <li>Until the first line is drawn, a card above the map shows how, in three steps; <b>Watch how</b>
       plays the animation from Help. It goes for good after the first connection, or with ×.</li>
     <li>Zoom with <b>− 100&nbsp;% +</b>, <kbd>Ctrl</kbd>+scroll or <kbd>Ctrl</kbd>+<kbd>+</kbd> / <kbd>−</kbd> / <kbd>0</kbd>.</li>
+    <li>The boxes sit in one card per category (agents, online providers, local LLMs, a card per
+      model folder, MCP servers, skills). Drag a card by its header to put it anywhere on the map, and
+      a box inside its card to change the order.</li>
+    <li><b>Click a card's header</b> to fold the card to its header (<b>▸</b> at the header's right) and
+      again to open it (<b>▾</b>). The lines of a folded card's boxes end at its header, so you still see
+      what is joined to it (the arrows between agents hide while the agents' card is folded). Opening a card moves the cards you put around it out of its way.</li>
+    <li>The <b>pin</b> right of the zoom keeps the map's layout — where you put the cards, the order of
+      the boxes and which cards are folded — after <b>Refresh</b> (<kbd>F5</kbd>) and a restart. Unpinned,
+      as it starts, the map comes back in its default layout on every refresh and start; your changes
+      last until then. <b>Default layout</b> puts everything back at once.</li>
   </ul>
   <div class="tip"><p><b>Tip</b> In a narrow window (below about 1300 pixels, such as half the
   screen) the map scrolls sideways.</p></div>
@@ -555,8 +567,8 @@
   </div>
   <ul>
     <li><b>On the map</b>, the line from the local LLM to the model it is generating with turns bold in
-      its own colour, light runs along it, and the model box gets a frame and dot in that colour and
-      says who is using it, for example <i>in use · Video Trans</i>.</li>
+      its own colour, light runs along it, and the model box gets a dot in that colour and says who
+      is using it, for example <i>in use · Video Trans</i>.</li>
     <li><b>The local LLM's right-click menu</b> and its <b>ⓘ Details</b> page say
       <i>In use by Video Trans · now</i>, or how many seconds ago it was last used.</li>
     <li>The <b>ⓘ</b> legend shows both marks.</li>
