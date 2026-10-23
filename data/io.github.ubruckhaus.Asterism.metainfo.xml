@@ -25,6 +25,18 @@
   <url type="bugtracker">https://github.com/uBruckhaus/Asterism/issues</url>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.11.0" date="2026-10-23">
+      <description>
+        <p>Subagents get a page of their own: a mark on the agent's box opens their map with each one's
+        task, working ones lit and finished ones dimmed (Settings › Subagents). An arrow joins two agents
+        when one started the other. What every agent's tokens cost at API prices: a cost label for
+        agents paid per token, coloured against a day's limit, and an API cost card on its page with
+        input, output and cache per model, in dollars or euros (Settings › Costs). Token counts are read
+        for Claude Code, Codex, Gemini CLI, Pi, Oh My Pi, OpenClaw, Crush, DeepSeek Harness and Goose, a
+        new agent. Also: Smart Check, the usage box on a working agent's line, a lighter map animation
+        and less work in the background.</p>
+      </description>
+    </release>
     <release version="0.10.1" date="2026-10-21">
       <description>
         <p>The user manual catches up with 0.10.0, in all eight languages: models at once and the GPU
