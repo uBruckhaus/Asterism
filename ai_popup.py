@@ -3954,7 +3954,9 @@ class AgentsMap(TextGuard, PageParts, SettingsPages, ThemeCss, InstallDialog, Se
             # The card fills the window's height; the scrollers only need a small minimum.
             scroller.set_max_content_height(-1)
             scroller.set_min_content_height(SCROLLER_MIN_HEIGHT)
-        if self.window is not None:
+        # A tiling desktop (Hyprland) sizes the window itself. Elsewhere this would shrink the window
+        # back to its minimum on every resize and override its saved size on every open.
+        if self.window is not None and not desktop.header_moves_window():
             self.window.set_default_size(1, 1)
 
     # --- screen --------------------------------------------------------------------
@@ -4185,6 +4187,7 @@ class AgentsMap(TextGuard, PageParts, SettingsPages, ThemeCss, InstallDialog, Se
 
 def main():
     ai_core.drop_agent_session_vars()       # started from an agent's terminal: nothing here inherits its session
+    ai_core.add_user_program_dirs()         # started from the launcher: agents installed with mise are found
     i18n.set_name("AI Agents Map", desktop.app_name())     # "Asterism" outside Omarchy
     app = AgentsMap()
     atexit.register(cleanup_pid)
