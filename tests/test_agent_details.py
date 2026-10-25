@@ -136,6 +136,24 @@ class DetailsTest(unittest.TestCase):
         self.write(".codex/config.toml", 'model = "o9"\n')
         self.assertEqual(ad.details_for("codex", usage_dir=self.home).model, "o9")      # set: as it is
 
+    def test_claude_model_from_its_last_session(self):
+        """No model in settings.json: the one its newest session's last reply ran, as the map's alias."""
+        import agent_readers
+        self.write(".claude/settings.json", '{"theme": "dark"}')
+        self.assertEqual(agent_readers.claude_session_model(), "")         # no sessions yet
+        old = self.write(".claude/projects/-a/old.jsonl", '{"message":{"model":"claude-sonnet-5-5"}}\n')
+        os.utime(old, (1_700_000_000, 1_700_000_000))
+        self.write(".claude/projects/-b/new.jsonl",
+                   '{"type":"assistant","message":{"model":"claude-sonnet-5-5"}}\n'
+                   '{"type":"assistant","message":{"model":"<synthetic>"}}\n'
+                   '{"type":"assistant","message":{"model":"claude-opus-5-5"}}\n')
+        self.assertEqual(agent_readers.claude_session_model(), "opus")
+        self.assertEqual(ad.details_for("claude", usage_dir=self.home).model, "opus")
+        self.write(".claude/projects/-b/new.jsonl", '{"message":{"model":"claude-haiku-5-5"}}\n')
+        self.assertEqual(agent_readers.claude_session_model(), "claude-haiku-5-5")   # no alias: its own name
+        self.write(".claude/settings.json", '{"model": "sonnet"}')
+        self.assertEqual(ad.details_for("claude", usage_dir=self.home).model, "sonnet")   # set: as it is
+
     def test_oversized_file_ignored(self):
         self.write(".copilot/config.json", '{"model": "x"}' + " " * (ad.MAX_FILE_BYTES + 1))
         self.assertEqual(ad.details_for("copilot", usage_dir=self.home).model, "")

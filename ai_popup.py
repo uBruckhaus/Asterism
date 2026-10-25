@@ -1230,7 +1230,6 @@ class AgentsMap(TextGuard, PageParts, SettingsPages, ThemeCss, InstallDialog, Se
                 self.running = running
                 self.refresh_overview()
                 self.refresh_map()
-                self.auto_layers()           # narrow window: agents and providers while one runs
             return False
 
         threading.Thread(target=work, daemon=True).start()
@@ -3912,8 +3911,7 @@ class AgentsMap(TextGuard, PageParts, SettingsPages, ThemeCss, InstallDialog, Se
         if key[0] != "narrow":
             note.set_visible(False)
             return
-        text = (_("Narrow window: agents and providers while an agent runs") if key[1] else
-                _("Narrow window: providers and models; agents show while one runs"))
+        text = _("Narrow window: agents and providers")
         note.set_label(text)
         note.set_tooltip_text(text + "\n" + _("Maximize the window for your own choice."))
         note.set_visible(True)
@@ -3924,9 +3922,12 @@ class AgentsMap(TextGuard, PageParts, SettingsPages, ThemeCss, InstallDialog, Se
         window it is not saved."""
         if getattr(self, "side_map", None) is None:
             return
-        key = window_rules.layer_situation(self.real_width(), bool(getattr(self, "running", None)))
+        key = window_rules.layer_situation(self.real_width())
         if key is None or key == self.auto_layers_key:
             return
+        # Narrow: more categories switched on scroll sideways instead of squeezing the columns.
+        self.side_map.view_columns = window_rules.NARROW_COLUMNS if key[0] == "narrow" else 0
+        self.side_map.relayout()
         if self.auto_layers_key == ("wide",):
             self.wide_layers = set(self.map_view.layers)      # back to it when wide again
         self.auto_layers_key = key

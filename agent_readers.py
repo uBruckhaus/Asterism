@@ -74,11 +74,44 @@ def opencode(details: "ad.Details"):
 
 def claude(details: "ad.Details"):
     settings = ad.read_json(ad._expand("~/.claude/settings.json"))
-    details.model = ad._text(settings.get("model"))
+    details.model = ad._text(settings.get("model")) or claude_session_model()   # none set: as its last session ran
     env = settings.get("env") if isinstance(settings.get("env"), dict) else {}
     base = env.get("ANTHROPIC_BASE_URL")
     if isinstance(base, str) and base:
         details.providers.append(ad.provider_for_url("Anthropic API", base))
+
+
+CLAUDE_MODEL = re.compile(rb'"model"\s*:\s*"(claude-[A-Za-z0-9._-]{1,80})"')
+CLAUDE_RECENT_PROJECTS = 16      # project folders looked into, the most recently changed first
+
+
+def claude_session_model(root: str = "~/.claude/projects") -> str:
+    """With no "model" in settings.json Claude Code runs its own default: the model of the last reply
+    in its newest session file (projects/<folder>/<session>.jsonl), as the alias the map switches
+    between ("claude-opus-5-5" -> "opus") when it is one; "" when there is none. Only the "model"
+    values of the file's end are read."""
+    import online_models
+    folder = ad._expand(root)
+    try:
+        projects = sorted((e.stat(follow_symlinks=False).st_mtime, e.path)
+                          for _i, e in zip(range(2000), os.scandir(folder)) if e.is_dir(follow_symlinks=False))
+        files = []
+        for _mtime, project in projects[-CLAUDE_RECENT_PROJECTS:]:
+            files += [(e.stat(follow_symlinks=False).st_mtime, e.path)
+                      for _i, e in zip(range(2000), os.scandir(project))
+                      if e.name.endswith(".jsonl") and e.is_file(follow_symlinks=False)]
+        if not files:
+            return ""
+        with open(max(files)[1], "rb") as handle:
+            size = os.fstat(handle.fileno()).st_size
+            handle.seek(max(0, size - 256 * 1024))
+            found = CLAUDE_MODEL.findall(handle.read(256 * 1024))
+    except OSError:
+        return ""
+    if not found:
+        return ""
+    model = found[-1].decode("ascii")
+    return next((a for a in online_models.CLAUDE_ALIASES if a in model.split("-")), model)
 
 
 def codex(details: "ad.Details"):
