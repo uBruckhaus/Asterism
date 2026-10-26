@@ -58,11 +58,14 @@ def add_user_program_dirs(environ=None) -> list:
     environ = os.environ if environ is None else environ
     home = Path.home()
     mise_data = Path(environ.get("MISE_DATA_DIR") or home / ".local/share/mise")
-    path = [p for p in environ.get("PATH", "").split(os.pathsep) if p]
+    if not mise_data.is_absolute():               # relative: would mean another folder in every child's cwd
+        mise_data = home / ".local/share/mise"
+    current = environ.get("PATH", "")
+    path = current.split(os.pathsep)
     added = [str(d) for d in (mise_data / "shims", home / ".local/bin")
              if d.is_dir() and str(d) not in path]
-    if added:
-        environ["PATH"] = os.pathsep.join(path + added)
+    if added:                                     # appended as they are: empty parts keep their meaning
+        environ["PATH"] = os.pathsep.join(([current] if current else []) + added)
     return added
 
 

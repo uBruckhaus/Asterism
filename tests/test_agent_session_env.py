@@ -56,5 +56,15 @@ class UserProgramDirsTest(unittest.TestCase):
             self.assertEqual(env["PATH"], "/usr/bin")
 
 
+    def test_empty_path_parts_and_a_relative_mise_dir(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp)
+            (home / ".local/share/mise/shims").mkdir(parents=True)
+            env = {"PATH": "/usr/bin::/bin:", "MISE_DATA_DIR": "relative/mise"}
+            with mock.patch.object(ai_core.Path, "home", return_value=home):
+                added = ai_core.add_user_program_dirs(env)
+            self.assertEqual(added, [str(home / ".local/share/mise/shims")])       # not relative/mise
+            self.assertEqual(env["PATH"], "/usr/bin::/bin::" + added[0])           # empty parts kept
+
 if __name__ == "__main__":
     unittest.main()
