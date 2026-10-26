@@ -12,12 +12,12 @@ optdepends=('vte4: agents in a terminal inside the window'
             'mise: updates for agents installed with mise')
 # The signed agent and provider add-ons (switched off until the first start's Set up).
 _addons=https://github.com/uBruckhaus/asterism-addons/releases/download
-_adapters=0.11.0              # the adapter add-ons' own release (signed separately)
+_adapters=0.11.1              # the adapter add-ons' own release (signed separately)
 source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/v$pkgver.tar.gz"
         "adapters-$_adapters.zip::$_addons/adapters-$_adapters/adapters-$_adapters.zip")
 noextract=("adapters-$_adapters.zip")
 sha256sums=('4e2d16d8ea8f8242bbc5de0b2a00e35801c2e5f42b514ba817132295fed659d6'
-            '1cc38cc14bb3fe51eb75cc1d3e874c53e0cc68cc068e11fb7e167cf3bf380355')
+            '7a35f6f78b182996954ada459cfbca5f4a300988f6ed8a7324aa4d970b61b051')
 
 package() {
     cd "Asterism-$pkgver"          # GitHub names the folder after the repository
