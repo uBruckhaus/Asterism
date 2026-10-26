@@ -17,6 +17,8 @@ from unittest import mock
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(ROOT / "tests"))
+import isolate  # noqa: E402
 import addon_api  # noqa: E402
 import addons  # noqa: E402
 import harnesses  # noqa: E402
@@ -55,6 +57,9 @@ class NewAddonEndToEndTest(unittest.TestCase):
         self.home = tempfile.TemporaryDirectory()
         self.addCleanup(self.home.cleanup)
         home = Path(self.home.name)
+        # The app's own folders move with HOME: inventory.collect writes the MCP servers it finds
+        # (mcp_library) to the config folder, which once put this agent's "files" into the real one.
+        isolate.desktop_in(self, home)
         (home / "models").mkdir()
         (home / "models/tiny-coder-Q4_K_M.gguf").write_bytes(b"GGUF" + b"\0" * 60)
         (home / ".exampleagent/sessions").mkdir(parents=True)
