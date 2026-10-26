@@ -25,6 +25,18 @@
   <url type="bugtracker">https://github.com/uBruckhaus/Asterism/issues</url>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.11.1" date="2026-10-26">
+      <description>
+        <p>Everything AI on this PC is on the map: MCP servers and skill folders that no agent uses yet
+        are faded boxes, and a line from an agent connects one (nothing is connected by itself). Setup's
+        Local MCP servers and Skills get Add folder… for places such as a shared disk with apps and
+        skills, and servers at a web address get a card of their own. The first open shows what is
+        found in an animated overview. Also: cards on the map fold and a pin keeps the layout; Terminals…
+        and Stop… for agents started outside the window; Ask an agent which model or MCP server fits;
+        agents installed with mise start from the app launcher; safer model moves and many hardening
+        fixes.</p>
+      </description>
+    </release>
     <release version="0.11.0" date="2026-10-23">
       <description>
         <p>Subagents get a page of their own: a mark on the agent's box opens their map with each one's
