@@ -64,5 +64,69 @@ class ItemsTest(unittest.TestCase):
         self.assertEqual(items["anthropic"].target, "")            # online: nothing to install
 
 
+
+class UpdateAllTest(unittest.TestCase):
+    """Update all: every add-on with a newer catalog version, one toast, a failure named."""
+
+    def fake_app(self, items):
+        app = mock.MagicMock()
+        app.addons_updating = False
+        app.addon_update_items = lambda: items
+        app.update_all_addons = lambda: page.AddonsPage.update_all_addons(app)
+        app.addons_busy = lambda: page.AddonsPage.addons_busy(app)
+        app.run_addon_job = lambda work, done: page.AddonsPage.run_addon_job(app, work, done)
+        app.sync_update_bar = lambda: page.AddonsPage.sync_update_bar(app)
+        app.addons_items = []
+        return app
+
+    def run_sync(self, app):
+        with mock.patch.object(page.threading, "Thread",
+                               side_effect=lambda target, daemon: mock.Mock(start=target)), \
+                mock.patch.object(page.GLib, "idle_add", side_effect=lambda fn, *a: fn(*a)):
+            app.update_all_addons()
+
+    def test_updates_each_and_reports_failures(self):
+        good = mock.Mock(entry=entry("alpha", "1.1.0"))
+        good.name = "Alpha"
+        bad = mock.Mock(entry=entry("beta", "1.1.0"))
+        bad.name = "Beta"
+        app = self.fake_app([good, bad])
+
+        def install(e):
+            if e.id == "beta":
+                raise addon_store.InstallError("bad signature")
+        with mock.patch.object(addon_store, "install", side_effect=install) as installed:
+            self.run_sync(app)
+        self.assertEqual(installed.call_count, 2)
+        message = app.addons_changed.call_args[0][0]
+        self.assertIn("Alpha", message)
+        self.assertIn("Beta (bad signature)", message)
+        self.assertFalse(app.addons_updating)
+        app.refresh_overview.assert_called_once()
+
+    def test_nothing_to_update_or_already_running_does_nothing(self):
+        with mock.patch.object(addon_store, "install") as installed:
+            self.run_sync(self.fake_app([]))
+            busy = self.fake_app([mock.Mock(entry=entry("alpha", "1.1.0"))])
+            busy.addons_updating = True
+            self.run_sync(busy)
+        installed.assert_not_called()
+
+    def test_unexpected_error_never_leaves_the_flag_set(self):
+        item = mock.Mock(entry=entry("alpha", "1.1.0"))
+        item.name = "Alpha"
+        app = self.fake_app([item])
+        import zipfile
+        with mock.patch.object(addon_store, "install", side_effect=zipfile.BadZipFile("CRC")):
+            self.run_sync(app)
+        self.assertFalse(app.addons_updating)
+        self.assertIn("Alpha (CRC)", app.addons_changed.call_args[0][0])
+        # A single update while Update all runs is refused, not started twice.
+        app.addons_updating = True
+        with mock.patch.object(addon_store, "install") as installed:
+            page.AddonsPage.update_addon(app, item)
+        installed.assert_not_called()
+
+
 if __name__ == "__main__":
     unittest.main()

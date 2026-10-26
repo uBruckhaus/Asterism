@@ -215,6 +215,16 @@ class AddonsPage:
         self.addons_status = Gtk.Label(xalign=0, wrap=True)
         self.addons_status.add_css_class("am-agent-detail")
         page.append(self.addons_status)
+        # Newer versions in the signed catalog: what to do, and one click for all of them.
+        self.addons_update_bar = Gtk.Box(spacing=8, visible=False)
+        self.addons_update_bar.add_css_class("am-addon-update-bar")
+        self.addons_update_text = Gtk.Label(xalign=0, wrap=True, hexpand=True)
+        self.addons_update_bar.append(self.addons_update_text)
+        update_all = Gtk.Button(label=_("Update all"), valign=Gtk.Align.CENTER)
+        update_all.add_css_class("suggested-action")
+        update_all.connect("clicked", lambda *_a: self.update_all_addons())
+        self.addons_update_bar.append(update_all)
+        page.append(self.addons_update_bar)
         self.addons_stack = Gtk.Stack(vexpand=True, transition_type=Gtk.StackTransitionType.CROSSFADE)
         self.addons_list = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=ai_core.GAP, margin_bottom=12)
         self.addons_stack.add_named(self.page_scroller(self.addons_list), "list")
@@ -364,6 +374,9 @@ class AddonsPage:
         shown = [i for i in self.addons_items if visible(i, self.addons_filter, query)]
         updates = sum(1 for i in self.addons_items if i.update)
         self.addons_chips["updates"].set_label(_("Updates") + (f" {updates}" if updates else ""))
+        self.sync_update_bar()
+        self.addons_update_text.set_label(_("Newer versions of your add-ons are ready: {0}. Update all of them "
+                                            "here, or one at a time with Update on its card.").format(updates))
         sections = (("suggested", _("Suggested for this PC"), "list-add-symbolic",
                      [i for i in shown if i.state == "suggested" or i.here]),
                     ("installed", _("Installed add-ons"), "application-x-addon-symbolic",
@@ -664,11 +677,48 @@ class AddonsPage:
         self.addons_select = select
         self.refresh_addons()
 
+    def addons_busy(self) -> bool:
+        """An install or update runs: one at a time (two writing the same add-on folder collide)."""
+        if getattr(self, "addons_updating", False):
+            self.toast(_("Add-ons are being updated. Try again in a moment."), 4)
+            return True
+        return False
+
+    def run_addon_job(self, work, done):
+        """`work` in the background, `done(result)` on the GTK thread; the busy flag is set until then,
+        whatever `work` raises."""
+        self.addons_updating = True
+
+        def run():
+            try:
+                result = work()
+            except Exception as error:      # never leave the flag set
+                result = error
+            GLib.idle_add(finish, result)
+
+        def finish(result):
+            self.addons_updating = False
+            done(result)
+            self.sync_update_bar()          # a failed job leaves the list as it was: the bar comes back
+            return False
+        try:
+            threading.Thread(target=run, daemon=True).start()
+        except RuntimeError as error:
+            finish(error)
+
+    def sync_update_bar(self):
+        bar = getattr(self, "addons_update_bar", None)
+        if bar is not None:
+            bar.set_visible(any(i.update for i in getattr(self, "addons_items", []))
+                            and not getattr(self, "addons_updating", False))
+
     def install_addon(self, item: Item):
         if item.entry is None:
             return
 
         def go():
+            if self.addons_busy():
+                return
             self.toast(_("Installing {0}…").format(item.name), 3)
 
             def work():
@@ -684,12 +734,11 @@ class AddonsPage:
                     self.toast(_("{0} was not installed: {1}").format(item.name, error), 8)
                 else:
                     self.addons_changed(_("{0} is installed and on.").format(item.name), item.id)
-                return False
-            threading.Thread(target=lambda: GLib.idle_add(done, work()), daemon=True).start()
+            self.run_addon_job(work, done)
         self.addon_confirm(item, _("Install {0}?").format(item.name), _("Install and switch on"), go)
 
     def update_addon(self, item: Item):
-        if item.entry is None:
+        if item.entry is None or self.addons_busy():
             return
 
         def work():
@@ -704,9 +753,47 @@ class AddonsPage:
                 self.toast(_("{0} was not updated: {1}").format(item.name, error), 8)
             else:
                 self.addons_changed(_("{0} is updated to {1}.").format(item.name, item.entry.version), item.id)
-            return False
         self.toast(_("Updating {0}…").format(item.name), 3)
-        threading.Thread(target=lambda: GLib.idle_add(done, work()), daemon=True).start()
+        self.run_addon_job(work, done)
+
+    def addon_update_items(self) -> list:
+        """The installed add-ons the signed catalog has a newer version of (empty until the catalog
+        was read, and in the plugin edition, which has no add-ons)."""
+        try:
+            items = build_items(self.addons, getattr(self, "addons_entries", []), self.agent_list,
+                                self.inventory.runtimes)
+        except Exception:
+            return []
+        return [i for i in items if i.update and i.entry is not None]
+
+    def update_all_addons(self):
+        """Every add-on with a newer version, one after the other in the background; then they
+        are loaded again (no restart) and one toast says what happened."""
+        items = self.addon_update_items()
+        if not items or self.addons_busy():
+            return
+        if hasattr(self, "addons_update_bar"):
+            self.addons_update_bar.set_visible(False)
+
+        def work():
+            done, failed = [], []
+            for item in items:
+                try:
+                    addon_store.install(item.entry)
+                    done.append(item.name)
+                except Exception as error:      # one bad download never stops the others
+                    failed.append(f"{item.name} ({error})")
+            return done, failed
+
+        def finished(result):
+            done, failed = result if isinstance(result, tuple) else ([], [str(result)])
+            message = _("Add-ons updated: {0}").format(", ".join(done)) if done else ""
+            if failed:
+                message = (message + " · " if message else "") + _("Not updated: {0}").format("; ".join(failed))
+            self.addons_changed(message)
+            self.refresh_overview()
+        self.toast(_("Updating add-ons…"), 3)
+        self.run_addon_job(work, finished)
 
     def switch_addon_on(self, item: Item):
         def go():
@@ -757,6 +844,8 @@ class AddonsPage:
                 url = line
         if not path and not url:
             return False                      # not an add-on: let others handle it
+        if self.addons_busy():
+            return True
         self.toast(_("Adding the add-on…"), 3)
 
         def work():
@@ -767,15 +856,14 @@ class AddonsPage:
                 return None, str(error)
 
         def done(found):
-            addon, error = found
+            addon, error = found if isinstance(found, tuple) else (None, str(found))
             if addon is None:
                 self.toast(_("Not installed: {0}").format(error), 8)
             else:
                 self.reload_addons()
                 self.open_addons(select=addon.id)
                 self.toast(_("{0} is installed; switch it on on its card.").format(addon.name), 6)
-            return False
-        threading.Thread(target=lambda: GLib.idle_add(done, work()), daemon=True).start()
+        self.run_addon_job(work, done)
         return True
 
     def addon_from_file(self):
@@ -792,12 +880,20 @@ class AddonsPage:
             except GLib.Error:
                 return
             path = file.get_path() if file is not None else None
-            if not path:
+            if not path or self.addons_busy():
                 return
-            try:
-                addon = addon_store.install_file(Path(path))
-            except addon_store.InstallError as error:
-                self.toast(_("Not installed: {0}").format(error), 8)
-                return
-            self.addons_changed(_("{0} is installed; switch it on on its card.").format(addon.name), addon.id)
+
+            def work():
+                try:
+                    return addon_store.install_file(Path(path))
+                except addon_store.InstallError as error:
+                    return error
+
+            def done(addon):
+                if isinstance(addon, Exception):
+                    self.toast(_("Not installed: {0}").format(addon), 8)
+                else:
+                    self.addons_changed(_("{0} is installed; switch it on on its card.").format(addon.name),
+                                        addon.id)
+            self.run_addon_job(work, done)
         dialog.open(self.window, None, chosen)
