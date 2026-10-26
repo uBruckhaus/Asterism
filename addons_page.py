@@ -676,6 +676,8 @@ class AddonsPage:
             self.toast(message, 4)
         self.addons_select = select
         self.refresh_addons()
+        if hasattr(self, "refresh_setup"):
+            self.refresh_setup()          # an update from a Setup card: its badge and menu follow
 
     def addons_busy(self) -> bool:
         """An install or update runs: one at a time (two writing the same add-on folder collide)."""

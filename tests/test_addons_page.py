@@ -128,5 +128,25 @@ class UpdateAllTest(unittest.TestCase):
         installed.assert_not_called()
 
 
+class SetupCardUpdateTest(unittest.TestCase):
+    """A Setup card's menu offers Update add-on when the catalog has a newer version."""
+
+    def test_update_entry_only_with_an_update(self):
+        import setup_page
+        app = mock.MagicMock()
+        newer = mock.Mock(id="agent-pi", entry=entry("agent-pi", "0.11.1"))
+        app.addon_update_items = lambda: [newer]
+        addon = mock.Mock(id="agent-pi")
+        entries = setup_page.SetupPage.addon_entries(app, addon)
+        self.assertEqual(len(entries), 2)
+        entries[0]("popover")
+        label, _popover, run = app.menu_item.call_args[0][:3]
+        self.assertIn("0.11.1", label)
+        run()
+        app.update_addon.assert_called_once_with(newer)
+        app.addon_update_items = lambda: []
+        self.assertEqual(len(setup_page.SetupPage.addon_entries(app, addon)), 1)
+
+
 if __name__ == "__main__":
     unittest.main()
