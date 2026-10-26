@@ -157,6 +157,11 @@
   <b>Stop and close</b> (the agent's local LLM then stops too and frees the graphics card's memory)
   or <b>Keep running</b>.</p></div>
 
+  <p>While the app looks at what is on this computer on the first open, an animated overlay lists
+  what it finds, kind by kind: agents, local LLMs, MCP servers and skills, each with a spinner that
+  turns into ✓ and a number, and how many of them are not connected yet. It fades out by itself after
+  a moment; a click closes it at once.</p>
+
   <h2 id="remove">Removing the app</h2>
   <p><span class="badge omarchy">Omarchy</span> <code>omarchy plugin remove ubruckhaus.ai-agents-map</code>.
   <span class="badge">Asterism</span> Remove the package or delete the AppImage.</p>
@@ -208,10 +213,11 @@
   </ol>
 
   <h2 id="my-setup">Setup</h2>
-  <p>The map shows only what is set up: installed agents and local LLMs, the MCP servers and skill
-  folders agents use, and models. Everything else is done on <b>Setup</b> (the button in the
-  header, beside <b>Map</b>), one card per item, in sections that fold away with a click on their
-  bar:</p>
+  <p>The map shows what is set up — installed agents and local LLMs, the MCP servers and skill
+  folders agents use, and models — and, faded, the MCP servers and skill folders found on this
+  computer that no agent uses yet, ready to connect with a line (see <a href="#found-on-pc">Found on
+  this PC</a>). Everything else is done on <b>Setup</b> (the button in the header, beside <b>Map</b>),
+  one card per item, in sections that fold away with a click on their bar:</p>
   <ul>
     <li><b>How things get onto your map</b> — a folded card at the top; open it for five numbered steps:
       switch on (or find) what you use, install what is missing, sign in to an online agent, connect by
@@ -251,6 +257,13 @@
   <p>There is nothing to hide: what you do not want on the map is switched off or removed here. When an
   install or a sign-in runs in a terminal in the window, <b>Back</b> (or <b>×</b> on its tab) returns to
   the page it was started from.</p>
+
+  <p><b>Local MCP servers</b> and <b>Online MCP servers</b> (those reached at a web address) are two
+  sections. <b>Add folder…</b> in <b>Local MCP servers</b> and in <b>Skills</b> adds a folder where the
+  app looks for them too — for example a shared disk with unpacked apps that offer an MCP server, or a
+  folder of your own skills. The folders added are listed beside the button; <b>✕</b> on one stops
+  looking there (nothing in it is deleted). What is found in them shows on the map, faded, until a line
+  connects it: Setup only has cards for what is set up.</p>
 
   <h2 id="views">Choosing what the map shows</h2>
   <p>The map shows everything that is set up. The <b>Show</b> toggles below the GPU card leave whole
@@ -315,6 +328,10 @@
       the boxes and which cards are folded — after <b>Refresh</b> (<kbd>F5</kbd>) and a restart. Unpinned,
       as it starts, the map comes back in its default layout on every refresh and start; your changes
       last until then. <b>Default layout</b> puts everything back at once.</li>
+    <li><b>Faded boxes</b> in the MCP servers and skills cards are on this computer but used by no
+      agent. Drag a line from an agent to one to connect it (see <a href="#found-on-pc">Found on this
+      PC</a>). MCP servers reached at a web address have a card of their own, <b>Online MCP servers</b>,
+      beside <b>Local MCP servers</b>; both fold like any other card.</li>
   </ul>
   <div class="tip"><p><b>Tip</b> In a narrow window (below about 1300 pixels, such as half the
   screen) the map scrolls sideways.</p></div>
@@ -680,6 +697,27 @@
   other agent gets one link per skill in its own skills folder. A folder an agent reads by itself
   (most read <code>~/.agents/skills</code>) cannot be taken away from just that agent.</p>
 
+  <h2 id="found-on-pc">Found on this PC</h2>
+  <p>Every time the window opens (and with <b>Refresh</b>), the app looks for MCP servers and skill
+  folders on this computer, without starting anything: programs that offer an MCP server in
+  <code>~/.local/bin</code>, <code>~/Applications</code>, <code>/opt</code> and the folders added on
+  Setup, and skill folders that apps brought along or that are in an added folder. What no agent uses
+  yet is on the map as a faded box without lines. Nothing is connected by itself.</p>
+  <ol>
+    <li>Drag from an agent to the faded box.</li>
+    <li>The connect page shows how the server will be started — the command its own help text names,
+      for example with a folder it may read and write — and exactly what changes in the agent's
+      settings.</li>
+    <li><b>Connect</b> writes it. The box is no longer faded, and the app checks right away that the
+      server answers (see <a href="#failed">When a connection fails</a>).</li>
+  </ol>
+  <p>An app's MCP server runs on its own: the app's window does not have to be open. Programs inside an
+  AppImage that has not been unpacked are not on the map; <b>Add MCP server</b> › <b>On this PC</b>
+  unpacks them first.</p>
+  <div class="tip"><p><b>Tip</b> Keep apps with an MCP server and your own skills in one folder each —
+  for example on a disk that several systems share — and add those folders on Setup. On another
+  computer, add the same folders there, and everything in them is on its map too.</p></div>
+
   <h2 id="failed">When a connection fails</h2>
   <p>Right after a connection is written, the app checks whether it will work: whether a local LLM
   is installed and offers the model, whether an MCP server answers, whether the skill links are
@@ -710,6 +748,10 @@
     </tbody>
   </table>
   <p>Not sure which server you need? On the <b>MCP registry</b> tab, the <b>Ask an agent</b> card under the search takes a request in your own words — for example <i>read and write my Notion pages</i>. <b>Ask</b> (or <kbd>Ctrl</kbd>+<kbd>Enter</kbd>) has the agent for AI checks turn it into a few search words; the app searches the registry list it has downloaded with them, as the normal search does, and the agent picks the servers that fit from what was found, each with why. It does not search the web, sees only your request and the servers' public registry texts, and can only pick servers that are really in the list. A spinner and the time taken show while it works; after a few seconds to a minute the picks appear in the result list, up to 10 (<b>Suggestions</b> at the right of the agent line: 5, 10, 15 or 20). A search you type afterwards replaces them.</p>
+
+  <p><b>On this PC</b> also looks in the folders added with <b>Add folder…</b> on Setup › <b>Local MCP
+  servers</b>: in each folder itself and in the app folders in it, such as
+  <code>photocraft-0.16.0/usr/bin</code>.</p>
 
   <h2 id="mcp-setup">Setting a server up</h2>
   <p>The server's page says who made it and how well that is checked, what it does (with things to
@@ -754,6 +796,9 @@
   </ul>
   <div class="warn"><p><b>Caution</b> Skills can contain scripts that an agent may run later. The page
   shows the repository and lists the scripts before anything is fetched — check them.</p></div>
+
+  <p><b>On this PC</b> also looks in the folders added with <b>Add folder…</b> on Setup ›
+  <b>Skills</b>.</p>
 
   <h2 id="skills-details">Skill folders</h2>
   <p>Each skill folder card shows its skills and the agents that read it. A folder that is shared
